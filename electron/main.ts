@@ -2,9 +2,24 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron'
 import { join } from 'path'
 import Store from 'electron-store'
 import { initAllIpcHandlers, cleanupAllIpcHandlers } from './ipc'
+import { 
+  initSentryMain, 
+  flushSentry, 
+  trackWindowEvent, 
+  trackMenuAction, 
+  trackSessionStart,
+  trackSessionMetrics,
+  setUserContext 
+} from '../src/shared/sentry'
 
 // Check if running in development
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+
+// Get app version
+const appVersion = app.getVersion() || '1.0.0'
+
+// Initialize Sentry early (before any errors can occur)
+initSentryMain(appVersion)
 
 // Initialize electron store for persistent settings
 const store = new Store({
@@ -20,8 +35,24 @@ const store = new Store({
 
 let mainWindow: BrowserWindow | null = null
 
+// Session tracking
+const sessionId = `desktop-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+const sessionStartTime = Date.now()
+let sessionMetrics = {
+  tasksCompleted: 0,
+  tasksFailed: 0,
+  totalTokensUsed: 0,
+  errorsEncountered: 0,
+  toolsExecuted: 0,
+  filesEdited: 0,
+  terminalCommands: 0,
+  responseTimesMs: [] as number[],
+}
+
 function createWindow(): void {
   const { width, height } = store.get('windowBounds') as { width: number; height: number }
+
+  trackWindowEvent('created', { width, height })
 
   mainWindow = new BrowserWindow({
     width,
@@ -44,7 +75,14 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
+    trackWindowEvent('focused')
   })
+
+  mainWindow.on('focus', () => trackWindowEvent('focused'))
+  mainWindow.on('blur', () => trackWindowEvent('blurred'))
+  mainWindow.on('minimize', () => trackWindowEvent('minimized'))
+  mainWindow.on('maximize', () => trackWindowEvent('maximized'))
+  mainWindow.on('restore', () => trackWindowEvent('restored'))
 
   // Save window bounds on resize
   mainWindow.on('resize', () => {
@@ -77,6 +115,7 @@ function createMenu(): void {
           label: 'Open Folder...',
           accelerator: 'CmdOrCtrl+O',
           click: async () => {
+            trackMenuAction('Open Folder', 'CmdOrCtrl+O')
             const result = await dialog.showOpenDialog({
               properties: ['openDirectory']
             })
@@ -167,6 +206,7 @@ function createMenu(): void {
           label: 'New Chat',
           accelerator: 'CmdOrCtrl+N',
           click: () => {
+            trackMenuAction('New Chat', 'CmdOrCtrl+N')
             mainWindow?.webContents.send('new-chat')
           }
         },
@@ -182,6 +222,7 @@ function createMenu(): void {
           label: 'Settings...',
           accelerator: 'CmdOrCtrl+,',
           click: () => {
+            trackMenuAction('Settings', 'CmdOrCtrl+,')
             mainWindow?.webContents.send('open-settings')
           }
         }
@@ -247,6 +288,9 @@ app.whenReady().then(() => {
     app.setAppUserModelId('com.aibuddy.desktop')
   }
 
+  // Track session start
+  trackSessionStart(sessionId)
+
   // Initialize all IPC handlers
   initAllIpcHandlers()
 
@@ -266,7 +310,29 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
+  // Track session end metrics
+  const avgResponseTime = sessionMetrics.responseTimesMs.length > 0
+    ? Math.round(sessionMetrics.responseTimesMs.reduce((a, b) => a + b, 0) / sessionMetrics.responseTimesMs.length)
+    : 0
+
+  trackSessionMetrics({
+    sessionDurationMs: Date.now() - sessionStartTime,
+    tasksCompleted: sessionMetrics.tasksCompleted,
+    tasksFailed: sessionMetrics.tasksFailed,
+    totalTokensUsed: sessionMetrics.totalTokensUsed,
+    averageResponseTime: avgResponseTime,
+    errorsEncountered: sessionMetrics.errorsEncountered,
+    toolsExecuted: sessionMetrics.toolsExecuted,
+    filesEdited: sessionMetrics.filesEdited,
+    terminalCommands: sessionMetrics.terminalCommands,
+  })
+
+  trackWindowEvent('closed')
+  
+  // Flush Sentry before quitting
+  await flushSentry()
+  
   cleanupAllIpcHandlers()
 })
 
@@ -323,6 +389,30 @@ ipcMain.handle('shell:showItemInFolder', (_event, path: string) => {
   return true
 })
 
+// IPC Handlers - Session metrics (from renderer)
+ipcMain.handle('metrics:increment', (_event, metric: keyof typeof sessionMetrics, value: number = 1) => {
+  if (metric === 'responseTimesMs') {
+    sessionMetrics.responseTimesMs.push(value)
+  } else if (metric in sessionMetrics && typeof sessionMetrics[metric] === 'number') {
+    (sessionMetrics[metric] as number) += value
+  }
+  return true
+})
+
+ipcMain.handle('metrics:get', () => {
+  return {
+    ...sessionMetrics,
+    sessionDurationMs: Date.now() - sessionStartTime,
+    sessionId,
+  }
+})
+
+// IPC Handlers - User context (for Sentry)
+ipcMain.handle('sentry:setUser', (_event, userId: string, email?: string) => {
+  setUserContext(userId, email)
+  return true
+})
+
 // Export for use in IPC handlers
-export { mainWindow, store }
+export { mainWindow, store, sessionMetrics }
 

@@ -4,6 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import './index.css'
 
+// Initialize Sentry for renderer process
+import { initSentryRenderer } from './lib/sentry'
+initSentryRenderer()
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
