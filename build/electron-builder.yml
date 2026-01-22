@@ -1,0 +1,109 @@
+appId: com.aibuddy.desktop
+productName: AIBuddy
+copyright: Copyright © 2026 AIBuddy Studio
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - package.json
+
+extraResources:
+  - from: build/icons
+    to: icons
+    filter:
+      - "**/*"
+
+asar: true
+compression: maximum
+
+mac:
+  category: public.app-category.developer-tools
+  icon: build/icon.icns
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+  window:
+    width: 540
+    height: 380
+
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: AIBuddy
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+  license: LICENSE
+
+linux:
+  icon: build/icons
+  category: Development
+  target:
+    - AppImage
+    - deb
+    - rpm
+  desktop:
+    Name: AIBuddy
+    Comment: Your intelligent coding partner
+    Categories: Development;IDE;
+
+appImage:
+  artifactName: ${productName}-${version}-${arch}.AppImage
+
+deb:
+  depends:
+    - gconf2
+    - gconf-service
+    - libnotify4
+    - libappindicator1
+    - libxtst6
+    - libnss3
+
+rpm:
+  depends:
+    - libXScrnSaver
+
+publish:
+  provider: github
+  owner: AIBuddyStudio
+  repo: aibuddy-desktop
+  releaseType: release
+
+# Auto-updater configuration
+autoUpdater:
+  checkForUpdatesOnStartup: true
+
