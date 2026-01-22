@@ -1,6 +1,15 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron'
 import { join } from 'path'
 import Store from 'electron-store'
+
+// Type for electron-store v6
+interface StoreSchema {
+  windowBounds: { width: number; height: number }
+  recentWorkspaces: string[]
+  theme: string
+  apiKey: string
+  aibuddyCredits: number
+}
 import { initAllIpcHandlers, cleanupAllIpcHandlers } from './ipc'
 import { 
   initSentryMain, 
@@ -22,7 +31,7 @@ const appVersion = app.getVersion() || '1.0.0'
 initSentryMain(appVersion)
 
 // Initialize electron store for persistent settings
-const store = new Store({
+const store = new Store<StoreSchema>({
   name: 'aibuddy-settings',
   defaults: {
     windowBounds: { width: 1400, height: 900 },
