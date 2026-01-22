@@ -1,0 +1,12 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussions
+    url: https://github.com/ThomasWDev/aibuddy-desktop/discussions
+    about: Ask questions and discuss features
+  - name: 📚 Documentation
+    url: https://github.com/ThomasWDev/aibuddy-desktop/blob/main/DESKTOP_APP_GUIDE.md
+    about: Read the documentation
+  - name: 🌐 Website
+    url: https://aibuddy.life
+    about: Visit our website
+

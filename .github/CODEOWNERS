@@ -1,0 +1,17 @@
+# Default owners for everything in the repo
+* @ThomasWDev
+
+# Electron main process
+/electron/ @ThomasWDev
+
+# React renderer
+/renderer/ @ThomasWDev
+
+# Build configuration
+/build/ @ThomasWDev
+*.yml @ThomasWDev
+*.json @ThomasWDev
+
+# Documentation
+*.md @ThomasWDev
+

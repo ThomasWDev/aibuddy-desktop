@@ -20,8 +20,13 @@
     "package:linux": "electron-builder --linux",
     "package:all": "electron-builder --mac --win --linux",
     "postinstall": "electron-builder install-app-deps",
-    "lint": "eslint . --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit"
+    "lint": "eslint . --ext .ts,.tsx --ignore-pattern dist --ignore-pattern out",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix --ignore-pattern dist --ignore-pattern out",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,css,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,css,md}\"",
+    "test": "echo \"No tests configured yet\" && exit 0",
+    "prepare": "echo 'Ready for development'"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
@@ -86,10 +91,15 @@
     "electron-builder": "^24.9.0",
     "electron-vite": "^2.0.0",
     "eslint": "^9.15.0",
+    "eslint-plugin-react": "^7.37.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-refresh": "^0.4.14",
     "postcss": "^8.4.49",
+    "prettier": "^3.4.0",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.7.2",
-    "vite": "^6.4.1"
+    "vite": "^6.4.1",
+    "vitest": "^2.1.0"
   },
   "build": {
     "appId": "com.aibuddy.desktop",
@@ -149,7 +159,7 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "AIBuddyStudio",
+      "owner": "ThomasWDev",
       "repo": "aibuddy-desktop"
     }
   }

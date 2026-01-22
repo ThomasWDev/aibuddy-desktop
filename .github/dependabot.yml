@@ -1,0 +1,40 @@
+version: 2
+updates:
+  # Maintain dependencies for npm/pnpm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      electron:
+        patterns:
+          - "electron*"
+          - "@electron*"
+      react:
+        patterns:
+          - "react*"
+          - "@types/react*"
+      radix:
+        patterns:
+          - "@radix-ui/*"
+      dev-dependencies:
+        dependency-type: "development"
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+      - "automated"
+
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+
