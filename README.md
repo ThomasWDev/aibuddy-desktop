@@ -18,15 +18,15 @@ Your intelligent coding partner - now as a standalone desktop application.
 
 Download the latest release for your platform:
 
-- **macOS**: [AIBuddy-x.x.x.dmg](https://github.com/AIBuddyStudio/aibuddy-desktop/releases)
-- **Windows**: [AIBuddy-x.x.x-Setup.exe](https://github.com/AIBuddyStudio/aibuddy-desktop/releases)
-- **Linux**: [AIBuddy-x.x.x.AppImage](https://github.com/AIBuddyStudio/aibuddy-desktop/releases)
+- **macOS**: [AIBuddy-x.x.x.dmg](https://github.com/ThomasWDev/aibuddy-desktop/releases)
+- **Windows**: [AIBuddy-x.x.x-Setup.exe](https://github.com/ThomasWDev/aibuddy-desktop/releases)
+- **Linux**: [AIBuddy-x.x.x.AppImage](https://github.com/ThomasWDev/aibuddy-desktop/releases)
 
 ### Build from Source
 
 ```bash
 # Clone the repository
-git clone https://github.com/AIBuddyStudio/aibuddy-desktop.git
+git clone https://github.com/ThomasWDev/aibuddy-desktop.git
 cd aibuddy-desktop
 
 # Install dependencies
@@ -129,7 +129,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Support
 
 - **Documentation**: [aibuddy.life/docs](https://aibuddy.life/docs)
-- **Issues**: [GitHub Issues](https://github.com/AIBuddyStudio/aibuddy-desktop/issues)
+- **Issues**: [GitHub Issues](https://github.com/ThomasWDev/aibuddy-desktop/issues)
 - **Discord**: [Join our community](https://discord.gg/aibuddy)
 
 ---

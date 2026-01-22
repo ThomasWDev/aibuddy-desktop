@@ -98,9 +98,9 @@ rpm:
     - libXScrnSaver
 
 publish:
-  provider: github
-  owner: AIBuddyStudio
-  repo: aibuddy-desktop
+provider: github
+    owner: ThomasWDev
+    repo: aibuddy-desktop
   releaseType: release
 
 # Auto-updater configuration
