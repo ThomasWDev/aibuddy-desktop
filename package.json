@@ -15,10 +15,18 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "package": "electron-builder",
-    "package:mac": "electron-builder --mac",
-    "package:win": "electron-builder --win",
-    "package:linux": "electron-builder --linux",
+    "package:mac": "electron-builder --mac dmg zip",
+    "package:mac:arm64": "electron-builder --mac dmg --arm64",
+    "package:mac:x64": "electron-builder --mac dmg --x64",
+    "package:mas": "electron-builder --mac mas",
+    "package:win": "electron-builder --win nsis",
+    "package:win:store": "electron-builder --win appx",
+    "package:linux": "electron-builder --linux AppImage deb",
+    "package:linux:snap": "electron-builder --linux snap",
     "package:all": "electron-builder --mac --win --linux",
+    "publish": "electron-builder --publish always",
+    "publish:mac": "electron-builder --mac --publish always",
+    "publish:win": "electron-builder --win --publish always",
     "postinstall": "electron-builder install-app-deps",
     "lint": "eslint . --ext .ts,.tsx --ignore-pattern dist --ignore-pattern out",
     "lint:fix": "eslint . --ext .ts,.tsx --fix --ignore-pattern dist --ignore-pattern out",
@@ -120,33 +128,70 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["arm64"]
+          "arch": ["arm64", "x64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["arm64", "x64"]
         }
       ],
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": false
+    },
+    "mas": {
+      "category": "public.app-category.developer-tools",
+      "entitlements": "build/entitlements.mas.plist",
+      "entitlementsInherit": "build/entitlements.mas.inherit.plist",
+      "hardenedRuntime": false,
+      "provisioningProfile": "build/embedded.provisionprofile"
     },
     "win": {
       "target": [
         {
           "target": "nsis",
           "arch": ["x64"]
+        },
+        {
+          "target": "appx",
+          "arch": ["x64"]
         }
-      ]
+      ],
+      "publisherName": "AIBuddy Studio",
+      "legalTrademarks": "AIBuddy is a trademark of AIBuddy Studio"
+    },
+    "appx": {
+      "identityName": "AIBuddyStudio.AIBuddy",
+      "publisher": "CN=YOUR_PUBLISHER_ID",
+      "publisherDisplayName": "AIBuddy Studio",
+      "applicationId": "AIBuddy",
+      "displayName": "AIBuddy Desktop IDE",
+      "languages": ["en-US"],
+      "backgroundColor": "#1a1a2e"
     },
     "linux": {
       "target": [
-        "AppImage"
+        "AppImage",
+        "snap",
+        "deb"
       ],
-      "category": "Development"
+      "category": "Development",
+      "maintainer": "AIBuddy Studio <support@aibuddy.life>",
+      "vendor": "AIBuddy Studio"
+    },
+    "snap": {
+      "confinement": "classic",
+      "grade": "stable",
+      "summary": "AI-powered coding assistant"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "shortcutName": "AIBuddy"
     },
     "publish": {
       "provider": "github",
