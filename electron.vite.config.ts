@@ -5,28 +5,26 @@ import { resolve } from 'path'
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
-    build: {
-      outDir: 'dist/electron',
-      rollupOptions: {
-        input: {
-          main: resolve(__dirname, 'electron/main.ts')
-        }
-      }
-    },
     resolve: {
       alias: {
         '@': resolve(__dirname, 'src'),
         '@shared': resolve(__dirname, 'src/shared')
+      }
+    },
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'electron/main.ts')
+        }
       }
     }
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
     build: {
-      outDir: 'dist/electron',
       rollupOptions: {
         input: {
-          preload: resolve(__dirname, 'electron/preload.ts')
+          index: resolve(__dirname, 'electron/preload.ts')
         }
       }
     }
@@ -34,7 +32,6 @@ export default defineConfig({
   renderer: {
     root: 'renderer',
     build: {
-      outDir: 'dist/renderer',
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'renderer/index.html')
@@ -51,4 +48,3 @@ export default defineConfig({
     }
   }
 })
-

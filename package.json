@@ -2,7 +2,7 @@
   "name": "aibuddy-desktop",
   "version": "1.0.0",
   "description": "AIBuddy Desktop IDE - Your intelligent coding partner",
-  "main": "dist/electron/main.js",
+  "main": "out/main/index.js",
   "author": "AIBuddy Studio",
   "license": "MIT",
   "homepage": "https://aibuddy.life",
@@ -64,7 +64,6 @@
     "lucide-react": "^0.439.0",
     "monaco-editor": "^0.52.2",
     "nanoid": "^5.0.8",
-    "node-pty": "^1.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^9.0.1",
@@ -104,24 +103,24 @@
   "build": {
     "appId": "com.aibuddy.desktop",
     "productName": "AIBuddy",
+    "asar": true,
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "files": [
-      "dist/**/*",
+      "out/**/*",
       "package.json"
     ],
+    "extraMetadata": {
+      "main": "out/main/index.js"
+    },
     "mac": {
       "category": "public.app-category.developer-tools",
-      "icon": "build/icon.icns",
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
-        },
-        {
-          "target": "zip",
-          "arch": ["x64", "arm64"]
+          "arch": ["arm64"]
         }
       ],
       "hardenedRuntime": true,
@@ -130,24 +129,16 @@
       "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "win": {
-      "icon": "build/icon.ico",
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
-        },
-        {
-          "target": "portable",
           "arch": ["x64"]
         }
       ]
     },
     "linux": {
-      "icon": "build/icons",
       "target": [
-        "AppImage",
-        "deb",
-        "rpm"
+        "AppImage"
       ],
       "category": "Development"
     },

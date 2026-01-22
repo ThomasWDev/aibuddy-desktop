@@ -1,11 +1,12 @@
 import { ipcMain, BrowserWindow } from 'electron'
-import * as pty from 'node-pty'
+import { spawn, ChildProcess } from 'child_process'
 import * as os from 'os'
 
 interface TerminalInstance {
   id: number
-  pty: pty.IPty
+  process: ChildProcess | null
   cwd: string
+  output: string[]
 }
 
 // Store active terminal instances
@@ -24,74 +25,136 @@ function getDefaultShell(): string {
 
 /**
  * Initialize terminal IPC handlers
+ * Note: This is a simplified terminal implementation without node-pty
+ * Full PTY support will be added in a future release
  */
 export function initTerminalHandlers(): void {
-  // Create a new terminal
+  // Create a new terminal (simplified - just tracks state)
   ipcMain.handle('terminal:create', (_event, options?: { cwd?: string; shell?: string; env?: Record<string, string> }) => {
     const id = ++terminalIdCounter
-    const shell = options?.shell || getDefaultShell()
     const cwd = options?.cwd || os.homedir()
 
-    try {
-      const ptyProcess = pty.spawn(shell, [], {
-        name: 'xterm-256color',
-        cols: 80,
-        rows: 24,
-        cwd,
-        env: {
-          ...process.env,
-          ...options?.env,
-          TERM: 'xterm-256color',
-          COLORTERM: 'truecolor'
-        } as Record<string, string>
-      })
+    // Store terminal instance (without actual PTY)
+    terminals.set(id, {
+      id,
+      process: null,
+      cwd,
+      output: []
+    })
 
-      // Store terminal instance
-      terminals.set(id, {
-        id,
-        pty: ptyProcess,
-        cwd
-      })
+    // Send initial message
+    const windows = BrowserWindow.getAllWindows()
+    windows.forEach((win) => {
+      win.webContents.send('terminal:data', id, `AIBuddy Terminal v1.0\r\nWorking directory: ${cwd}\r\n$ `)
+    })
 
-      // Forward data to renderer
-      ptyProcess.onData((data) => {
-        const windows = BrowserWindow.getAllWindows()
-        windows.forEach((win) => {
-          win.webContents.send('terminal:data', id, data)
-        })
-      })
-
-      // Handle exit
-      ptyProcess.onExit(({ exitCode }) => {
-        const windows = BrowserWindow.getAllWindows()
-        windows.forEach((win) => {
-          win.webContents.send('terminal:exit', id, exitCode)
-        })
-        terminals.delete(id)
-      })
-
-      return id
-    } catch (error) {
-      throw new Error(`Failed to create terminal: ${(error as Error).message}`)
-    }
+    return id
   })
 
-  // Write data to terminal
-  ipcMain.handle('terminal:write', (_event, id: number, data: string) => {
+  // Write data to terminal (execute command)
+  ipcMain.handle('terminal:write', async (_event, id: number, data: string) => {
     const terminal = terminals.get(id)
     if (!terminal) {
       throw new Error(`Terminal ${id} not found`)
     }
-    terminal.pty.write(data)
+
+    // If it's just a newline, execute the accumulated command
+    if (data === '\r' || data === '\n') {
+      const command = terminal.output.join('').trim()
+      terminal.output = []
+
+      if (command) {
+        const windows = BrowserWindow.getAllWindows()
+        
+        // Echo the command
+        windows.forEach((win) => {
+          win.webContents.send('terminal:data', id, '\r\n')
+        })
+
+        try {
+          // Execute the command
+          const shell = getDefaultShell()
+          const shellArgs = process.platform === 'win32' ? ['/c', command] : ['-c', command]
+          
+          const child = spawn(shell, shellArgs, {
+            cwd: terminal.cwd,
+            env: process.env as Record<string, string>,
+            shell: false
+          })
+
+          terminal.process = child
+
+          child.stdout?.on('data', (chunk) => {
+            const output = chunk.toString().replace(/\n/g, '\r\n')
+            windows.forEach((win) => {
+              win.webContents.send('terminal:data', id, output)
+            })
+          })
+
+          child.stderr?.on('data', (chunk) => {
+            const output = chunk.toString().replace(/\n/g, '\r\n')
+            windows.forEach((win) => {
+              win.webContents.send('terminal:data', id, output)
+            })
+          })
+
+          child.on('close', (code) => {
+            terminal.process = null
+            windows.forEach((win) => {
+              win.webContents.send('terminal:data', id, `\r\n$ `)
+            })
+          })
+
+          child.on('error', (err) => {
+            windows.forEach((win) => {
+              win.webContents.send('terminal:data', id, `\r\nError: ${err.message}\r\n$ `)
+            })
+          })
+        } catch (error) {
+          windows.forEach((win) => {
+            win.webContents.send('terminal:data', id, `\r\nError: ${(error as Error).message}\r\n$ `)
+          })
+        }
+      } else {
+        // Empty command, just show prompt
+        const windows = BrowserWindow.getAllWindows()
+        windows.forEach((win) => {
+          win.webContents.send('terminal:data', id, '\r\n$ ')
+        })
+      }
+    } else if (data === '\x7f' || data === '\b') {
+      // Backspace
+      if (terminal.output.length > 0) {
+        terminal.output.pop()
+        const windows = BrowserWindow.getAllWindows()
+        windows.forEach((win) => {
+          win.webContents.send('terminal:data', id, '\b \b')
+        })
+      }
+    } else if (data === '\x03') {
+      // Ctrl+C - kill current process
+      if (terminal.process) {
+        terminal.process.kill('SIGINT')
+        terminal.process = null
+      }
+      terminal.output = []
+      const windows = BrowserWindow.getAllWindows()
+      windows.forEach((win) => {
+        win.webContents.send('terminal:data', id, '^C\r\n$ ')
+      })
+    } else {
+      // Regular character - accumulate and echo
+      terminal.output.push(data)
+      const windows = BrowserWindow.getAllWindows()
+      windows.forEach((win) => {
+        win.webContents.send('terminal:data', id, data)
+      })
+    }
   })
 
-  // Resize terminal
-  ipcMain.handle('terminal:resize', (_event, id: number, cols: number, rows: number) => {
-    const terminal = terminals.get(id)
-    if (!terminal) {
-      throw new Error(`Terminal ${id} not found`)
-    }
-    terminal.pty.resize(cols, rows)
+  // Resize terminal (no-op for simplified implementation)
+  ipcMain.handle('terminal:resize', (_event, _id: number, _cols: number, _rows: number) => {
+    // No-op for simplified terminal
   })
 
   // Kill terminal
@@ -100,7 +163,9 @@ export function initTerminalHandlers(): void {
     if (!terminal) {
       return // Already killed
     }
-    terminal.pty.kill()
+    if (terminal.process) {
+      terminal.process.kill()
+    }
     terminals.delete(id)
   })
 
@@ -113,7 +178,7 @@ export function initTerminalHandlers(): void {
     return {
       id: terminal.id,
       cwd: terminal.cwd,
-      pid: terminal.pty.pid
+      pid: terminal.process?.pid || null
     }
   })
 
@@ -122,71 +187,50 @@ export function initTerminalHandlers(): void {
     return Array.from(terminals.values()).map((t) => ({
       id: t.id,
       cwd: t.cwd,
-      pid: t.pty.pid
+      pid: t.process?.pid || null
     }))
   })
 
   // Execute command and wait for completion
-  ipcMain.handle('terminal:execute', async (_event, id: number, command: string, timeout = 30000): Promise<{
+  ipcMain.handle('terminal:execute', async (_event, _id: number, command: string, timeout = 30000): Promise<{
     output: string
     exitCode: number
   }> => {
-    const terminal = terminals.get(id)
-    if (!terminal) {
-      throw new Error(`Terminal ${id} not found`)
-    }
-
     return new Promise((resolve, reject) => {
+      const shell = getDefaultShell()
+      const shellArgs = process.platform === 'win32' ? ['/c', command] : ['-c', command]
+      
       let output = ''
-      let resolved = false
+      let exitCode = 0
 
       const timeoutId = setTimeout(() => {
-        if (!resolved) {
-          resolved = true
-          reject(new Error('Command execution timed out'))
-        }
+        reject(new Error('Command execution timed out'))
       }, timeout)
 
-      // Capture output
-      const dataHandler = terminal.pty.onData((data) => {
-        output += data
+      const child = spawn(shell, shellArgs, {
+        cwd: os.homedir(),
+        env: process.env as Record<string, string>,
+        shell: false
       })
 
-      // Listen for command completion marker
-      const marker = `__AIBUDDY_CMD_DONE_${Date.now()}__`
-      const exitCodeMarker = `__AIBUDDY_EXIT_CODE_`
+      child.stdout?.on('data', (chunk) => {
+        output += chunk.toString()
+      })
 
-      // Write command with completion marker
-      const wrappedCommand = process.platform === 'win32'
-        ? `${command} & echo ${exitCodeMarker}%ERRORLEVEL%${marker}\r`
-        : `${command}; echo "${exitCodeMarker}$?${marker}"\n`
+      child.stderr?.on('data', (chunk) => {
+        output += chunk.toString()
+      })
 
-      terminal.pty.write(wrappedCommand)
+      child.on('close', (code) => {
+        clearTimeout(timeoutId)
+        exitCode = code || 0
+        resolve({ output, exitCode })
+      })
 
-      // Check for completion marker in output
-      const checkInterval = setInterval(() => {
-        if (output.includes(marker)) {
-          clearInterval(checkInterval)
-          clearTimeout(timeoutId)
-          dataHandler.dispose()
-
-          if (!resolved) {
-            resolved = true
-
-            // Extract exit code
-            const exitCodeMatch = output.match(new RegExp(`${exitCodeMarker}(\\d+)${marker}`))
-            const exitCode = exitCodeMatch ? parseInt(exitCodeMatch[1], 10) : 0
-
-            // Clean up output
-            const cleanOutput = output
-              .replace(new RegExp(`${exitCodeMarker}\\d+${marker}`), '')
-              .replace(wrappedCommand, '')
-              .trim()
-
-            resolve({ output: cleanOutput, exitCode })
-          }
-        }
-      }, 100)
+      child.on('error', (err) => {
+        clearTimeout(timeoutId)
+        reject(err)
+      })
     })
   })
 }
@@ -197,7 +241,9 @@ export function initTerminalHandlers(): void {
 export function cleanupTerminalHandlers(): void {
   for (const terminal of terminals.values()) {
     try {
-      terminal.pty.kill()
+      if (terminal.process) {
+        terminal.process.kill()
+      }
     } catch {
       // Ignore errors during cleanup
     }
@@ -211,4 +257,3 @@ export function cleanupTerminalHandlers(): void {
 export function getActiveTerminalCount(): number {
   return terminals.size
 }
-
