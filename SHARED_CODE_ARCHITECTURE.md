@@ -203,14 +203,56 @@ const analytics = new Analytics(config, Sentry)
 
 ---
 
+## 🔴 CRITICAL: Extended Thinking Fix (January 22, 2026)
+
+### Problem
+When extended thinking is enabled, Claude requires ALL assistant messages in the conversation to include thinking blocks. If previous assistant messages don't have thinking blocks, Claude returns:
+```
+"assistant message must start with a thinking block"
+```
+
+### Solution (Applied to Both Apps)
+Only enable extended thinking when:
+1. User explicitly requested it (via "think harder", "ultrathink", etc.), AND
+2. Either this is the first turn OR previous turns have thinking blocks
+
+### Files Updated
+| App | File | Change |
+|-----|------|--------|
+| Extension | `extension/src/api/providers/aibuddy.ts` | Added thinking history check |
+| Desktop | `aibuddy-desktop/src/api/aibuddy-client.ts` | Added `shouldEnableThinking()` method |
+| Lambda | `aibuddyapi/src/handler.js` | Added server-side fallback check |
+
+### Code Pattern (Shared Logic)
+```typescript
+const shouldEnableThinking = (messages: Message[]): boolean => {
+  // Check if user requested thinking
+  const userRequestedThinking = THINK_TRIGGERS.some(t => lastUserMessage.includes(t))
+  if (!userRequestedThinking) return false
+  
+  // Check if this is multi-turn
+  const hasAssistantMessages = messages.some(m => m.role === 'assistant')
+  if (!hasAssistantMessages) return true // First turn, safe
+  
+  // Check if history has thinking blocks
+  return messages.some(m => 
+    m.role === 'assistant' &&
+    m.content.some(c => c.type === 'thinking')
+  )
+}
+```
+
+---
+
 ## Immediate Actions
 
 ### For Desktop App (Today)
 
 1. ✅ Add Sentry initialization (DONE - see `src/shared/sentry.ts`)
 2. ✅ Add breadcrumb tracking (DONE)
-3. ⬜ Add Amplitude analytics
-4. ⬜ Copy system prompts from extension
+3. ✅ Fix extended thinking multi-turn issue (DONE - see `src/api/aibuddy-client.ts`)
+4. ⬜ Add Amplitude analytics
+5. ⬜ Copy system prompts from extension
 
 ### For Shared Architecture (This Week)
 

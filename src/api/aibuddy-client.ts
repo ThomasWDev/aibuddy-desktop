@@ -1,7 +1,12 @@
 /**
  * AIBuddy API Client
  * 
- * Client for communicating with the AIBuddy API backend.
+ * Client for communicating with the AIBuddy API backend (AWS Lambda).
+ * 
+ * IMPORTANT: Extended Thinking Requirements
+ * - When thinking is enabled, ALL assistant messages must include thinking blocks
+ * - If previous assistant messages don't have thinking blocks, Claude will error
+ * - Solution: Only enable thinking on first turn OR when conversation has thinking blocks
  */
 
 const electronAPI = typeof window !== 'undefined' ? (window as any).electronAPI : null
@@ -12,8 +17,9 @@ export interface ChatMessage {
 }
 
 export interface MessageContent {
-  type: 'text' | 'image' | 'tool_use' | 'tool_result'
+  type: 'text' | 'image' | 'tool_use' | 'tool_result' | 'thinking' | 'redacted_thinking'
   text?: string
+  thinking?: string
   source?: { type: string; media_type: string; data: string }
   id?: string
   name?: string
@@ -89,11 +95,74 @@ export interface UserInfo {
   plan: string
 }
 
+// Triggers for extended thinking mode
+const THINK_HARDER_TRIGGERS = [
+  'think harder',
+  'ultrathink',
+  'think deeply',
+  'deep analysis',
+  'think step by step',
+  'reason carefully',
+  'extended thinking',
+  'think more'
+]
+
+// Model mapping - supports both Claude and DeepSeek
+const MODEL_MAP: Record<string, string> = {
+  // Claude models (default)
+  'auto': 'claude-opus-4-20250514',
+  'aibuddy-default': 'claude-opus-4-20250514',
+  'claude-opus-4.5': 'claude-opus-4-20250514',
+  'claude-sonnet-4': 'claude-sonnet-4-20250514',
+  // DeepSeek models (for math/reasoning tasks)
+  'deepseek-r1': 'deepseek-reasoner',
+  'deepseek-v3': 'deepseek-chat',
+  'deepseek-reasoner': 'deepseek-reasoner',
+  'deepseek-chat': 'deepseek-chat',
+}
+
+/**
+ * Get the actual model name from model ID
+ */
+function getModelName(modelId: string): string {
+  if (modelId.startsWith('claude-') || modelId.startsWith('deepseek-')) {
+    return modelId
+  }
+  return MODEL_MAP[modelId] || 'claude-opus-4-20250514'
+}
+
+/**
+ * Detect task hints for smart routing
+ */
+function detectTaskHints(content: string): string[] {
+  const hints: string[] = []
+  const lowerContent = content.toLowerCase()
+  
+  // Math/reasoning tasks -> route to DeepSeek R1
+  if (/\b(math|calcul|equation|proof|theorem|formula|algebra|geometry|statistics)\b/i.test(lowerContent)) {
+    hints.push('math')
+  }
+  if (/\b(reason|logic|deduc|induc|analyz|think through|step by step)\b/i.test(lowerContent)) {
+    hints.push('reasoning')
+  }
+  
+  // Agentic/tool tasks -> route to Claude
+  if (/\b(tool|execute|run|file|git|terminal|command|shell)\b/i.test(lowerContent)) {
+    hints.push('agentic')
+  }
+  if (/\b(edit|create|modify|delete|write to|save|update file)\b/i.test(lowerContent)) {
+    hints.push('tools')
+  }
+  
+  return hints
+}
+
 export class AIBuddyClient {
+  // Use AWS Lambda endpoint (same as VS Code extension)
   private baseUrl: string
   private apiKey: string | null = null
 
-  constructor(baseUrl = 'https://api.aibuddy.life') {
+  constructor(baseUrl = 'https://i6f81wuqo0.execute-api.us-east-2.amazonaws.com/dev') {
     this.baseUrl = baseUrl
   }
 
@@ -132,6 +201,36 @@ export class AIBuddyClient {
   }
 
   /**
+   * Check if extended thinking should be enabled
+   * Only enable if user requested it AND (first turn OR history has thinking blocks)
+   */
+  private shouldEnableThinking(messages: ChatMessage[]): boolean {
+    // Check if user requested thinking
+    const lastUserMessage = messages.filter(m => m.role === 'user').pop()
+    const userContent = typeof lastUserMessage?.content === 'string'
+      ? lastUserMessage.content.toLowerCase()
+      : ''
+    
+    const userRequestedThinking = THINK_HARDER_TRIGGERS.some(t => userContent.includes(t))
+    if (!userRequestedThinking) return false
+    
+    // Check if this is a multi-turn conversation
+    const hasAssistantMessages = messages.some(m => m.role === 'assistant')
+    if (!hasAssistantMessages) return true // First turn, safe to enable
+    
+    // Check if history has thinking blocks
+    const hasThinkingInHistory = messages.some(m => 
+      m.role === 'assistant' &&
+      Array.isArray(m.content) &&
+      (m.content as MessageContent[]).some(c => 
+        c.type === 'thinking' || c.type === 'redacted_thinking'
+      )
+    )
+    
+    return hasThinkingInHistory
+  }
+
+  /**
    * Send a chat request
    */
   async chat(request: ChatRequest): Promise<ChatResponse> {
@@ -140,19 +239,39 @@ export class AIBuddyClient {
       throw new Error('API key not configured')
     }
 
-    const response = await fetch(`${this.baseUrl}/chat`, {
+    // Determine if extended thinking should be enabled
+    const shouldThink = this.shouldEnableThinking(request.messages)
+    
+    // Build messages with system prompt as first message (AWS Lambda format)
+    const messagesWithSystem = request.system
+      ? [{ role: 'system' as const, content: request.system }, ...request.messages]
+      : request.messages
+
+    // Get the actual model name
+    const modelName = getModelName(request.model || 'auto')
+    
+    // Detect task hints for smart routing
+    const lastUserMessage = request.messages.filter(m => m.role === 'user').pop()
+    const userContent = typeof lastUserMessage?.content === 'string'
+      ? lastUserMessage.content
+      : ''
+    const taskHints = detectTaskHints(userContent)
+
+    const response = await fetch(`${this.baseUrl}/v1/inference`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'X-AIBuddy-API-Key': apiKey,
+        'X-Requested-With': 'AIBuddy-Desktop'
       },
       body: JSON.stringify({
-        model: request.model || 'claude-opus-4-20250514',
-        messages: request.messages,
-        system: request.system,
+        api_key: apiKey,
+        model: modelName,
+        messages: messagesWithSystem,
         max_tokens: request.max_tokens || 8192,
         temperature: request.temperature || 0.7,
-        tools: request.tools
+        thinking: shouldThink ? { type: 'enabled', budget_tokens: 10000 } : undefined,
+        task_hints: taskHints.length > 0 ? taskHints : undefined,
       })
     })
 
@@ -161,7 +280,19 @@ export class AIBuddyClient {
       throw new Error(`API error: ${response.status} - ${error}`)
     }
 
-    return response.json()
+    const data = await response.json()
+    
+    // Transform AWS Lambda response to ChatResponse format
+    return {
+      id: data.request_id || 'unknown',
+      type: 'message',
+      role: 'assistant',
+      content: data.content || [{ type: 'text', text: data.response }],
+      model: data.model,
+      stop_reason: data.stop_reason || 'end_turn',
+      stop_sequence: null,
+      usage: data.usage || { input_tokens: 0, output_tokens: 0 }
+    }
   }
 
   /**
