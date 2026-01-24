@@ -32,9 +32,17 @@ import {
   AIBUDDY_WEBSITE 
 } from '../../src/constants/urls'
 
-// Simple tooltip
-function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
+// Child-friendly tooltip with big text and emojis
+function Tooltip({ text, children, position = 'top' }: { text: string; children: React.ReactNode; position?: 'top' | 'bottom' | 'left' | 'right' }) {
   const [show, setShow] = useState(false)
+  
+  const positionStyles: Record<string, React.CSSProperties> = {
+    top: { bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '12px' },
+    bottom: { top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '12px' },
+    left: { right: '100%', top: '50%', transform: 'translateY(-50%)', marginRight: '12px' },
+    right: { left: '100%', top: '50%', transform: 'translateY(-50%)', marginLeft: '12px' },
+  }
+  
   return (
     <div 
       className="relative inline-block"
@@ -44,18 +52,95 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
       {children}
       {show && (
         <div 
-          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap z-50"
+          className="absolute z-50 animate-bounce-in"
           style={{ 
-            background: 'linear-gradient(135deg, #1e293b, #334155)',
+            ...positionStyles[position],
+            background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
             color: 'white',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-            border: '2px solid #475569'
+            padding: '12px 20px',
+            borderRadius: '16px',
+            fontSize: '16px',
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+            boxShadow: '0 8px 32px rgba(124, 58, 237, 0.4)',
+            border: '3px solid rgba(255,255,255,0.3)',
+            maxWidth: '300px',
           }}
         >
+          {/* Arrow */}
+          <div 
+            style={{
+              position: 'absolute',
+              width: 0,
+              height: 0,
+              ...(position === 'top' ? {
+                bottom: '-10px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                borderLeft: '10px solid transparent',
+                borderRight: '10px solid transparent',
+                borderTop: '10px solid #ec4899',
+              } : position === 'bottom' ? {
+                top: '-10px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                borderLeft: '10px solid transparent',
+                borderRight: '10px solid transparent',
+                borderBottom: '10px solid #7c3aed',
+              } : {})
+            }}
+          />
           {text}
         </div>
       )}
     </div>
+  )
+}
+
+// Big friendly button component
+function BigButton({ 
+  onClick, 
+  icon, 
+  label, 
+  tooltip, 
+  color = 'blue',
+  active = false,
+  badge,
+}: { 
+  onClick: () => void
+  icon: React.ReactNode
+  label: string
+  tooltip: string
+  color?: 'blue' | 'green' | 'pink' | 'orange' | 'purple'
+  active?: boolean
+  badge?: React.ReactNode
+}) {
+  const colors = {
+    blue: { bg: 'linear-gradient(135deg, #3b82f6, #2563eb)', hover: '#1d4ed8' },
+    green: { bg: 'linear-gradient(135deg, #22c55e, #16a34a)', hover: '#15803d' },
+    pink: { bg: 'linear-gradient(135deg, #ec4899, #db2777)', hover: '#be185d' },
+    orange: { bg: 'linear-gradient(135deg, #f97316, #ea580c)', hover: '#c2410c' },
+    purple: { bg: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', hover: '#6d28d9' },
+  }
+  
+  return (
+    <Tooltip text={tooltip}>
+      <button
+        onClick={onClick}
+        className="relative flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95"
+        style={{ 
+          background: active ? colors[color].bg : 'rgba(255,255,255,0.1)',
+          color: active ? 'white' : '#94a3b8',
+          border: active ? 'none' : '2px solid #334155',
+          boxShadow: active ? `0 8px 24px ${color === 'pink' ? 'rgba(236,72,153,0.4)' : 'rgba(0,0,0,0.3)'}` : 'none',
+          minWidth: '100px',
+        }}
+      >
+        <span className="text-xl">{icon}</span>
+        <span>{label}</span>
+        {badge}
+      </button>
+    </Tooltip>
   )
 }
 
@@ -379,149 +464,166 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
         fontFamily: "'Nunito', 'Comic Neue', sans-serif"
       }}
     >
-      {/* Header */}
+      {/* Header - Big & Friendly */}
       <header 
-        className="flex items-center justify-between px-4 py-2"
-        style={{ borderBottom: '2px solid #334155' }}
+        className="flex items-center justify-between px-6 py-4"
+        style={{ 
+          borderBottom: '3px solid #334155',
+          background: 'linear-gradient(180deg, rgba(15,23,42,0.9) 0%, rgba(30,41,59,0.9) 100%)'
+        }}
       >
         {/* Logo & Status */}
-        <div className="flex items-center gap-3">
-          <div 
-            className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ 
-              background: 'linear-gradient(135deg, #ec4899, #f97316)',
-              boxShadow: '0 4px 15px rgba(236, 72, 153, 0.4)'
-            }}
-          >
-            <Sparkles className="w-6 h-6 text-white" />
-          </div>
+        <div className="flex items-center gap-4">
+          {/* Big Logo */}
+          <Tooltip text="🌟 Hi! I'm AIBuddy, your coding friend!">
+            <div 
+              className="w-14 h-14 rounded-2xl flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
+              style={{ 
+                background: 'linear-gradient(135deg, #ec4899, #f97316)',
+                boxShadow: '0 8px 24px rgba(236, 72, 153, 0.5)'
+              }}
+            >
+              <Sparkles className="w-8 h-8 text-white" />
+            </div>
+          </Tooltip>
+          
           <div>
-            <h1 className="text-lg font-bold text-white">AIBuddy</h1>
-            <p className="text-[10px] text-slate-500">v{appVersion}</p>
+            <h1 className="text-2xl font-black text-white">AIBuddy</h1>
+            <p className="text-sm text-slate-400 font-semibold">Your Coding Friend! 🚀</p>
           </div>
           
-          {/* Status Badge */}
-          <div 
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full ml-2"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #334155' }}
-          >
-            <div style={{ color: currentStatus.color }}>{currentStatus.icon}</div>
-            <span className="text-sm font-semibold text-white">{currentStatus.text}</span>
-          </div>
+          {/* Status Badge - Bigger */}
+          <Tooltip text="👀 This shows what I'm doing right now!">
+            <div 
+              className="flex items-center gap-3 px-5 py-3 rounded-2xl ml-4 cursor-help"
+              style={{ 
+                background: `${currentStatus.color}20`,
+                border: `2px solid ${currentStatus.color}`,
+                boxShadow: `0 4px 16px ${currentStatus.color}30`
+              }}
+            >
+              <div style={{ color: currentStatus.color }} className="text-xl">{currentStatus.icon}</div>
+              <span className="text-lg font-bold text-white">{currentStatus.text}</span>
+            </div>
+          </Tooltip>
         </div>
 
-        {/* Credits & Actions */}
-        <div className="flex items-center gap-2">
-          {/* Credits Display */}
-          <div 
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
-            style={{ 
-              background: credits !== null && credits < 5 
-                ? 'rgba(239, 68, 68, 0.2)' 
-                : 'rgba(34, 197, 94, 0.1)',
-              border: `1px solid ${credits !== null && credits < 5 ? '#ef4444' : '#22c55e'}`
-            }}
-          >
-            <Coins className="w-4 h-4" style={{ color: credits !== null && credits < 5 ? '#ef4444' : '#22c55e' }} />
-            <span 
-              className="text-sm font-bold"
-              style={{ color: credits !== null && credits < 5 ? '#ef4444' : '#22c55e' }}
-            >
-              {credits !== null ? `${credits.toFixed(2)} credits` : 'Loading...'}
-            </span>
-            {credits !== null && credits < 5 && (
-              <span className="text-xs text-red-400">⚠️ Low</span>
-            )}
-          </div>
-
-          {/* Last Cost */}
-          {lastCost !== null && (
+        {/* Credits & Actions - Bigger Buttons */}
+        <div className="flex items-center gap-3">
+          {/* Credits Display - Big & Clear */}
+          <Tooltip text="💰 These are your AIBuddy credits! Each question uses some credits.">
             <div 
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
-              style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#a78bfa' }}
+              className="flex items-center gap-3 px-5 py-3 rounded-2xl cursor-help"
+              style={{ 
+                background: credits !== null && credits < 5 
+                  ? 'rgba(239, 68, 68, 0.2)' 
+                  : 'rgba(34, 197, 94, 0.15)',
+                border: `3px solid ${credits !== null && credits < 5 ? '#ef4444' : '#22c55e'}`,
+                boxShadow: `0 4px 16px ${credits !== null && credits < 5 ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`
+              }}
             >
-              <Zap className="w-3 h-3" />
-              <span>-{lastCost.toFixed(4)}</span>
+              <Coins className="w-6 h-6" style={{ color: credits !== null && credits < 5 ? '#ef4444' : '#22c55e' }} />
+              <span 
+                className="text-lg font-black"
+                style={{ color: credits !== null && credits < 5 ? '#ef4444' : '#22c55e' }}
+              >
+                {credits !== null ? `${credits.toFixed(0)} Credits` : '...'}
+              </span>
+              {credits !== null && credits < 5 && (
+                <span className="text-sm font-bold text-red-400 animate-pulse">⚠️ Low!</span>
+              )}
             </div>
+          </Tooltip>
+
+          {/* Last Cost - Only show if recent */}
+          {lastCost !== null && (
+            <Tooltip text="⚡ This is how many credits your last question used">
+              <div 
+                className="flex items-center gap-2 px-4 py-2 rounded-xl cursor-help"
+                style={{ background: 'rgba(139, 92, 246, 0.15)', border: '2px solid #8b5cf6' }}
+              >
+                <Zap className="w-5 h-5 text-purple-400" />
+                <span className="text-base font-bold text-purple-300">-{lastCost.toFixed(2)}</span>
+              </div>
+            </Tooltip>
           )}
 
           {/* Model Used */}
           {lastModel && (
-            <div 
-              className="px-2 py-1 rounded-lg text-xs font-mono"
-              style={{ background: 'rgba(6, 182, 212, 0.1)', color: '#22d3ee' }}
-            >
-              {lastModel.includes('deepseek') ? '🤖 DeepSeek' : '🧠 Claude'}
-            </div>
+            <Tooltip text="🧠 This shows which AI brain answered your question!">
+              <div 
+                className="px-4 py-2 rounded-xl cursor-help"
+                style={{ background: 'rgba(6, 182, 212, 0.15)', border: '2px solid #22d3ee' }}
+              >
+                <span className="text-base font-bold text-cyan-300">
+                  {lastModel.includes('deepseek') ? '🤖 DeepSeek' : '🧠 Claude'}
+                </span>
+              </div>
+            </Tooltip>
           )}
 
-          <Tooltip text="📁 Open your code folder">
+          {/* Big Action Buttons */}
+          <Tooltip text="📁 Click here to open your code folder! This tells me which project you're working on.">
             <button
               onClick={handleOpenFolder}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105"
               style={{ 
                 background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
-                color: 'white'
+                color: 'white',
+                boxShadow: '0 4px 16px rgba(6, 182, 212, 0.4)'
               }}
             >
-              <FolderOpen className="w-4 h-4" />
-              <span>Open</span>
+              <FolderOpen className="w-6 h-6" />
+              <span className="text-base">Open Folder</span>
             </button>
           </Tooltip>
 
-          {/* Knowledge Base Button */}
-          <Tooltip text="📚 Knowledge Base - Import infrastructure docs">
+          {/* Knowledge Base Button - Big & Friendly */}
+          <Tooltip text="📚 Save your server info here! I'll remember it forever and help you connect!">
             <button
               onClick={() => setShowKnowledgeBase(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105"
+              className="flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95"
               style={{ 
                 background: showKnowledgeBase 
-                  ? 'linear-gradient(135deg, #ec4899, #f472b6)' 
-                  : 'rgba(236, 72, 153, 0.2)',
-                color: showKnowledgeBase ? 'white' : '#f472b6',
-                border: `1px solid ${showKnowledgeBase ? '#ec4899' : '#f472b6'}`
+                  ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' 
+                  : 'rgba(139, 92, 246, 0.2)',
+                color: 'white',
+                border: `3px solid #8b5cf6`,
+                boxShadow: showKnowledgeBase ? '0 8px 24px rgba(139, 92, 246, 0.4)' : 'none'
               }}
             >
-              <BookOpen className="w-4 h-4" />
-              <span>KB</span>
+              <BookOpen className="w-6 h-6" />
+              <span>Knowledge</span>
               {knowledgeContext && (
                 <span 
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: '#22c55e' }}
+                  className="w-3 h-3 rounded-full animate-pulse"
+                  style={{ background: '#22c55e', boxShadow: '0 0 8px #22c55e' }}
                 />
               )}
             </button>
           </Tooltip>
 
-          <Tooltip text="🔑 API Key Settings">
+          {/* Settings Button - Big & Clear */}
+          <Tooltip text="🔑 Click here to add your API key! You need this to talk to me.">
             <button
               onClick={() => setShowSettings(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105"
+              className="flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95"
               style={{ 
-                background: apiKey ? 'rgba(34, 197, 94, 0.2)' : 'rgba(251, 191, 36, 0.2)',
-                color: apiKey ? '#22c55e' : '#fbbf24',
-                border: `1px solid ${apiKey ? '#22c55e' : '#fbbf24'}`
+                background: apiKey 
+                  ? 'rgba(34, 197, 94, 0.2)' 
+                  : 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                color: apiKey ? '#22c55e' : 'white',
+                border: `3px solid ${apiKey ? '#22c55e' : '#fbbf24'}`,
+                boxShadow: !apiKey ? '0 8px 24px rgba(251, 191, 36, 0.4)' : 'none'
               }}
             >
-              <Key className="w-4 h-4" />
+              <Key className="w-6 h-6" />
+              <span>{apiKey ? '✓ Key Set' : 'Add Key'}</span>
             </button>
           </Tooltip>
 
-          <Tooltip text="📚 Cloud Knowledge Base">
-            <button
-              onClick={() => setShowKnowledgeBase(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105"
-              style={{ 
-                background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-                color: 'white'
-              }}
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>KB</span>
-            </button>
-          </Tooltip>
-
-          <Tooltip text="💳 Buy Credits">
+          {/* Buy Credits - Big & Friendly */}
+          <Tooltip text="💳 Need more credits? Click here to get more so we can keep coding together!">
             <button
               onClick={() => {
                 const electronAPI = (window as any).electronAPI
@@ -531,10 +633,15 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
                   window.open(AIBUDDY_BUY_CREDITS_URL, '_blank')
                 }
               }}
-              className="p-2 rounded-xl transition-all hover:scale-105"
-              style={{ background: 'rgba(255,255,255,0.1)', color: '#94a3b8' }}
+              className="flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95"
+              style={{ 
+                background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                color: 'white',
+                boxShadow: '0 4px 16px rgba(34, 197, 94, 0.4)'
+              }}
             >
-              <CreditCard className="w-4 h-4" />
+              <CreditCard className="w-6 h-6" />
+              <span>Buy Credits</span>
             </button>
           </Tooltip>
         </div>
@@ -553,57 +660,115 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
       )}
 
       {/* Chat Area */}
-      <main className="flex-1 overflow-y-auto p-4">
+      <main className="flex-1 overflow-y-auto p-6">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center">
+          <div className="h-full flex flex-col items-center justify-center text-center px-4">
+            {/* Big Friendly Robot */}
             <div 
-              className="w-24 h-24 rounded-full flex items-center justify-center mb-4"
+              className="w-32 h-32 rounded-full flex items-center justify-center mb-6 animate-bounce"
               style={{ 
                 background: 'linear-gradient(135deg, #ec4899, #f97316)',
-                boxShadow: '0 8px 40px rgba(236, 72, 153, 0.4)'
+                boxShadow: '0 12px 48px rgba(236, 72, 153, 0.5)',
+                animationDuration: '2s'
               }}
             >
-              <Sparkles className="w-12 h-12 text-white" />
+              <Sparkles className="w-16 h-16 text-white" />
             </div>
             
-            <h2 className="text-3xl font-bold text-white mb-2">Hi there! 👋</h2>
-            <p className="text-lg text-slate-400 mb-6 max-w-md">
-              Tell me what you want to build and I'll help you!
+            {/* Big Welcome Text */}
+            <h2 className="text-5xl font-black text-white mb-4">
+              Hi there! 👋
+            </h2>
+            <p className="text-2xl text-slate-300 mb-8 max-w-lg font-semibold">
+              I'm <span style={{ color: '#ec4899' }}>AIBuddy</span>, your coding friend!
+              <br />
+              Tell me what you want to build! 🚀
             </p>
 
-            <div className="flex gap-3">
-              <div className="px-4 py-2 rounded-xl text-sm" style={{ background: 'rgba(236, 72, 153, 0.1)', color: '#f472b6' }}>
-                💬 Just type what you want
-              </div>
-              <div className="px-4 py-2 rounded-xl text-sm" style={{ background: 'rgba(6, 182, 212, 0.1)', color: '#22d3ee' }}>
-                🚀 I'll do the work
-              </div>
-              <div className="px-4 py-2 rounded-xl text-sm" style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#4ade80' }}>
-                💰 Watch your credits
+            {/* Big Helpful Cards */}
+            <div className="flex flex-wrap justify-center gap-4 mb-8">
+              <Tooltip text="Just type what you want me to do in the box below!">
+                <div 
+                  className="px-6 py-4 rounded-2xl text-lg font-bold cursor-help transition-transform hover:scale-105"
+                  style={{ background: 'rgba(236, 72, 153, 0.15)', color: '#f472b6', border: '2px solid #f472b6' }}
+                >
+                  💬 Type what you want
+                </div>
+              </Tooltip>
+              <Tooltip text="I'll write the code and do all the hard work for you!">
+                <div 
+                  className="px-6 py-4 rounded-2xl text-lg font-bold cursor-help transition-transform hover:scale-105"
+                  style={{ background: 'rgba(6, 182, 212, 0.15)', color: '#22d3ee', border: '2px solid #22d3ee' }}
+                >
+                  🚀 I'll do the work
+                </div>
+              </Tooltip>
+              <Tooltip text="Each question uses some credits - check the green number at the top!">
+                <div 
+                  className="px-6 py-4 rounded-2xl text-lg font-bold cursor-help transition-transform hover:scale-105"
+                  style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '2px solid #4ade80' }}
+                >
+                  💰 Watch your credits
+                </div>
+              </Tooltip>
+            </div>
+
+            {/* Example prompts */}
+            <div className="text-slate-400 text-base">
+              <p className="mb-3 font-semibold">Try saying:</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {[
+                  "Make a simple website",
+                  "Create a todo list app",
+                  "Help me fix this bug",
+                  "Explain this code"
+                ].map((example, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setInput(example)}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105"
+                    style={{ background: 'rgba(255,255,255,0.1)', color: '#94a3b8' }}
+                  >
+                    "{example}"
+                  </button>
+                ))}
               </div>
             </div>
           </div>
         ) : (
-          <div className="max-w-3xl mx-auto space-y-4">
+          <div className="max-w-4xl mx-auto space-y-6">
             {messages.map(message => (
               <div
                 key={message.id}
-                className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : ''}`}
+                className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : ''}`}
               >
+                {/* AI Avatar - Big & Friendly */}
                 {message.role === 'assistant' && (
                   <div 
-                    className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #ec4899, #f97316)' }}
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                    style={{ 
+                      background: 'linear-gradient(135deg, #ec4899, #f97316)',
+                      boxShadow: '0 4px 16px rgba(236, 72, 153, 0.4)'
+                    }}
                   >
-                    <Bot className="w-5 h-5 text-white" />
+                    <Bot className="w-7 h-7 text-white" />
                   </div>
                 )}
                 
+                {/* Message Bubble - Bigger & More Readable */}
                 <div
-                  className="max-w-[80%] rounded-xl p-3"
+                  className="max-w-[85%] rounded-3xl p-5"
                   style={message.role === 'user' 
-                    ? { background: 'linear-gradient(135deg, #06b6d4, #0891b2)', color: 'white' }
-                    : { background: '#1e293b', border: '1px solid #334155' }
+                    ? { 
+                        background: 'linear-gradient(135deg, #06b6d4, #0891b2)', 
+                        color: 'white',
+                        boxShadow: '0 4px 16px rgba(6, 182, 212, 0.3)'
+                      }
+                    : { 
+                        background: 'linear-gradient(135deg, #1e293b, #0f172a)', 
+                        border: '2px solid #334155',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+                      }
                   }
                 >
                   {message.role === 'assistant' ? (
@@ -726,75 +891,127 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
 
       {/* Input */}
       <footer className="p-4" style={{ borderTop: '2px solid #334155' }}>
-        <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
+        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
+          {/* Big Input Box */}
           <div 
-            className="flex items-end gap-3 p-3 rounded-xl"
-            style={{ background: '#1e293b', border: '1px solid #334155' }}
+            className="flex items-end gap-4 p-4 rounded-3xl"
+            style={{ 
+              background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+              border: '3px solid #334155',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+            }}
           >
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSubmit()
-                }
-              }}
-              placeholder="Tell me what you want to build... 🚀"
-              className="flex-1 bg-transparent text-white text-base resize-none outline-none placeholder-slate-500"
-              style={{ minHeight: '50px', maxHeight: '120px' }}
-              rows={2}
-              disabled={isLoading}
-            />
-            <Tooltip text="Send (Enter)">
+            {/* Input Area */}
+            <div className="flex-1 relative">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSubmit()
+                  }
+                }}
+                placeholder="🤔 What do you want to build today? Type here..."
+                className="w-full bg-transparent text-white text-lg resize-none outline-none placeholder-slate-400 font-semibold"
+                style={{ minHeight: '60px', maxHeight: '150px' }}
+                rows={2}
+                disabled={isLoading}
+              />
+              {/* Helper text */}
+              <p className="text-xs text-slate-500 mt-1">
+                💡 Tip: Press Enter to send, Shift+Enter for new line
+              </p>
+            </div>
+            
+            {/* Big Send Button */}
+            <Tooltip text="🚀 Click here to send your message to me!">
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}
-                className="p-3 rounded-xl transition-all hover:scale-105 disabled:opacity-50"
+                className="flex items-center gap-3 px-6 py-4 rounded-2xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
                 style={{ 
-                  background: 'linear-gradient(135deg, #ec4899, #f97316)',
-                  boxShadow: '0 4px 15px rgba(236, 72, 153, 0.4)'
+                  background: input.trim() && !isLoading 
+                    ? 'linear-gradient(135deg, #ec4899, #f97316)'
+                    : 'rgba(100,100,100,0.3)',
+                  boxShadow: input.trim() && !isLoading 
+                    ? '0 8px 24px rgba(236, 72, 153, 0.5)'
+                    : 'none'
                 }}
               >
-                <Send className="w-5 h-5 text-white" />
+                {isLoading ? (
+                  <Loader2 className="w-7 h-7 text-white animate-spin" />
+                ) : (
+                  <Send className="w-7 h-7 text-white" />
+                )}
+                <span className="text-white font-bold text-lg hidden sm:block">
+                  {isLoading ? 'Thinking...' : 'Send'}
+                </span>
               </button>
             </Tooltip>
           </div>
-          <p className="text-center text-slate-500 text-xs mt-2">
+          
+          {/* Helpful Footer */}
+          <p className="text-center text-slate-400 text-sm mt-3 font-semibold">
             Press Enter to send • Powered by AIBuddy ✨
           </p>
         </form>
       </footer>
 
-      {/* Settings Modal */}
+      {/* Settings Modal - Big & Friendly */}
       {showSettings && (
         <div 
-          className="fixed inset-0 flex items-center justify-center z-50"
-          style={{ background: 'rgba(0,0,0,0.8)' }}
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          style={{ background: 'rgba(0,0,0,0.9)' }}
+          onClick={(e) => e.target === e.currentTarget && setShowSettings(false)}
         >
           <div 
-            className="w-full max-w-md p-6 rounded-2xl"
+            className="w-full max-w-lg p-8 rounded-3xl animate-bounce-in"
             style={{ 
               background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-              border: '2px solid #334155'
+              border: '4px solid #334155',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.5)'
             }}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Key className="w-6 h-6 text-amber-400" />
-                API Key
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-black text-white flex items-center gap-3">
+                <div 
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)' }}
+                >
+                  <Key className="w-7 h-7 text-white" />
+                </div>
+                API Key 🔑
               </h2>
-              <button
-                onClick={() => setShowSettings(false)}
-                className="p-2 rounded-lg hover:bg-slate-700 text-slate-400"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <Tooltip text="Close this window">
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="p-3 rounded-xl hover:bg-slate-700 text-slate-400 transition-all hover:scale-110"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </Tooltip>
             </div>
 
-            <p className="text-slate-400 mb-4 text-sm">
-              Enter your AIBuddy API key. 
+            {/* Explanation */}
+            <div 
+              className="p-4 rounded-2xl mb-6"
+              style={{ background: 'rgba(6, 182, 212, 0.1)', border: '2px solid #06b6d4' }}
+            >
+              <p className="text-lg text-cyan-300 font-semibold">
+                🤔 <strong>What's an API key?</strong>
+              </p>
+              <p className="text-base text-slate-300 mt-2">
+                It's like a special password that lets you talk to me! 
+                You need one to use AIBuddy.
+              </p>
+            </div>
+
+            {/* Get Key Link */}
+            <p className="text-lg text-slate-300 mb-4 font-semibold">
+              Don't have one? 
               <a 
                 href="#"
                 onClick={(e) => {
@@ -804,29 +1021,63 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
                     electronAPI.shell.openExternal(AIBUDDY_BUY_CREDITS_URL)
                   }
                 }}
-                className="text-cyan-400 hover:underline ml-1"
+                className="text-pink-400 hover:underline ml-2 font-bold"
               >
-                Get one here!
+                Click here to get one! 🎉
               </a>
             </p>
 
-            <input
-              type="password"
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-              placeholder="aibuddy_xxxxxxxx..."
-              className="w-full px-4 py-3 rounded-xl text-white mb-4"
-              style={{ background: '#0f172a', border: '1px solid #334155' }}
-            />
+            {/* Input Field - Big */}
+            <div className="mb-6">
+              <label className="block text-base font-bold text-slate-400 mb-2">
+                Paste your API key here:
+              </label>
+              <input
+                type="password"
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                placeholder="aibuddy_xxxxxxxx..."
+                className="w-full px-5 py-4 rounded-2xl text-white text-lg font-mono"
+                style={{ 
+                  background: '#0f172a', 
+                  border: '3px solid #334155',
+                  outline: 'none'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#06b6d4'}
+                onBlur={(e) => e.target.style.borderColor = '#334155'}
+              />
+            </div>
 
-            <button
-              onClick={handleSaveApiKey}
-              disabled={!apiKeyInput.trim()}
-              className="w-full py-3 rounded-xl font-bold text-white transition-all hover:scale-105 disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)' }}
-            >
-              Save Key ✨
-            </button>
+            {/* Save Button - Big & Friendly */}
+            <Tooltip text="Click to save your API key!">
+              <button
+                onClick={handleSaveApiKey}
+                disabled={!apiKeyInput.trim()}
+                className="w-full py-4 rounded-2xl font-black text-xl text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+                style={{ 
+                  background: apiKeyInput.trim() 
+                    ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                    : 'rgba(100,100,100,0.3)',
+                  boxShadow: apiKeyInput.trim() 
+                    ? '0 8px 24px rgba(34, 197, 94, 0.4)'
+                    : 'none'
+                }}
+              >
+                {apiKeyInput.trim() ? '✅ Save My Key!' : '⬆️ Enter your key above'}
+              </button>
+            </Tooltip>
+
+            {/* Current Key Status */}
+            {apiKey && (
+              <div 
+                className="mt-4 p-3 rounded-xl text-center"
+                style={{ background: 'rgba(34, 197, 94, 0.1)', border: '2px solid #22c55e' }}
+              >
+                <p className="text-green-400 font-bold">
+                  ✅ You already have a key saved!
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
