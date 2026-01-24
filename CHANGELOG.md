@@ -4,6 +4,57 @@ All notable changes to AIBuddy Desktop will be documented in this file.
 
 ---
 
+## [1.4.29] - 2026-01-23
+
+### 📚 Cloud Knowledge Base Feature
+
+A major new feature that allows you to import and store your infrastructure documentation locally. Unlike Cursor, AIBuddy **remembers forever**!
+
+#### Core Infrastructure
+| Component | Description |
+|-----------|-------------|
+| `src/knowledge/types.ts` | Type definitions for providers, servers, credentials |
+| `src/knowledge/encryption.ts` | AES-256-GCM encryption for sensitive data |
+| `src/knowledge/manager.ts` | KnowledgeBaseManager with CRUD operations |
+| `src/knowledge/cloud-provider-prompts.ts` | Specialized prompts for cloud providers |
+
+#### UI Components
+| Component | Description |
+|-----------|-------------|
+| `CloudKnowledgePanel.tsx` | Main panel for managing knowledge base |
+| `ProviderCard.tsx` | Card displaying provider info and servers |
+| `ImportDocumentModal.tsx` | Modal for importing documentation |
+
+#### Features
+- **Import Documentation**: Drop .md, .txt, .json, .yaml files
+- **Auto-Detection**: Parses servers, API keys, domains, account IDs
+- **Encrypted Storage**: Credentials stored with AES-256-GCM in `~/.aibuddy/`
+- **Provider Management**: AWS, DigitalOcean, Cloudflare, Sentry, GitHub, etc.
+- **SSH Integration**: Generate and copy SSH commands
+- **AI Context**: Knowledge base auto-injected into AI prompts
+
+#### Supported Providers
+- ☁️ AWS
+- 🌊 DigitalOcean
+- 🌩️ Cloudflare
+- 🐛 Sentry
+- 🐙 GitHub
+- 🔵 Bitbucket
+- 🔥 Firebase
+- ▲ Vercel
+- 🌈 Google Cloud
+- 🔷 Microsoft Azure
+- And more...
+
+#### How to Use
+1. Click **📚 KB** button in the header
+2. Click **📁 Browse Files** or **📋 Paste Text**
+3. AIBuddy parses and shows detected infrastructure
+4. Select a provider and click **Import**
+5. AI now remembers your infrastructure forever!
+
+---
+
 ## [1.4.28] - 2026-01-24
 
 ### Major UI/UX Overhaul 🎨
