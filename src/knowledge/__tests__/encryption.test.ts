@@ -143,8 +143,10 @@ describe('Encryption Module', () => {
       const plaintext = 'Secret message'
       const { encrypted, iv, authTag } = encrypt(plaintext, key)
       
-      // Tamper with the auth tag
-      const tamperedAuthTag = authTag.slice(0, -1) + 'X'
+      // Tamper with the auth tag by decoding, modifying, and re-encoding
+      const authTagBuffer = Buffer.from(authTag, 'base64')
+      authTagBuffer[0] = authTagBuffer[0] ^ 0xFF // Flip all bits in first byte
+      const tamperedAuthTag = authTagBuffer.toString('base64')
       
       expect(() => decrypt(encrypted, key, iv, tamperedAuthTag)).toThrow()
     })

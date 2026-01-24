@@ -360,7 +360,7 @@ describe('KnowledgeBaseManager', () => {
         expect(context).toBe('')
       })
 
-      it('should include provider info', async () => {
+      it('should include provider info (secure - no sensitive data)', async () => {
         const provider = await manager.addProvider('aws')
         await manager.updateProvider(provider.id, {
           connection: { type: 'api', accountId: '123456789', region: 'us-east-1' },
@@ -368,12 +368,14 @@ describe('KnowledgeBaseManager', () => {
         
         const context = manager.generateAIContext()
         
+        // Should include provider name and region (non-sensitive)
         expect(context).toContain('Amazon AWS')
-        expect(context).toContain('123456789')
         expect(context).toContain('us-east-1')
+        // Should NOT include sensitive account ID
+        expect(context).not.toContain('123456789')
       })
 
-      it('should include server info', async () => {
+      it('should include server info (secure - no IPs)', async () => {
         const provider = await manager.addProvider('aws')
         await manager.addServer(provider.id, 'Production', '10.0.0.1', {
           domain: 'example.com',
@@ -381,9 +383,11 @@ describe('KnowledgeBaseManager', () => {
         
         const context = manager.generateAIContext()
         
-        expect(context).toContain('Production')
-        expect(context).toContain('10.0.0.1')
-        expect(context).toContain('example.com')
+        // Should NOT include sensitive data like IPs or domains
+        // The secure context only mentions that servers exist, not their details
+        expect(context).toContain('Amazon AWS')
+        expect(context).not.toContain('10.0.0.1')
+        expect(context).not.toContain('example.com')
       })
     })
 

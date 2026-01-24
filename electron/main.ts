@@ -150,7 +150,7 @@ function createWindow(): void {
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     trafficLightPosition: { x: 15, y: 10 },
     backgroundColor: '#1e1e1e',
-    icon: join(__dirname, '../../build/icon.png'),
+    icon: join(__dirname, '../../build/icons/icon.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
