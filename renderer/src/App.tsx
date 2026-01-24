@@ -24,6 +24,11 @@ import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { trackButtonClick, trackError, addBreadcrumb } from './lib/sentry'
+import { 
+  AIBUDDY_BUY_CREDITS_URL, 
+  AIBUDDY_API_INFERENCE_URL,
+  AIBUDDY_WEBSITE 
+} from '../../src/constants/urls'
 
 // Simple tooltip
 function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
@@ -475,9 +480,9 @@ Working folder: ${workspacePath || 'None selected'}`
               onClick={() => {
                 const electronAPI = (window as any).electronAPI
                 if (electronAPI?.shell?.openExternal) {
-                  electronAPI.shell.openExternal('https://aibuddy.life/pricing')
+                  electronAPI.shell.openExternal(AIBUDDY_BUY_CREDITS_URL)
                 } else {
-                  window.open('https://aibuddy.life/pricing', '_blank')
+                  window.open(AIBUDDY_BUY_CREDITS_URL, '_blank')
                 }
               }}
               className="p-2 rounded-xl transition-all hover:scale-105"
@@ -750,7 +755,7 @@ Working folder: ${workspacePath || 'None selected'}`
                   e.preventDefault()
                   const electronAPI = (window as any).electronAPI
                   if (electronAPI?.shell?.openExternal) {
-                    electronAPI.shell.openExternal('https://aibuddy.life/pricing')
+                    electronAPI.shell.openExternal(AIBUDDY_BUY_CREDITS_URL)
                   }
                 }}
                 className="text-cyan-400 hover:underline ml-1"

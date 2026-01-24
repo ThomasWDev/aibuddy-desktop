@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { FolderOpen, MessageSquare, CreditCard, Rocket, Star, Sparkles, Code, Zap, Key, Settings, X, Check, HelpCircle, Info } from 'lucide-react'
 import { trackButtonClick, trackError, addBreadcrumb } from '../../lib/sentry'
+import { AIBUDDY_BUY_CREDITS_URL } from '../../../../src/constants/urls'
 
 // Tooltip component for better UX
 interface TooltipProps {
@@ -247,12 +248,12 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
     try {
       const electronAPI = (window as any).electronAPI
       if (electronAPI?.shell?.openExternal) {
-        await electronAPI.shell.openExternal('https://aibuddy.life/pricing')
+        await electronAPI.shell.openExternal(AIBUDDY_BUY_CREDITS_URL)
       } else {
-        window.open('https://aibuddy.life/pricing', '_blank')
+        window.open(AIBUDDY_BUY_CREDITS_URL, '_blank')
       }
     } catch (error) {
-      window.open('https://aibuddy.life/pricing', '_blank')
+      window.open(AIBUDDY_BUY_CREDITS_URL, '_blank')
     }
   }
 
@@ -774,7 +775,7 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
             <p style={{ color: '#a0aec0', marginBottom: '20px', fontSize: '16px', lineHeight: '1.6' }}>
               Enter your AIBuddy API key to start chatting with AI. Don't have one? 
               <a 
-                href="https://aibuddy.life/pricing" 
+                href={AIBUDDY_BUY_CREDITS_URL} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 style={{ color: '#48dbfb', marginLeft: '4px', textDecoration: 'underline' }}
@@ -784,7 +785,7 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
                   if (electronAPI?.shell?.openExternal) {
                     electronAPI.shell.openExternal('https://aibuddy.life/pricing')
                   } else {
-                    window.open('https://aibuddy.life/pricing', '_blank')
+                    window.open(AIBUDDY_BUY_CREDITS_URL, '_blank')
                   }
                 }}
               >
