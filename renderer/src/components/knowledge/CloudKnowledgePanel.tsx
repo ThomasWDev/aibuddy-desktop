@@ -5,20 +5,20 @@
  * Displays providers, servers, and allows importing documentation.
  */
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { ProviderCard } from './ProviderCard'
 import { ImportDocumentModal } from './ImportDocumentModal'
+import { EditProviderModal } from './EditProviderModal'
+import { EditServerModal } from './EditServerModal'
+import { useKnowledgeBase } from '../../hooks/useKnowledgeBase'
 import type { 
   CloudProvider, 
   ServerConfig, 
   CloudProviderType,
-  KnowledgeBasePreferences 
 } from '../../../../src/knowledge/types'
 import { 
   PROVIDER_NAMES, 
   PROVIDER_EMOJIS,
-  PROVIDER_CATEGORIES,
-  createCloudProvider 
 } from '../../../../src/knowledge/types'
 
 interface CloudKnowledgePanelProps {
@@ -28,88 +28,99 @@ interface CloudKnowledgePanelProps {
   onQuickAction?: (action: string, provider: CloudProvider) => void
 }
 
-// Mock data for demonstration - in real app, this comes from KnowledgeBaseManager
-const DEMO_PROVIDERS: CloudProvider[] = []
-
 export const CloudKnowledgePanel: React.FC<CloudKnowledgePanelProps> = ({
   isOpen,
   onClose,
   onSshConnect,
   onQuickAction,
 }) => {
-  const [providers, setProviders] = useState<CloudProvider[]>(DEMO_PROVIDERS)
+  // Use the knowledge base hook
+  const {
+    providers,
+    stats,
+    isLoading,
+    error,
+    addProvider,
+    updateProvider,
+    deleteProvider,
+    updateServer,
+    importDocument,
+    openTerminalWithSsh,
+    refresh,
+  } = useKnowledgeBase()
+
   const [showImportModal, setShowImportModal] = useState(false)
   const [showAddProvider, setShowAddProvider] = useState(false)
   const [selectedProviderType, setSelectedProviderType] = useState<CloudProviderType | ''>('')
-  const [stats, setStats] = useState({ providers: 0, servers: 0, credentials: 0, docs: 0 })
-
-  // Load providers on mount
-  useEffect(() => {
-    // In real implementation, load from KnowledgeBaseManager
-    updateStats()
-  }, [providers])
-
-  const updateStats = () => {
-    setStats({
-      providers: providers.length,
-      servers: providers.reduce((sum, p) => sum + p.servers.length, 0),
-      credentials: 0, // Would come from manager
-      docs: providers.reduce((sum, p) => sum + p.importedDocs.length, 0),
-    })
-  }
+  
+  // Edit modals
+  const [editingProvider, setEditingProvider] = useState<CloudProvider | null>(null)
+  const [editingServer, setEditingServer] = useState<{ server: ServerConfig; providerId: string } | null>(null)
 
   // Handle adding a new provider
-  const handleAddProvider = () => {
+  const handleAddProvider = async () => {
     if (!selectedProviderType) return
 
-    const newProvider = createCloudProvider(selectedProviderType)
-    setProviders([...providers, newProvider])
+    await addProvider(selectedProviderType)
     setShowAddProvider(false)
     setSelectedProviderType('')
   }
 
   // Handle editing a provider
   const handleEditProvider = (provider: CloudProvider) => {
-    console.log('Edit provider:', provider)
-    // Open edit modal
+    setEditingProvider(provider)
+  }
+
+  // Handle saving provider edits
+  const handleSaveProvider = async (id: string, updates: Partial<CloudProvider>) => {
+    await updateProvider(id, updates)
+    setEditingProvider(null)
   }
 
   // Handle deleting a provider
-  const handleDeleteProvider = (providerId: string) => {
+  const handleDeleteProvider = async (providerId: string) => {
     if (confirm('Are you sure you want to delete this provider?')) {
-      setProviders(providers.filter(p => p.id !== providerId))
+      await deleteProvider(providerId)
     }
   }
 
   // Handle testing connection
   const handleTestConnection = async (provider: CloudProvider) => {
     console.log('Testing connection for:', provider.name)
-    // Test connection and update status
+    // TODO: Implement connection testing
+    alert(`Connection test for ${provider.name} - Feature coming soon!`)
   }
 
   // Handle SSH connection
-  const handleSshConnect = (server: ServerConfig) => {
+  const handleSshConnect = async (server: ServerConfig) => {
     if (onSshConnect) {
       onSshConnect(server)
-    } else {
-      // Copy SSH command to clipboard
-      if (server.sshCommand) {
+    } else if (server.sshCommand) {
+      // Try to open in terminal
+      const opened = await openTerminalWithSsh(server.sshCommand)
+      if (!opened) {
+        // Fallback to clipboard
         navigator.clipboard.writeText(server.sshCommand)
         alert(`SSH command copied to clipboard:\n${server.sshCommand}`)
       }
     }
   }
 
-  // Handle viewing provider details
+  // Handle viewing provider details (opens edit modal)
   const handleViewDetails = (provider: CloudProvider) => {
-    console.log('View details:', provider)
-    // Open details modal
+    setEditingProvider(provider)
   }
 
   // Handle document import
   const handleImport = async (filename: string, content: string, providerId: string) => {
-    console.log('Importing document:', filename, 'to provider:', providerId)
-    // In real implementation, call KnowledgeBaseManager.importDocument
+    await importDocument(providerId, filename, content)
+    await refresh()
+  }
+
+  // Handle saving server edits
+  const handleSaveServer = async (providerId: string, serverId: string, updates: Partial<ServerConfig>) => {
+    await updateServer(providerId, serverId, updates)
+    setEditingServer(null)
   }
 
   if (!isOpen) return null
@@ -493,6 +504,65 @@ export const CloudKnowledgePanel: React.FC<CloudKnowledgePanelProps> = ({
         onImport={handleImport}
         providers={providers.map(p => ({ id: p.id, name: p.name, emoji: p.emoji, type: p.type }))}
       />
+
+      {/* Edit Provider Modal */}
+      <EditProviderModal
+        isOpen={!!editingProvider}
+        provider={editingProvider}
+        onClose={() => setEditingProvider(null)}
+        onSave={handleSaveProvider}
+      />
+
+      {/* Edit Server Modal */}
+      <EditServerModal
+        isOpen={!!editingServer}
+        server={editingServer?.server || null}
+        providerId={editingServer?.providerId || null}
+        onClose={() => setEditingServer(null)}
+        onSave={handleSaveServer}
+      />
+
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1002,
+          }}
+        >
+          <div style={{ textAlign: 'center', color: '#fff' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+            <p>Loading knowledge base...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error Display */}
+      {error && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            padding: '16px 24px',
+            background: 'rgba(239, 68, 68, 0.9)',
+            borderRadius: '12px',
+            color: '#fff',
+            maxWidth: '400px',
+            zIndex: 1003,
+          }}
+        >
+          <strong>Error:</strong> {error}
+        </div>
+      )}
     </div>
   )
 }

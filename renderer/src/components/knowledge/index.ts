@@ -7,4 +7,6 @@
 export { CloudKnowledgePanel } from './CloudKnowledgePanel'
 export { ProviderCard } from './ProviderCard'
 export { ImportDocumentModal } from './ImportDocumentModal'
+export { EditProviderModal } from './EditProviderModal'
+export { EditServerModal } from './EditServerModal'
 
