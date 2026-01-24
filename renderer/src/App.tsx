@@ -469,6 +469,30 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
             </button>
           </Tooltip>
 
+          {/* Knowledge Base Button */}
+          <Tooltip text="📚 Knowledge Base - Import infrastructure docs">
+            <button
+              onClick={() => setShowKnowledgeBase(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105"
+              style={{ 
+                background: showKnowledgeBase 
+                  ? 'linear-gradient(135deg, #ec4899, #f472b6)' 
+                  : 'rgba(236, 72, 153, 0.2)',
+                color: showKnowledgeBase ? 'white' : '#f472b6',
+                border: `1px solid ${showKnowledgeBase ? '#ec4899' : '#f472b6'}`
+              }}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>KB</span>
+              {knowledgeContext && (
+                <span 
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: '#22c55e' }}
+                />
+              )}
+            </button>
+          </Tooltip>
+
           <Tooltip text="🔑 API Key Settings">
             <button
               onClick={() => setShowSettings(true)}

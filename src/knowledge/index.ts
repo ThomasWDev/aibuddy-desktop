@@ -35,6 +35,24 @@ export type {
   DetectedSshCommand 
 } from './document-parser'
 
+// AI Integration
+export { 
+  AIContextGenerator, 
+  SSHConnectionManager, 
+  QuickActionManager,
+  aiContextGenerator,
+  sshConnectionManager,
+  quickActionManager,
+} from './ai-integration'
+export type {
+  AIContext,
+  SSHConnectionResult,
+  QuickAction,
+  QuickActionResult,
+  ServerInfo,
+  ProviderInfo,
+} from './ai-integration'
+
 // Cloud Provider Prompts
 export * from './cloud-provider-prompts'
 
