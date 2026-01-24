@@ -41,6 +41,7 @@
     "prepare": "echo 'Ready for development'"
   },
   "dependencies": {
+    "@aibuddy/prompts": "workspace:*",
     "@ai-sdk/anthropic": "^1.2.12",
     "@amplitude/analytics-browser": "^2.11.9",
     "@anthropic-ai/sdk": "^0.26.1",

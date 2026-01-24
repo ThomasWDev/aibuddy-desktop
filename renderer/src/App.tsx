@@ -25,12 +25,26 @@ import { CloudKnowledgePanel } from './components/knowledge'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { trackButtonClick, trackError, addBreadcrumb } from './lib/sentry'
+import { 
+  trackButtonClick, 
+  trackError, 
+  addBreadcrumb,
+  trackUserAction,
+  trackUserMessage,
+  trackAIRequest,
+  trackAIResponse,
+  trackPanelToggle,
+  trackSettingsChange,
+  trackSlowOperation,
+  trackNavigation,
+  captureMessage
+} from './lib/sentry'
 import { 
   AIBUDDY_BUY_CREDITS_URL, 
   AIBUDDY_API_INFERENCE_URL,
   AIBUDDY_WEBSITE 
 } from '../../src/constants/urls'
+import { generateSystemPrompt } from '../../src/constants/system-prompt'
 
 // Child-friendly tooltip with big text and emojis
 function Tooltip({ text, children, position = 'top' }: { text: string; children: React.ReactNode; position?: 'top' | 'bottom' | 'left' | 'right' }) {
@@ -187,12 +201,18 @@ function App() {
   const [showKnowledgeBase, setShowKnowledgeBase] = useState(false)
   const [knowledgeContext, setKnowledgeContext] = useState<string>('')
   
+  // Environment Detection
+  const [environmentSummary, setEnvironmentSummary] = useState<string>('')
+  
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // Load on mount
   useEffect(() => {
     const init = async () => {
+      const startTime = Date.now()
+      addBreadcrumb('App initializing', 'app.lifecycle', { timestamp: new Date().toISOString() })
+      
       const electronAPI = (window as any).electronAPI
       
       // Get API key
@@ -201,12 +221,16 @@ function App() {
           const key = await electronAPI.store.get('apiKey')
           if (key) {
             setApiKey(key)
+            addBreadcrumb('API key loaded from store', 'app.init', { hasKey: true })
             // Validate key and get credits
             validateApiKey(key)
           } else {
             setShowSettings(true)
+            addBreadcrumb('No API key found - showing settings', 'app.init', { hasKey: false })
           }
-        } catch {}
+        } catch (err) {
+          addBreadcrumb('Failed to load API key', 'app.init', { error: (err as Error).message }, 'error')
+        }
       }
       
       // Get version
@@ -214,6 +238,7 @@ function App() {
         try {
           const v = await electronAPI.app.getVersion()
           setAppVersion(v)
+          addBreadcrumb('App version loaded', 'app.init', { version: v })
         } catch {}
       }
       
@@ -223,9 +248,39 @@ function App() {
           const recent = await electronAPI.store.get('recentWorkspaces')
           if (recent && recent.length > 0) {
             setWorkspacePath(recent[0])
+            addBreadcrumb('Recent workspace loaded', 'app.init', { 
+              path: recent[0],
+              recentCount: recent.length 
+            })
           }
         } catch {}
       }
+      
+      // Detect development environment
+      if (electronAPI?.invoke) {
+        try {
+          const envSummary = await electronAPI.invoke('env:getSummary')
+          if (envSummary) {
+            setEnvironmentSummary(envSummary)
+            addBreadcrumb('Environment detected', 'app.init', { 
+              summaryLength: envSummary.length 
+            })
+          }
+        } catch (err) {
+          console.log('[App] Environment detection not available:', err)
+        }
+      }
+      
+      const initTime = Date.now() - startTime
+      addBreadcrumb('App initialization complete', 'app.lifecycle', { 
+        initTimeMs: initTime,
+        hasApiKey: !!electronAPI?.store?.get,
+        platform: navigator.platform,
+        userAgent: navigator.userAgent.substring(0, 50)
+      })
+      
+      // Track slow initialization
+      trackSlowOperation('App Initialization', initTime, 2000)
     }
     init()
   }, [])
@@ -233,6 +288,9 @@ function App() {
   // Validate API key and get credits
   const validateApiKey = async (key: string) => {
     setStatus('validating')
+    addBreadcrumb('Validating API key', 'api.validation', { keyPrefix: key.substring(0, 10) + '...' })
+    
+    const startTime = Date.now()
     try {
       const response = await fetch('https://i6f81wuqo0.execute-api.us-east-2.amazonaws.com/dev/v1/inference', {
         method: 'POST',
@@ -247,16 +305,40 @@ function App() {
         })
       })
       
+      const responseTime = Date.now() - startTime
       const data = await response.json()
       console.log('[App] API validation response:', data)
       
       if (data.remaining_credits !== undefined) {
         setCredits(data.remaining_credits)
         toast.success(`✅ API key valid! You have ${data.remaining_credits.toFixed(2)} credits`)
+        
+        // Track successful validation
+        addBreadcrumb('API key validated successfully', 'api.validation', {
+          credits: data.remaining_credits,
+          responseTime,
+          status: response.status
+        })
+        
+        // Track if credits are low
+        if (data.remaining_credits < 5) {
+          addBreadcrumb('Low credits warning', 'billing', { 
+            credits: data.remaining_credits 
+          }, 'warning')
+        }
       }
       setStatus('idle')
     } catch (err) {
+      const responseTime = Date.now() - startTime
       console.error('[App] API validation error:', err)
+      
+      // Track validation failure
+      addBreadcrumb('API key validation failed', 'api.validation', {
+        error: (err as Error).message,
+        responseTime
+      }, 'error')
+      trackError(err as Error, { context: 'api_validation' })
+      
       setStatus('idle')
     }
   }
@@ -275,6 +357,8 @@ function App() {
 
   const handleOpenFolder = async () => {
     trackButtonClick('Open Folder', 'App')
+    addBreadcrumb('User clicked Open Folder', 'ui.click', { component: 'header' })
+    
     const electronAPI = (window as any).electronAPI
     if (electronAPI?.dialog?.openFolder) {
       const path = await electronAPI.dialog.openFolder()
@@ -287,22 +371,122 @@ function App() {
           await electronAPI.store.set('recentWorkspaces', updated)
         } catch {}
         toast.success(`📂 Opened: ${path.split('/').pop()}`)
-        addBreadcrumb(`Opened folder: ${path}`, 'user')
+        
+        // Track folder selection with details
+        addBreadcrumb('Workspace folder selected', 'workspace', { 
+          path,
+          folderName: path.split('/').pop(),
+          recentCount: 1
+        })
+        
+        // Detect project type for better AI context
+        const projectType = detectProjectType(path)
+        addBreadcrumb('Project type detected', 'workspace', { 
+          path,
+          projectType
+        })
       }
+    } else {
+      addBreadcrumb('Electron API not available for folder dialog', 'error', {}, 'warning')
     }
+  }
+  
+  // Detect project type from folder path - comprehensive detection
+  const detectProjectType = (path: string): string => {
+    const folderName = path.toLowerCase()
+    
+    // Android/Kotlin detection
+    if (folderName.includes('android') || folderName.includes('kotlin') || 
+        folderName.includes('gradle') || folderName.includes('raptor')) {
+      return 'Android (Kotlin/Java) - Run: ./gradlew assembleDebug'
+    }
+    
+    // iOS/Swift detection
+    if (folderName.includes('ios') || folderName.includes('swift') || 
+        folderName.includes('xcode') || folderName.includes('cocoa')) {
+      return 'iOS (Swift) - Run: xcodebuild build'
+    }
+    
+    // React/Next.js detection
+    if (folderName.includes('react') || folderName.includes('next') || 
+        folderName.includes('vite') || folderName.includes('create-react')) {
+      return 'React/Next.js - Run: npm run dev'
+    }
+    
+    // Vue detection
+    if (folderName.includes('vue') || folderName.includes('nuxt')) {
+      return 'Vue.js - Run: npm run dev'
+    }
+    
+    // Angular detection
+    if (folderName.includes('angular')) {
+      return 'Angular - Run: ng serve'
+    }
+    
+    // Python detection
+    if (folderName.includes('python') || folderName.includes('django') || 
+        folderName.includes('flask') || folderName.includes('fastapi')) {
+      return 'Python - Run: python main.py or python manage.py runserver'
+    }
+    
+    // Node.js detection
+    if (folderName.includes('node') || folderName.includes('express') || 
+        folderName.includes('nest') || folderName.includes('koa')) {
+      return 'Node.js - Run: npm start'
+    }
+    
+    // .NET detection
+    if (folderName.includes('dotnet') || folderName.includes('.net') || 
+        folderName.includes('csharp') || folderName.includes('blazor')) {
+      return '.NET - Run: dotnet run'
+    }
+    
+    // Rust detection
+    if (folderName.includes('rust') || folderName.includes('cargo')) {
+      return 'Rust - Run: cargo run'
+    }
+    
+    // Go detection
+    if (folderName.includes('golang') || folderName.includes('-go')) {
+      return 'Go - Run: go run .'
+    }
+    
+    // Electron detection
+    if (folderName.includes('electron') || folderName.includes('desktop')) {
+      return 'Electron - Run: npm run dev'
+    }
+    
+    // Flutter detection
+    if (folderName.includes('flutter') || folderName.includes('dart')) {
+      return 'Flutter - Run: flutter run'
+    }
+    
+    // WordPress detection
+    if (folderName.includes('wordpress') || folderName.includes('wp-')) {
+      return 'WordPress - PHP project'
+    }
+    
+    return 'Unknown project type - will analyze files to determine'
   }
 
   const handleSaveApiKey = async () => {
     if (!apiKeyInput.trim()) return
     trackButtonClick('Save API Key', 'App')
+    trackSettingsChange('api_key', true)
+    addBreadcrumb('User saving API key', 'settings', { 
+      keyLength: apiKeyInput.trim().length,
+      keyPrefix: apiKeyInput.trim().substring(0, 10) + '...'
+    })
     
     const electronAPI = (window as any).electronAPI
     if (electronAPI?.store?.set) {
       await electronAPI.store.set('apiKey', apiKeyInput.trim())
+      addBreadcrumb('API key saved to store', 'settings')
     }
     
     setApiKey(apiKeyInput.trim())
     setShowSettings(false)
+    trackPanelToggle('Settings', false)
     
     // Validate and get credits
     validateApiKey(apiKeyInput.trim())
@@ -313,9 +497,13 @@ function App() {
     e?.preventDefault()
     if (!input.trim() || isLoading) return
 
+    // Track user action
+    trackButtonClick('send_message', 'App', { messageLength: input.trim().length })
+
     if (!apiKey) {
       setShowSettings(true)
       toast.error('🔑 Please add your API key first!')
+      addBreadcrumb('API key missing - showing settings', 'user.action', { trigger: 'send_message' }, 'warning')
       return
     }
 
@@ -324,6 +512,15 @@ function App() {
       role: 'user',
       content: input.trim()
     }
+
+    // Track user message
+    trackUserMessage(userMessage.content.length, false, false, messages.length === 0)
+    addBreadcrumb('User sent message', 'chat', { 
+      messageLength: userMessage.content.length,
+      isFirstMessage: messages.length === 0,
+      hasKnowledgeContext: !!knowledgeContext,
+      workspacePath: workspacePath || 'none'
+    })
 
     setMessages(prev => [...prev, userMessage])
     setInput('')
@@ -343,6 +540,8 @@ function App() {
     
     setStatus('thinking')
 
+    const startTime = Date.now()
+
     try {
       console.log('[App] Sending API request...')
       
@@ -351,6 +550,19 @@ function App() {
         content: m.content
       }))
       chatMessages.push({ role: 'user', content: userMessage.content })
+
+      // Track AI request
+      trackAIRequest({
+        model: 'claude-opus-4-20250514',
+        messageCount: chatMessages.length + 1, // +1 for system
+        hasImages: false,
+        hasTools: false
+      })
+      addBreadcrumb('Sending AI request', 'api.request', {
+        model: 'claude-opus-4-20250514',
+        messageCount: chatMessages.length + 1,
+        hasKnowledgeContext: !!knowledgeContext
+      })
 
       const response = await fetch('https://i6f81wuqo0.execute-api.us-east-2.amazonaws.com/dev/v1/inference', {
         method: 'POST',
@@ -363,19 +575,12 @@ function App() {
             messages: [
               { 
                 role: 'system', 
-                content: `You are AIBuddy, a friendly AI coding assistant for kids and beginners. 
-
-RULES:
-- Use simple words an 8-year-old can understand
-- Be encouraging! Use emojis 🎉
-- Explain code simply
-- Keep responses short and clear
-- Use bullet points
-- Celebrate completed tasks! 🌟
-
-Working folder: ${workspacePath || 'None selected'}
-
-${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}`
+                content: generateSystemPrompt({
+                  workspacePath: workspacePath || undefined,
+                  projectType: workspacePath ? detectProjectType(workspacePath) : undefined,
+                  knowledgeContext: knowledgeContext || undefined,
+                  environmentSummary: environmentSummary || undefined
+                })
               },
               ...chatMessages
             ],
@@ -384,12 +589,34 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
         })
       })
 
+      const responseTime = Date.now() - startTime
       console.log('[App] API response status:', response.status)
+      
+      // Track response status
+      addBreadcrumb('API response received', 'api.response', {
+        status: response.status,
+        responseTime,
+        ok: response.ok
+      })
       
       setStatus('generating')
       
       const data = await response.json()
       console.log('[App] API response data:', data)
+
+      // Track AI response with full details
+      trackAIResponse({
+        model: data.model || 'unknown',
+        outputTokens: data.usage?.output_tokens || 0,
+        responseTime,
+        success: response.ok && !data.error
+      })
+
+      // Track slow operations
+      trackSlowOperation('AI Response', responseTime, 5000, {
+        model: data.model,
+        status: response.status
+      })
 
       // Update credits
       if (data.remaining_credits !== undefined) {
@@ -397,6 +624,11 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
         setCredits(data.remaining_credits)
         if (oldCredits !== null && data.api_cost) {
           toast.info(`💰 Used ${data.api_cost.toFixed(4)} credits`)
+          addBreadcrumb('Credits deducted', 'billing', {
+            cost: data.api_cost,
+            remaining: data.remaining_credits,
+            model: data.model
+          })
         }
       }
       
@@ -426,11 +658,35 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
       setMessages(prev => [...prev, assistantMessage])
       setStatus('done')
       
+      // Track successful completion
+      addBreadcrumb('AI response displayed', 'chat', {
+        responseLength: responseText.length,
+        model: data.model,
+        cost: data.api_cost,
+        totalResponseTime: responseTime
+      })
+      
       setTimeout(() => setStatus('idle'), 2000)
       
     } catch (err) {
+      const responseTime = Date.now() - startTime
       console.error('[App] API Error:', err)
-      trackError(err as Error, { context: 'chat' })
+      
+      // Track error with full context
+      trackError(err as Error, { 
+        context: 'chat',
+        responseTime,
+        messageCount: messages.length,
+        hasKnowledgeContext: !!knowledgeContext,
+        workspacePath
+      })
+      
+      addBreadcrumb('API request failed', 'api.error', {
+        error: (err as Error).message,
+        responseTime,
+        messageCount: messages.length
+      }, 'error')
+      
       setStatus('error')
       
       const errorMessage: Message = {
@@ -475,7 +731,7 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
         {/* Logo & Status */}
         <div className="flex items-center gap-4">
           {/* Big Logo */}
-          <Tooltip text="🌟 Hi! I'm AIBuddy, your coding friend!">
+          <Tooltip text="🌟 Hi! I'm AIBuddy, your coding friend!" position="bottom">
             <div 
               className="w-14 h-14 rounded-2xl flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
               style={{ 
@@ -493,7 +749,7 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
           </div>
           
           {/* Status Badge - Bigger */}
-          <Tooltip text="👀 This shows what I'm doing right now!">
+          <Tooltip text="👀 This shows what I'm doing right now!" position="bottom">
             <div 
               className="flex items-center gap-3 px-5 py-3 rounded-2xl ml-4 cursor-help"
               style={{ 
@@ -511,7 +767,7 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
         {/* Credits & Actions - Bigger Buttons */}
         <div className="flex items-center gap-3">
           {/* Credits Display - Big & Clear */}
-          <Tooltip text="💰 These are your AIBuddy credits! Each question uses some credits.">
+          <Tooltip text="💰 These are your AIBuddy credits! Each question uses some credits." position="bottom">
             <div 
               className="flex items-center gap-3 px-5 py-3 rounded-2xl cursor-help"
               style={{ 
@@ -537,7 +793,7 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
 
           {/* Last Cost - Only show if recent */}
           {lastCost !== null && (
-            <Tooltip text="⚡ This is how many credits your last question used">
+            <Tooltip text="⚡ This is how many credits your last question used" position="bottom">
               <div 
                 className="flex items-center gap-2 px-4 py-2 rounded-xl cursor-help"
                 style={{ background: 'rgba(139, 92, 246, 0.15)', border: '2px solid #8b5cf6' }}
@@ -550,20 +806,20 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
 
           {/* Model Used */}
           {lastModel && (
-            <Tooltip text="🧠 This shows which AI brain answered your question!">
+            <Tooltip text="🧠 This shows which AI brain answered your question!" position="bottom">
               <div 
                 className="px-4 py-2 rounded-xl cursor-help"
                 style={{ background: 'rgba(6, 182, 212, 0.15)', border: '2px solid #22d3ee' }}
               >
                 <span className="text-base font-bold text-cyan-300">
-                  {lastModel.includes('deepseek') ? '🤖 DeepSeek' : '🧠 Claude'}
+                  🤖 AIBuddy
                 </span>
               </div>
             </Tooltip>
           )}
 
           {/* Big Action Buttons */}
-          <Tooltip text="📁 Click here to open your code folder! This tells me which project you're working on.">
+          <Tooltip text="📁 Click here to open your code folder! This tells me which project you're working on." position="bottom">
             <button
               onClick={handleOpenFolder}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105"
@@ -579,9 +835,14 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
           </Tooltip>
 
           {/* Knowledge Base Button - Big & Friendly */}
-          <Tooltip text="📚 Save your server info here! I'll remember it forever and help you connect!">
+          <Tooltip text="📚 Save your server info here! I'll remember it forever and help you connect!" position="bottom">
             <button
-              onClick={() => setShowKnowledgeBase(true)}
+              onClick={() => {
+                trackButtonClick('Knowledge Base', 'App')
+                trackPanelToggle('Knowledge Base', true)
+                addBreadcrumb('Opening Knowledge Base panel', 'ui.panel', { panel: 'knowledge_base' })
+                setShowKnowledgeBase(true)
+              }}
               className="flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95"
               style={{ 
                 background: showKnowledgeBase 
@@ -604,9 +865,17 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
           </Tooltip>
 
           {/* Settings Button - Big & Clear */}
-          <Tooltip text="🔑 Click here to add your API key! You need this to talk to me.">
+          <Tooltip text="🔑 Click here to add your API key! You need this to talk to me." position="bottom">
             <button
-              onClick={() => setShowSettings(true)}
+              onClick={() => {
+                trackButtonClick('Settings', 'App', { hasApiKey: !!apiKey })
+                trackPanelToggle('Settings', true)
+                addBreadcrumb('Opening settings panel', 'ui.panel', { 
+                  panel: 'settings',
+                  hasApiKey: !!apiKey 
+                })
+                setShowSettings(true)
+              }}
               className="flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95"
               style={{ 
                 background: apiKey 
@@ -623,9 +892,14 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
           </Tooltip>
 
           {/* Buy Credits - Big & Friendly */}
-          <Tooltip text="💳 Need more credits? Click here to get more so we can keep coding together!">
+          <Tooltip text="💳 Need more credits? Click here to get more so we can keep coding together!" position="bottom">
             <button
               onClick={() => {
+                trackButtonClick('Buy Credits', 'App', { currentCredits: credits })
+                addBreadcrumb('User clicked Buy Credits', 'ui.click', { 
+                  currentCredits: credits,
+                  destination: AIBUDDY_BUY_CREDITS_URL 
+                })
                 const electronAPI = (window as any).electronAPI
                 if (electronAPI?.shell?.openExternal) {
                   electronAPI.shell.openExternal(AIBUDDY_BUY_CREDITS_URL)
@@ -725,7 +999,14 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
                 ].map((example, i) => (
                   <button
                     key={i}
-                    onClick={() => setInput(example)}
+                    onClick={() => {
+                      trackButtonClick('Example Prompt', 'WelcomeScreen', { prompt: example })
+                      addBreadcrumb('User clicked example prompt', 'ui.click', { 
+                        prompt: example,
+                        index: i 
+                      })
+                      setInput(example)
+                    }}
                     className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105"
                     style={{ background: 'rgba(255,255,255,0.1)', color: '#94a3b8' }}
                   >
@@ -832,7 +1113,7 @@ ${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}
                       {message.model && (
                         <>
                           <span>•</span>
-                          <span>{message.model.includes('deepseek') ? 'DeepSeek' : 'Claude'}</span>
+                          <span>AIBuddy</span>
                         </>
                       )}
                     </div>

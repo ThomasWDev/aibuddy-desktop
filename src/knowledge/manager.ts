@@ -609,58 +609,97 @@ export class KnowledgeBaseManager {
   }
   
   // ===========================================================================
-  // AI Context Generation
+  // AI Context Generation - PRIVACY-FIRST
   // ===========================================================================
   
   /**
-   * Generate context for AI prompts based on knowledge base
+   * Generate SAFE context for AI prompts - NO SENSITIVE DATA
+   * 
+   * SECURITY: This method ONLY returns:
+   * - Provider names and types
+   * - Server names (NOT IPs, NOT credentials)
+   * - Region (if configured)
+   * 
+   * NEVER includes:
+   * - IP addresses
+   * - SSH credentials (user, port, key path)
+   * - API keys or tokens
+   * - Account IDs
+   * - Passwords
    */
   generateAIContext(): string {
     if (this.data.providers.length === 0) {
       return ''
     }
     
-    let context = '## User Infrastructure Context\n\n'
-    context += 'The user has the following infrastructure configured:\n\n'
+    let context = '## AVAILABLE INFRASTRUCTURE (Local Knowledge Base)\n\n'
+    context += 'The user has configured the following cloud infrastructure locally.\n'
+    context += 'When they ask about servers or deployments, reference these by NAME.\n'
+    context += 'The actual credentials are stored LOCALLY and used by the app to execute commands.\n'
+    context += 'You do NOT have access to IPs, SSH keys, or API credentials.\n\n'
     
     for (const provider of this.data.providers) {
       context += `### ${provider.emoji} ${provider.name}\n`
+      context += `- Type: ${this.getProviderDisplayName(provider.type)}\n`
       
-      if (provider.connection.accountId) {
-        context += `- Account ID: ${provider.connection.accountId}\n`
-      }
+      // Region is safe to share (not sensitive)
       if (provider.connection.region) {
         context += `- Region: ${provider.connection.region}\n`
       }
       
+      // Only share server NAMES - NOT IPs or credentials
       if (provider.servers.length > 0) {
-        context += `- Servers:\n`
+        context += `- Servers configured: ${provider.servers.length}\n`
+        context += `- Server names:\n`
         for (const server of provider.servers) {
-          context += `  - ${server.name}: ${server.ip}`
-          if (server.domain) {
-            context += ` (${server.domain})`
-          }
-          context += '\n'
+          context += `  - "${server.name}"\n`
         }
       }
       
       context += '\n'
     }
     
-    context += 'When the user asks about their infrastructure, use this context to provide specific help.\n'
-    context += 'You can offer to SSH to servers, check logs, or perform other infrastructure tasks.\n'
+    context += '**To connect to a server:**\n'
+    context += '1. Tell the user which server you want to connect to BY NAME\n'
+    context += '2. The app will use locally-stored credentials to execute\n'
+    context += '3. You will receive the OUTPUT (logs, results) to analyze\n'
+    context += '4. You NEVER see the actual credentials, IPs, or SSH keys\n'
     
     return context
   }
   
   /**
-   * Get relevant context for a specific query
+   * Get provider display name
+   */
+  private getProviderDisplayName(type: CloudProviderType): string {
+    const names: Partial<Record<CloudProviderType, string>> = {
+      aws: 'Amazon Web Services',
+      digitalocean: 'DigitalOcean',
+      gcp: 'Google Cloud Platform',
+      azure: 'Microsoft Azure',
+      cloudflare: 'Cloudflare',
+      vercel: 'Vercel',
+      firebase: 'Firebase',
+      sentry: 'Sentry',
+      github: 'GitHub',
+      bitbucket: 'Bitbucket',
+      gitlab: 'GitLab',
+      sendgrid: 'SendGrid',
+      datadog: 'Datadog',
+      godaddy: 'GoDaddy',
+      custom: 'Custom Provider',
+    }
+    return names[type] || type
+  }
+  
+  /**
+   * Get relevant SAFE context for a specific query - NO SENSITIVE DATA
    */
   getRelevantContext(query: string): string {
     const queryLower = query.toLowerCase()
     const relevantProviders: CloudProvider[] = []
     
-    // Find relevant providers based on query
+    // Find relevant providers based on query (match by NAME only, not IP)
     for (const provider of this.data.providers) {
       const providerName = provider.name.toLowerCase()
       const providerType = provider.type.toLowerCase()
@@ -669,9 +708,8 @@ export class KnowledgeBaseManager {
         queryLower.includes(providerName) ||
         queryLower.includes(providerType) ||
         provider.servers.some(s => 
-          queryLower.includes(s.name.toLowerCase()) ||
-          queryLower.includes(s.ip) ||
-          (s.domain && queryLower.includes(s.domain.toLowerCase()))
+          queryLower.includes(s.name.toLowerCase())
+          // NOTE: Removed IP and domain matching for security
         )
       ) {
         relevantProviders.push(provider)
@@ -689,25 +727,30 @@ export class KnowledgeBaseManager {
       return ''
     }
     
-    // Generate context for relevant providers only
+    // Generate SAFE context for relevant providers only - NO sensitive data
     let context = '## Relevant Infrastructure\n\n'
     
     for (const provider of relevantProviders) {
       context += `### ${provider.emoji} ${provider.name}\n`
+      context += `- Type: ${this.getProviderDisplayName(provider.type)}\n`
       
-      if (provider.connection.accountId) {
-        context += `- Account ID: ${provider.connection.accountId}\n`
+      // Region is safe
+      if (provider.connection.region) {
+        context += `- Region: ${provider.connection.region}\n`
       }
       
-      for (const server of provider.servers) {
-        context += `- Server "${server.name}": ${server.ip}\n`
-        if (server.sshCommand) {
-          context += `  - SSH: \`${server.sshCommand}\`\n`
+      // Only share server NAMES - NOT IPs, NOT SSH commands
+      if (provider.servers.length > 0) {
+        context += `- Servers: ${provider.servers.length} configured\n`
+        for (const server of provider.servers) {
+          context += `  - "${server.name}"\n`
         }
       }
       
       context += '\n'
     }
+    
+    context += '\n**Note:** Credentials are stored locally. Ask the user to connect to a server by NAME.\n'
     
     return context
   }

@@ -5,7 +5,7 @@
  * 
  * IMPORTANT: Extended Thinking Requirements
  * - When thinking is enabled, ALL assistant messages must include thinking blocks
- * - If previous assistant messages don't have thinking blocks, Claude will error
+ * - If previous assistant messages don't have thinking blocks, the API will error
  * - Solution: Only enable thinking on first turn OR when conversation has thinking blocks
  */
 
@@ -107,14 +107,16 @@ const THINK_HARDER_TRIGGERS = [
   'think more'
 ]
 
-// Model mapping - supports both Claude and DeepSeek
+// Model mapping - AIBuddy routes to the best model automatically
 const MODEL_MAP: Record<string, string> = {
-  // Claude models (default)
+  // Default models
   'auto': 'claude-opus-4-20250514',
   'aibuddy-default': 'claude-opus-4-20250514',
+  'aibuddy-pro': 'claude-opus-4-20250514',
+  'aibuddy-fast': 'claude-sonnet-4-20250514',
+  // Legacy mappings (internal use only)
   'claude-opus-4.5': 'claude-opus-4-20250514',
   'claude-sonnet-4': 'claude-sonnet-4-20250514',
-  // DeepSeek models (for math/reasoning tasks)
   'deepseek-r1': 'deepseek-reasoner',
   'deepseek-v3': 'deepseek-chat',
   'deepseek-reasoner': 'deepseek-reasoner',
@@ -133,12 +135,13 @@ function getModelName(modelId: string): string {
 
 /**
  * Detect task hints for smart routing
+ * AIBuddy automatically routes to the best model based on task type
  */
 function detectTaskHints(content: string): string[] {
   const hints: string[] = []
   const lowerContent = content.toLowerCase()
   
-  // Math/reasoning tasks -> route to DeepSeek R1
+  // Math/reasoning tasks -> route to reasoning model
   if (/\b(math|calcul|equation|proof|theorem|formula|algebra|geometry|statistics)\b/i.test(lowerContent)) {
     hints.push('math')
   }
@@ -146,7 +149,7 @@ function detectTaskHints(content: string): string[] {
     hints.push('reasoning')
   }
   
-  // Agentic/tool tasks -> route to Claude
+  // Agentic/tool tasks -> route to coding model
   if (/\b(tool|execute|run|file|git|terminal|command|shell)\b/i.test(lowerContent)) {
     hints.push('agentic')
   }

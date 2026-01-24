@@ -107,14 +107,14 @@ The goal is to **update logic once** and have it work in both apps.
 
 ### High Priority (Share Now)
 
-| Module | Location | Effort | Impact |
-|--------|----------|--------|--------|
-| **Sentry/Analytics** | `extension/src/utils/sentry/` | Low | High |
-| **AI Client** | `extension/src/api/` | Medium | High |
-| **System Prompts** | `extension/src/agent/prompts/` | Low | High |
-| **Tool Definitions** | `extension/src/agent/v1/tools/` | Medium | High |
-| **Git Handler** | `extension/src/services/git/` | Low | Medium |
-| **Memory System** | `extension/src/services/memory/` | Medium | Medium |
+| Module | Location | Effort | Impact | Status |
+|--------|----------|--------|--------|--------|
+| **System Prompts** | `packages/prompts/` | Low | High | ✅ DONE |
+| **Sentry/Analytics** | `extension/src/utils/sentry/` | Low | High | ⬜ TODO |
+| **AI Client** | `extension/src/api/` | Medium | High | ⬜ TODO |
+| **Tool Definitions** | `extension/src/agent/v1/tools/` | Medium | High | ⬜ TODO |
+| **Git Handler** | `extension/src/services/git/` | Low | Medium | ⬜ TODO |
+| **Memory System** | `extension/src/services/memory/` | Medium | Medium | ⬜ TODO |
 
 ### Medium Priority (Share Later)
 
@@ -252,22 +252,23 @@ const shouldEnableThinking = (messages: Message[]): boolean => {
 2. ✅ Add breadcrumb tracking (DONE)
 3. ✅ Fix extended thinking multi-turn issue (DONE - see `src/api/aibuddy-client.ts`)
 4. ⬜ Add Amplitude analytics
-5. ⬜ Copy system prompts from extension
+5. ✅ **System prompts shared via `@aibuddy/prompts`** (DONE - 2026-01-24)
 
 ### For Shared Architecture (This Week)
 
-1. ⬜ Create `packages/` directory structure
+1. ✅ Create `packages/` directory structure (DONE - `packages/prompts/`)
 2. ⬜ Extract analytics to `@aibuddy/core`
 3. ⬜ Extract AI client to `@aibuddy/core`
-4. ⬜ Update both apps to use shared package
+4. ✅ **Update both apps to use shared package** (DONE - `@aibuddy/prompts`)
 
 ### For Full Monorepo (This Month)
 
-1. ⬜ Set up pnpm workspaces
-2. ⬜ Extract all shared modules
-3. ⬜ Create adapter interfaces
-4. ⬜ Update CI/CD for monorepo
-5. ⬜ Document contribution workflow
+1. ✅ Set up pnpm workspaces (DONE - `pnpm-workspace.yaml`)
+2. ✅ **Extract prompts to `@aibuddy/prompts`** (DONE - 2026-01-24)
+3. ⬜ Extract remaining shared modules
+4. ⬜ Create adapter interfaces
+5. ⬜ Update CI/CD for monorepo
+6. ⬜ Document contribution workflow
 
 ---
 
@@ -275,15 +276,21 @@ const shouldEnableThinking = (messages: Message[]): boolean => {
 
 ### Current → Shared
 
-| Extension File | Shared Location |
-|----------------|-----------------|
-| `extension/src/utils/sentry/index.ts` | `packages/core/src/analytics/sentry.ts` |
-| `extension/src/utils/amplitude.ts` | `packages/core/src/analytics/amplitude.ts` |
-| `extension/src/api/providers/anthropic.ts` | `packages/core/src/ai/anthropic.ts` |
-| `extension/src/agent/prompts/system.ts` | `packages/core/src/prompts/system.ts` |
-| `extension/src/agent/v1/tools/*.ts` | `packages/core/src/tools/*.ts` |
-| `extension/src/services/git/GitHandler.ts` | `packages/core/src/git/handler.ts` |
-| `extension/src/services/memory/*.ts` | `packages/core/src/memory/*.ts` |
+| Extension File | Shared Location | Status |
+|----------------|-----------------|--------|
+| `extension/src/agent/prompts/system.ts` | `packages/prompts/src/` | ✅ DONE |
+| `extension/src/utils/sentry/index.ts` | `packages/core/src/analytics/sentry.ts` | ⬜ TODO |
+| `extension/src/utils/amplitude.ts` | `packages/core/src/analytics/amplitude.ts` | ⬜ TODO |
+| `extension/src/api/providers/anthropic.ts` | `packages/core/src/ai/anthropic.ts` | ⬜ TODO |
+| `extension/src/agent/v1/tools/*.ts` | `packages/core/src/tools/*.ts` | ⬜ TODO |
+| `extension/src/services/git/GitHandler.ts` | `packages/core/src/git/handler.ts` | ⬜ TODO |
+| `extension/src/services/memory/*.ts` | `packages/core/src/memory/*.ts` | ⬜ TODO |
+
+### Completed Shared Packages
+
+| Package | Description | Used By |
+|---------|-------------|---------|
+| `@aibuddy/prompts` | System prompts, TDD methodology, language-specific prompts | Desktop, Extension |
 
 ---
 

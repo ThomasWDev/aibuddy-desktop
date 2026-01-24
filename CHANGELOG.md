@@ -4,6 +4,77 @@ All notable changes to AIBuddy Desktop will be documented in this file.
 
 ---
 
+## [1.4.30] - 2026-01-24
+
+### 🎯 Shared System Prompts Package
+
+#### New: `@aibuddy/prompts` Integration
+Desktop app now uses the shared `@aibuddy/prompts` package for system prompts:
+
+| Component | Description |
+|-----------|-------------|
+| `@aibuddy/prompts` | New workspace dependency |
+| `src/constants/system-prompt.ts` | Re-exports from shared package |
+| `generateSystemPrompt()` | Context-aware prompt generation |
+| `getLanguagePrompt()` | Language-specific expertise |
+
+#### World-Class System Prompt
+The shared prompt includes:
+
+| Section | Description |
+|---------|-------------|
+| **AIBUDDY_IDENTITY** | Senior Principal Engineer expertise |
+| **TDD_METHODOLOGY** | Mandatory Red → Green → Refactor workflow |
+| **SENIOR_ENGINEER_APPROACH** | 4-step task checklist |
+| **CODE_QUALITY_STANDARDS** | Quality hierarchy, SOLID principles |
+| **COMMUNICATION_PROTOCOL** | Proactive, assumption-based style |
+
+#### 10 Language-Specific Prompts
+Each with best practices, patterns, and commands:
+
+```
+Node.js/TypeScript • React/Next.js • Flutter/Dart
+Android/Kotlin • iOS/SwiftUI • .NET/C#
+Python • Rust • Go • Solidity/Web3
+```
+
+### 🔍 Environment Detection
+
+#### New: Environment Detector
+- Detects installed tools, SDKs, and languages
+- Priority languages: Node.js, React, Flutter, Android, iOS, .NET
+- Standard languages: Python, Rust, Go, Ruby, PHP
+- Blockchain: Solidity, Hardhat, Foundry
+- IDEs: VS Code, Android Studio, Xcode
+- File: `src/core/environment-detector.ts`
+
+#### AI Context Injection
+- Environment summary injected into system prompt
+- AI knows what tools are installed before suggesting commands
+- Prevents "command not found" errors
+
+### 🏷️ Branding Updates
+
+#### Removed Model-Specific Mentions
+- Changed "Powered by Claude & DeepSeek" → "Powered by AIBuddy"
+- Removed all user-facing mentions of specific AI models
+- Unified branding across the application
+
+### 📦 Architecture
+
+#### Monorepo Integration
+```
+packages/prompts/           # Shared package (source of truth)
+├── src/core/               # Core prompt components
+├── src/languages/          # Language-specific prompts
+└── src/system-prompt.ts    # Main generator
+
+aibuddy-desktop/
+└── src/constants/system-prompt.ts  # Re-exports from @aibuddy/prompts
+```
+
+---
+
 ## [1.4.29] - 2026-01-23
 
 ### 📚 Cloud Knowledge Base Feature

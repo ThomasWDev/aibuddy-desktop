@@ -147,7 +147,7 @@ export function AIPanel({ workspacePath, onClose }: AIPanelProps) {
     setError(null)
 
     const startTime = Date.now()
-    trackAIRequest({ model: 'claude-opus-4', messageCount: messages.length + 1 })
+    trackAIRequest({ model: 'aibuddy-pro', messageCount: messages.length + 1 })
     addBreadcrumb('Sending AI request', 'ai', { messageLength: userMessage.content.length })
 
     // Progress simulation
