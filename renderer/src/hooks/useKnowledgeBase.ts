@@ -70,10 +70,14 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
 
   const electronAPI = (window as any).electronAPI
 
-  // Check if electronAPI is available
+  // Check if electronAPI and kb namespace are available
   const hasAPI = useCallback(() => {
     if (!electronAPI) {
       console.warn('[useKnowledgeBase] electronAPI not available')
+      return false
+    }
+    if (!electronAPI.kb) {
+      console.warn('[useKnowledgeBase] electronAPI.kb not available - Knowledge Base not initialized')
       return false
     }
     return true
@@ -91,9 +95,9 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
 
     try {
       const [providersData, statsData, unlockedStatus] = await Promise.all([
-        electronAPI.invoke('kb:getProviders'),
-        electronAPI.invoke('kb:getStats'),
-        electronAPI.invoke('kb:isUnlocked'),
+        electronAPI.kb.getProviders(),
+        electronAPI.kb.getStats(),
+        electronAPI.kb.isUnlocked(),
       ])
 
       setProviders(providersData || [])
@@ -117,7 +121,7 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
     if (!hasAPI()) return null
 
     try {
-      const provider = await electronAPI.invoke('kb:addProvider', type, name)
+      const provider = await electronAPI.kb.addProvider(type, name)
       await refresh()
       return provider
     } catch (err) {
@@ -131,7 +135,7 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
     if (!hasAPI()) return null
 
     try {
-      const provider = await electronAPI.invoke('kb:updateProvider', id, updates)
+      const provider = await electronAPI.kb.updateProvider(id, updates)
       await refresh()
       return provider
     } catch (err) {
@@ -145,7 +149,7 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
     if (!hasAPI()) return false
 
     try {
-      const result = await electronAPI.invoke('kb:deleteProvider', id)
+      const result = await electronAPI.kb.deleteProvider(id)
       await refresh()
       return result
     } catch (err) {
@@ -165,7 +169,7 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
     if (!hasAPI()) return null
 
     try {
-      const server = await electronAPI.invoke('kb:addServer', providerId, name, ip, config)
+      const server = await electronAPI.kb.addServer(providerId, name, ip, config)
       await refresh()
       return server
     } catch (err) {
@@ -183,7 +187,7 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
     if (!hasAPI()) return null
 
     try {
-      const server = await electronAPI.invoke('kb:updateServer', providerId, serverId, updates)
+      const server = await electronAPI.kb.updateServer(providerId, serverId, updates)
       await refresh()
       return server
     } catch (err) {
@@ -197,7 +201,7 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
     if (!hasAPI()) return false
 
     try {
-      const result = await electronAPI.invoke('kb:deleteServer', providerId, serverId)
+      const result = await electronAPI.kb.deleteServer(providerId, serverId)
       await refresh()
       return result
     } catch (err) {
@@ -216,7 +220,7 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
     if (!hasAPI()) return null
 
     try {
-      const doc = await electronAPI.invoke('kb:importDocument', providerId, filename, content)
+      const doc = await electronAPI.kb.importDocument(providerId, filename, content)
       await refresh()
       return doc
     } catch (err) {
@@ -230,7 +234,7 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
     if (!hasAPI()) return null
 
     try {
-      return await electronAPI.invoke('kb:openFileDialog')
+      return await electronAPI.kb.openFileDialog()
     } catch (err) {
       console.error('[useKnowledgeBase] Failed to open file dialog:', err)
       setError((err as Error).message)
@@ -243,7 +247,7 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
     if (!hasAPI()) return false
 
     try {
-      const result = await electronAPI.invoke('kb:unlock', password)
+      const result = await electronAPI.kb.unlock(password)
       setIsUnlocked(result)
       return result
     } catch (err) {
@@ -257,7 +261,7 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
     if (!hasAPI()) return
 
     try {
-      await electronAPI.invoke('kb:lock')
+      await electronAPI.kb.lock()
       setIsUnlocked(false)
     } catch (err) {
       console.error('[useKnowledgeBase] Failed to lock:', err)
@@ -270,7 +274,7 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
     if (!hasAPI()) return ''
 
     try {
-      return await electronAPI.invoke('kb:generateAIContext')
+      return await electronAPI.kb.generateAIContext()
     } catch (err) {
       console.error('[useKnowledgeBase] Failed to generate AI context:', err)
       return ''
@@ -281,7 +285,7 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
     if (!hasAPI()) return ''
 
     try {
-      return await electronAPI.invoke('kb:getRelevantContext', query)
+      return await electronAPI.kb.getRelevantContext(query)
     } catch (err) {
       console.error('[useKnowledgeBase] Failed to get relevant context:', err)
       return ''
@@ -293,7 +297,7 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
     if (!hasAPI()) return false
 
     try {
-      return await electronAPI.invoke('kb:openTerminalWithSsh', sshCommand)
+      return await electronAPI.kb.openTerminalWithSsh(sshCommand)
     } catch (err) {
       console.error('[useKnowledgeBase] Failed to open terminal:', err)
       setError((err as Error).message)

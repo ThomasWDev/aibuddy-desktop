@@ -257,9 +257,9 @@ function App() {
       }
       
       // Detect development environment
-      if (electronAPI?.invoke) {
+      if (electronAPI?.environment?.getSummary) {
         try {
-          const envSummary = await electronAPI.invoke('env:getSummary')
+          const envSummary = await electronAPI.environment.getSummary()
           if (envSummary) {
             setEnvironmentSummary(envSummary)
             addBreadcrumb('Environment detected', 'app.init', { 

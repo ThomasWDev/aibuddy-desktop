@@ -65,6 +65,35 @@ export interface ElectronAPI {
     on: (channel: string, callback: (...args: unknown[]) => void) => () => void
   }
 
+  // Knowledge Base operations
+  kb: {
+    getProviders: () => Promise<unknown[]>
+    getStats: () => Promise<unknown>
+    isUnlocked: () => Promise<boolean>
+    addProvider: (type: string, name?: string) => Promise<unknown>
+    updateProvider: (id: string, updates: unknown) => Promise<unknown>
+    deleteProvider: (id: string) => Promise<boolean>
+    addServer: (providerId: string, name: string, ip: string, config?: unknown) => Promise<unknown>
+    updateServer: (providerId: string, serverId: string, updates: unknown) => Promise<unknown>
+    deleteServer: (providerId: string, serverId: string) => Promise<boolean>
+    importDocument: (providerId: string, filename: string, content: string) => Promise<unknown>
+    openFileDialog: () => Promise<{ filename: string; content: string; filePath: string } | null>
+    unlock: (password: string) => Promise<boolean>
+    lock: () => Promise<void>
+    generateAIContext: () => Promise<string>
+    getRelevantContext: (query: string) => Promise<string>
+    openTerminalWithSsh: (sshCommand: string) => Promise<boolean>
+  }
+
+  // Environment detection
+  environment: {
+    detectEnvironment: () => Promise<unknown>
+    getSummary: () => Promise<string>
+  }
+
+  // Generic invoke for backwards compatibility
+  invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
+
   // App info
   app: {
     getVersion: () => Promise<string>
@@ -154,6 +183,39 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return () => ipcRenderer.removeListener(channel, handler)
     }
   },
+
+  // Knowledge Base operations
+  kb: {
+    getProviders: () => ipcRenderer.invoke('kb:getProviders'),
+    getStats: () => ipcRenderer.invoke('kb:getStats'),
+    isUnlocked: () => ipcRenderer.invoke('kb:isUnlocked'),
+    addProvider: (type: string, name?: string) => ipcRenderer.invoke('kb:addProvider', type, name),
+    updateProvider: (id: string, updates: unknown) => ipcRenderer.invoke('kb:updateProvider', id, updates),
+    deleteProvider: (id: string) => ipcRenderer.invoke('kb:deleteProvider', id),
+    addServer: (providerId: string, name: string, ip: string, config?: unknown) => 
+      ipcRenderer.invoke('kb:addServer', providerId, name, ip, config),
+    updateServer: (providerId: string, serverId: string, updates: unknown) => 
+      ipcRenderer.invoke('kb:updateServer', providerId, serverId, updates),
+    deleteServer: (providerId: string, serverId: string) => 
+      ipcRenderer.invoke('kb:deleteServer', providerId, serverId),
+    importDocument: (providerId: string, filename: string, content: string) => 
+      ipcRenderer.invoke('kb:importDocument', providerId, filename, content),
+    openFileDialog: () => ipcRenderer.invoke('kb:openFileDialog'),
+    unlock: (password: string) => ipcRenderer.invoke('kb:unlock', password),
+    lock: () => ipcRenderer.invoke('kb:lock'),
+    generateAIContext: () => ipcRenderer.invoke('kb:generateAIContext'),
+    getRelevantContext: (query: string) => ipcRenderer.invoke('kb:getRelevantContext', query),
+    openTerminalWithSsh: (sshCommand: string) => ipcRenderer.invoke('kb:openTerminalWithSsh', sshCommand),
+  },
+
+  // Environment detection
+  environment: {
+    detectEnvironment: () => ipcRenderer.invoke('env:detect'),
+    getSummary: () => ipcRenderer.invoke('env:getSummary'),
+  },
+
+  // Generic invoke for backwards compatibility
+  invoke: (channel: string, ...args: unknown[]) => ipcRenderer.invoke(channel, ...args),
 
   // App info
   app: {
