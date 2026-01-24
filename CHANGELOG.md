@@ -71,7 +71,15 @@ When you send a message, you see each step:
 
 ## Pending Tasks / TODO 📋
 
-### High Priority
+### 🔥 High Priority - Cloud Knowledge Base Feature
+- [ ] **Create Knowledge Base UI** - Button to import cloud provider docs
+- [ ] **Build Document Parser** - Parse markdown/text for server configs, API keys
+- [ ] **Local Encrypted Storage** - Store credentials securely in `~/.aibuddy/`
+- [ ] **AI Context Injection** - Auto-reference knowledge base before tasks
+- [ ] **SSH Integration** - Connect to servers directly from app
+- [ ] See full plan: `docs/CLOUD_KNOWLEDGE_BASE_PLAN.md`
+
+### High Priority - Core Features
 - [ ] Add file reading capability - show AI what files it's reading
 - [ ] Add terminal command execution with user approval
 - [ ] Add code editing with diff view
@@ -80,6 +88,8 @@ When you send a message, you see each step:
 ### Medium Priority
 - [ ] Add Amplitude analytics
 - [ ] Copy system prompts from VS Code extension
+- [ ] Copy cloud provider prompts from extension (`cloud-provider-prompts.ts`)
+- [ ] Copy credential types from extension (`credential-types.ts`)
 - [ ] Start monorepo setup with pnpm workspaces
 - [ ] Create `@aibuddy/core` shared package
 
@@ -87,6 +97,7 @@ When you send a message, you see each step:
 - [ ] Add notification when Claude credits are low (admin alert)
 - [ ] Add SMS 2FA for WordPress admin
 - [ ] Set up Snapcraft token for Linux distribution
+- [ ] Auto-discover `~/.ssh/config` and `~/.aws/credentials`
 
 ### Completed ✅
 - [x] Fix CORS error for API calls
