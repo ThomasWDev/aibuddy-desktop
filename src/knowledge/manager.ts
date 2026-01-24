@@ -26,6 +26,7 @@ import {
   PROVIDER_EMOJIS,
 } from './types'
 import { SecureStorage, secureStorage } from './encryption'
+import { DocumentParser } from './document-parser'
 
 // =============================================================================
 // Constants
@@ -570,141 +571,41 @@ export class KnowledgeBaseManager {
   
   /**
    * Parse a document for infrastructure information
+   * Uses the DocumentParser for comprehensive extraction
    */
   private parseDocument(content: string): ImportedDocument['extractedData'] {
+    // Use the DocumentParser for comprehensive parsing
+    const parser = new DocumentParser()
+    const parsed = parser.parse(content)
+    
+    // Convert to the expected format
     const result: ImportedDocument['extractedData'] = {
-      servers: [],
-      apiKeys: [],
-      domains: [],
-      accountIds: [],
-      keyValuePairs: {},
+      servers: parsed.servers.map(s => ({
+        name: s.name,
+        ip: s.ip,
+        sshUser: s.sshUser,
+        sshPort: s.sshPort,
+        sshKeyPath: s.sshKeyPath,
+        sshCommand: s.sshCommand,
+        domain: s.domain,
+        provider: s.provider,
+        instanceId: s.instanceId,
+        instanceType: s.instanceType,
+      })),
+      apiKeys: parsed.apiKeys.map(k => ({
+        name: k.name,
+        service: k.service,
+        isRedacted: k.isRedacted,
+      })),
+      domains: parsed.domains,
+      accountIds: parsed.accountIds.map(a => ({
+        provider: a.provider,
+        id: a.id,
+      })),
+      keyValuePairs: parsed.keyValuePairs,
     }
-    
-    // Parse line by line
-    const lines = content.split('\n')
-    let currentSection = ''
-    let currentServer: Partial<ServerConfig> = {}
-    
-    for (const line of lines) {
-      const trimmed = line.trim()
-      
-      // Detect section headers
-      if (trimmed.startsWith('##')) {
-        // Save previous server if exists
-        if (currentServer.ip) {
-          result.servers.push({ ...currentServer })
-        }
-        currentSection = trimmed.replace(/^#+\s*/, '').toLowerCase()
-        currentServer = {}
-        
-        // Try to detect provider from section name
-        if (currentSection.includes('aws')) {
-          currentServer.provider = 'aws'
-        } else if (currentSection.includes('digitalocean')) {
-          currentServer.provider = 'digitalocean'
-        } else if (currentSection.includes('gcp') || currentSection.includes('google')) {
-          currentServer.provider = 'gcp'
-        }
-        
-        continue
-      }
-      
-      // Parse key-value pairs (- Key: Value format)
-      const kvMatch = trimmed.match(/^-?\s*([^:]+):\s*(.+)$/)
-      if (kvMatch) {
-        const [, key, value] = kvMatch
-        const keyLower = key.toLowerCase().trim()
-        const valueTrimmed = value.trim()
-        
-        // Store in key-value pairs
-        result.keyValuePairs[key.trim()] = valueTrimmed
-        
-        // Extract specific fields
-        if (keyLower.includes('server ip') || keyLower === 'ip') {
-          currentServer.ip = valueTrimmed
-        } else if (keyLower.includes('ssh user') || keyLower === 'user') {
-          currentServer.sshUser = valueTrimmed
-        } else if (keyLower.includes('ssh key') || keyLower.includes('key path')) {
-          currentServer.sshKeyPath = valueTrimmed
-        } else if (keyLower.includes('ssh command')) {
-          currentServer.sshCommand = valueTrimmed
-          // Parse SSH command for additional info
-          this.parseSshCommand(valueTrimmed, currentServer)
-        } else if (keyLower.includes('instance id')) {
-          currentServer.instanceId = valueTrimmed
-        } else if (keyLower.includes('instance type')) {
-          currentServer.instanceType = valueTrimmed
-        } else if (keyLower === 'domain') {
-          currentServer.domain = valueTrimmed
-          result.domains.push(valueTrimmed)
-        } else if (keyLower.includes('account')) {
-          result.accountIds.push({ provider: currentSection, id: valueTrimmed })
-        } else if (keyLower.includes('region')) {
-          // Store region info
-        } else if (keyLower.includes('api') && keyLower.includes('key')) {
-          // Don't store actual API keys, just note their presence
-          result.apiKeys.push({ name: key.trim(), service: currentSection })
-        }
-        
-        // Try to extract server name from section
-        if (!currentServer.name && currentSection) {
-          currentServer.name = currentSection
-            .replace(/\(.*\)/, '')
-            .trim()
-            .split(' ')
-            .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' ')
-        }
-      }
-      
-      // Detect IP addresses
-      const ipMatch = trimmed.match(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/)
-      if (ipMatch && !currentServer.ip) {
-        currentServer.ip = ipMatch[1]
-      }
-      
-      // Detect domains
-      const domainMatch = trimmed.match(/\b([a-z0-9][-a-z0-9]*\.)+[a-z]{2,}\b/gi)
-      if (domainMatch) {
-        result.domains.push(...domainMatch.filter(d => !d.match(/^\d/)))
-      }
-    }
-    
-    // Save last server
-    if (currentServer.ip) {
-      result.servers.push({ ...currentServer })
-    }
-    
-    // Deduplicate domains
-    result.domains = [...new Set(result.domains)]
     
     return result
-  }
-  
-  /**
-   * Parse an SSH command to extract connection details
-   */
-  private parseSshCommand(cmd: string, server: Partial<ServerConfig>): void {
-    // Extract key path: -i "path" or -i path
-    const keyMatch = cmd.match(/-i\s+["']?([^"'\s]+)["']?/)
-    if (keyMatch) {
-      server.sshKeyPath = keyMatch[1]
-    }
-    
-    // Extract port: -p port
-    const portMatch = cmd.match(/-p\s+(\d+)/)
-    if (portMatch) {
-      server.sshPort = parseInt(portMatch[1], 10)
-    }
-    
-    // Extract user@host
-    const userHostMatch = cmd.match(/(\w+)@([\d.]+|[\w.-]+)/)
-    if (userHostMatch) {
-      server.sshUser = userHostMatch[1]
-      if (!server.ip) {
-        server.ip = userHostMatch[2]
-      }
-    }
   }
   
   // ===========================================================================

@@ -25,6 +25,16 @@ export {
 // Manager
 export { KnowledgeBaseManager, knowledgeBase } from './manager'
 
+// Document Parser
+export { DocumentParser, documentParser } from './document-parser'
+export type { 
+  ParseResult, 
+  DetectedServer, 
+  DetectedApiKey, 
+  DetectedAccountId, 
+  DetectedSshCommand 
+} from './document-parser'
+
 // Cloud Provider Prompts
 export * from './cloud-provider-prompts'
 
