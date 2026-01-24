@@ -18,8 +18,10 @@ import {
   FileSearch,
   Cloud,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  BookOpen
 } from 'lucide-react'
+import { CloudKnowledgePanel } from './components/knowledge'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
@@ -95,6 +97,10 @@ function App() {
   const [credits, setCredits] = useState<number | null>(null)
   const [lastCost, setLastCost] = useState<number | null>(null)
   const [lastModel, setLastModel] = useState<string | null>(null)
+  
+  // Knowledge Base
+  const [showKnowledgeBase, setShowKnowledgeBase] = useState(false)
+  const [knowledgeContext, setKnowledgeContext] = useState<string>('')
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -266,13 +272,13 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          api_key: apiKey,
-          model: 'claude-opus-4-20250514',
-          messages: [
-            { 
-              role: 'system', 
-              content: `You are AIBuddy, a friendly AI coding assistant for kids and beginners. 
+          body: JSON.stringify({
+            api_key: apiKey,
+            model: 'claude-opus-4-20250514',
+            messages: [
+              { 
+                role: 'system', 
+                content: `You are AIBuddy, a friendly AI coding assistant for kids and beginners. 
 
 RULES:
 - Use simple words an 8-year-old can understand
@@ -282,10 +288,12 @@ RULES:
 - Use bullet points
 - Celebrate completed tasks! 🌟
 
-Working folder: ${workspacePath || 'None selected'}`
-            },
-            ...chatMessages
-          ],
+Working folder: ${workspacePath || 'None selected'}
+
+${knowledgeContext ? `## User Infrastructure Context\n${knowledgeContext}` : ''}`
+              },
+              ...chatMessages
+            ],
           max_tokens: 4096,
           temperature: 0.7,
         })
@@ -472,6 +480,20 @@ Working folder: ${workspacePath || 'None selected'}`
               }}
             >
               <Key className="w-4 h-4" />
+            </button>
+          </Tooltip>
+
+          <Tooltip text="📚 Cloud Knowledge Base">
+            <button
+              onClick={() => setShowKnowledgeBase(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105"
+              style={{ 
+                background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                color: 'white'
+              }}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>KB</span>
             </button>
           </Tooltip>
 
@@ -786,6 +808,25 @@ Working folder: ${workspacePath || 'None selected'}`
       )}
 
       <Toaster position="top-right" theme="dark" richColors />
+
+      {/* Knowledge Base Panel */}
+      <CloudKnowledgePanel
+        isOpen={showKnowledgeBase}
+        onClose={() => setShowKnowledgeBase(false)}
+        onSshConnect={(server) => {
+          // Copy SSH command to clipboard
+          if (server.sshCommand) {
+            navigator.clipboard.writeText(server.sshCommand)
+            toast.success(`📋 SSH command copied!\n${server.sshCommand}`)
+          }
+        }}
+        onQuickAction={(action, provider) => {
+          // Add action to chat
+          setInput(`${action} for ${provider.name}`)
+          setShowKnowledgeBase(false)
+          inputRef.current?.focus()
+        }}
+      />
     </div>
   )
 }
