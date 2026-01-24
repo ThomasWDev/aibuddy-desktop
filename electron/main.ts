@@ -1,8 +1,31 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell, nativeImage, session } from 'electron'
 import { join } from 'path'
-import Store from 'electron-store'
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 
-// Type for electron-store v6
+// Get the app icon path for dialogs
+function getAppIconPath(): string {
+  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+  if (isDev) {
+    return join(__dirname, '../../build/icons/icon.png')
+  }
+  // In production, icons are in extraResources
+  return join(process.resourcesPath, 'icons', 'icon.png')
+}
+
+// Create native image for dialog icons
+function getAppIcon(): Electron.NativeImage | undefined {
+  try {
+    const iconPath = getAppIconPath()
+    if (existsSync(iconPath)) {
+      return nativeImage.createFromPath(iconPath)
+    }
+  } catch (e) {
+    console.warn('[Icon] Failed to load app icon:', e)
+  }
+  return undefined
+}
+
+// Simple JSON-based store (replaces electron-store to avoid 'conf' module issues)
 interface StoreSchema {
   windowBounds: { width: number; height: number }
   recentWorkspaces: string[]
@@ -10,6 +33,59 @@ interface StoreSchema {
   apiKey: string
   aibuddyCredits: number
 }
+
+class SimpleStore<T extends Record<string, any>> {
+  private data: T
+  private filePath: string
+
+  constructor(options: { name: string; defaults: T }) {
+    const userDataPath = app.getPath('userData')
+    
+    // Ensure directory exists
+    if (!existsSync(userDataPath)) {
+      mkdirSync(userDataPath, { recursive: true })
+    }
+    
+    this.filePath = join(userDataPath, `${options.name}.json`)
+    
+    // Load existing data or use defaults
+    if (existsSync(this.filePath)) {
+      try {
+        const fileContent = readFileSync(this.filePath, 'utf-8')
+        this.data = { ...options.defaults, ...JSON.parse(fileContent) }
+      } catch (e) {
+        console.error('Failed to load store, using defaults:', e)
+        this.data = options.defaults
+      }
+    } else {
+      this.data = options.defaults
+      this.save()
+    }
+  }
+
+  get<K extends keyof T>(key: K): T[K] {
+    return this.data[key]
+  }
+
+  set<K extends keyof T>(key: K, value: T[K]): void {
+    this.data[key] = value
+    this.save()
+  }
+
+  delete<K extends keyof T>(key: K): void {
+    delete this.data[key]
+    this.save()
+  }
+
+  private save(): void {
+    try {
+      writeFileSync(this.filePath, JSON.stringify(this.data, null, 2), 'utf-8')
+    } catch (e) {
+      console.error('Failed to save store:', e)
+    }
+  }
+}
+
 import { initAllIpcHandlers, cleanupAllIpcHandlers } from './ipc'
 import { 
   initSentryMain, 
@@ -30,8 +106,9 @@ const appVersion = app.getVersion() || '1.0.0'
 // Initialize Sentry early (before any errors can occur)
 initSentryMain(appVersion)
 
-// Initialize electron store for persistent settings
-const store = new Store<StoreSchema>({
+// Initialize simple JSON store for persistent settings
+// (Replaces electron-store to avoid 'conf' module asar packaging issues)
+const store = new SimpleStore<StoreSchema>({
   name: 'aibuddy-settings',
   defaults: {
     windowBounds: { width: 1400, height: 900 },
@@ -75,7 +152,7 @@ function createWindow(): void {
     backgroundColor: '#1e1e1e',
     icon: join(__dirname, '../../build/icon.png'),
     webPreferences: {
-      preload: join(__dirname, 'preload.js'),
+      preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false
@@ -104,6 +181,24 @@ function createWindow(): void {
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
+  })
+
+  // Set CSP headers to allow API calls
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; " +
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+          "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+          "img-src 'self' data: https:; " +
+          "font-src 'self' data: https://fonts.gstatic.com; " +
+          "connect-src 'self' https: wss:;"  // Allow ALL https connections
+        ]
+      }
+    })
   })
 
   // Load the renderer
@@ -256,11 +351,13 @@ function createMenu(): void {
         {
           label: 'About AIBuddy',
           click: () => {
+            const icon = getAppIcon()
             dialog.showMessageBox({
               type: 'info',
               title: 'About AIBuddy',
               message: 'AIBuddy Desktop IDE',
-              detail: `Version: ${app.getVersion()}\nYour intelligent coding partner powered by Claude.`
+              detail: `Version: ${app.getVersion()}\nYour intelligent coding partner powered by AIBuddy.`,
+              icon
             })
           }
         }
@@ -384,7 +481,13 @@ ipcMain.handle('dialog:saveFile', async (_event, defaultPath?: string) => {
 })
 
 ipcMain.handle('dialog:showMessage', async (_event, options: Electron.MessageBoxOptions) => {
-  return dialog.showMessageBox(options)
+  // Add app icon to dialog if not specified
+  const icon = getAppIcon()
+  const optionsWithIcon: Electron.MessageBoxOptions = {
+    ...options,
+    icon: options.icon || icon
+  }
+  return dialog.showMessageBox(optionsWithIcon)
 })
 
 // IPC Handlers - Shell operations

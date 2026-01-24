@@ -1,5 +1,5 @@
 import React from 'react'
-import { GitBranch, AlertCircle, CheckCircle, Terminal, MessageSquare } from 'lucide-react'
+import { GitBranch, AlertCircle, CheckCircle, Terminal, MessageSquare, Sparkles, Zap } from 'lucide-react'
 import type { OpenFile } from '../../App'
 
 interface StatusBarProps {
@@ -9,52 +9,89 @@ interface StatusBarProps {
   onToggleAIPanel: () => void
 }
 
+// Tooltip component for status bar
+function StatusTooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  return (
+    <div className="relative group">
+      {children}
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl border border-slate-600 z-50 font-medium">
+        {text}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800" />
+      </div>
+    </div>
+  )
+}
+
 export function StatusBar({ workspacePath, activeFile, onTogglePanel, onToggleAIPanel }: StatusBarProps) {
   return (
-    <div className="status-bar flex items-center justify-between">
+    <div 
+      className="status-bar flex items-center justify-between px-3"
+      style={{ 
+        background: 'linear-gradient(90deg, #ec4899 0%, #f97316 50%, #06b6d4 100%)',
+        fontFamily: "'Nunito', sans-serif",
+        fontWeight: 600,
+        fontSize: '13px'
+      }}
+    >
       {/* Left side */}
-      <div className="flex items-center gap-4">
-        <button className="flex items-center gap-1 hover:bg-white/10 px-2 py-0.5 rounded">
-          <GitBranch className="w-3.5 h-3.5" />
-          <span>main</span>
-        </button>
+      <div className="flex items-center gap-3">
+        <StatusTooltip text="🌿 Current Git branch">
+          <button className="flex items-center gap-1.5 hover:bg-white/20 px-2.5 py-1 rounded-lg transition-all">
+            <GitBranch className="w-4 h-4" />
+            <span>main</span>
+          </button>
+        </StatusTooltip>
 
-        <button className="flex items-center gap-1 hover:bg-white/10 px-2 py-0.5 rounded">
-          <CheckCircle className="w-3.5 h-3.5" />
-          <span>0</span>
-          <AlertCircle className="w-3.5 h-3.5 ml-1" />
-          <span>0</span>
-        </button>
+        <StatusTooltip text="✓ No errors or warnings in your code!">
+          <button className="flex items-center gap-1.5 hover:bg-white/20 px-2.5 py-1 rounded-lg transition-all">
+            <CheckCircle className="w-4 h-4" />
+            <span>0</span>
+            <AlertCircle className="w-4 h-4 ml-1" />
+            <span>0</span>
+          </button>
+        </StatusTooltip>
       </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {activeFile && (
           <>
-            <span>{activeFile.language}</span>
-            <span>UTF-8</span>
-            <span>LF</span>
+            <StatusTooltip text={`📄 File type: ${activeFile.language}`}>
+              <span className="px-2 py-0.5 bg-white/20 rounded-md text-xs cursor-default">{activeFile.language}</span>
+            </StatusTooltip>
+            <StatusTooltip text="📝 Text encoding">
+              <span className="opacity-80 cursor-default">UTF-8</span>
+            </StatusTooltip>
+            <StatusTooltip text="↵ Line endings">
+              <span className="opacity-80 cursor-default">LF</span>
+            </StatusTooltip>
           </>
         )}
 
-        <button 
-          onClick={onTogglePanel}
-          className="flex items-center gap-1 hover:bg-white/10 px-2 py-0.5 rounded"
-          title="Toggle Terminal"
-        >
-          <Terminal className="w-3.5 h-3.5" />
-        </button>
+        <StatusTooltip text="💻 Open the terminal to run commands">
+          <button 
+            onClick={onTogglePanel}
+            className="flex items-center gap-1.5 hover:bg-white/20 px-2.5 py-1 rounded-lg transition-all"
+          >
+            <Terminal className="w-4 h-4" />
+            <span>Terminal</span>
+          </button>
+        </StatusTooltip>
 
-        <button 
-          onClick={onToggleAIPanel}
-          className="flex items-center gap-1 hover:bg-white/10 px-2 py-0.5 rounded"
-          title="Toggle AI Panel"
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          <span>AI</span>
-        </button>
+        <StatusTooltip text="✨ Chat with AI to get coding help!">
+          <button 
+            onClick={onToggleAIPanel}
+            className="flex items-center gap-1.5 hover:bg-white/20 px-2.5 py-1 rounded-lg transition-all"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>AI</span>
+          </button>
+        </StatusTooltip>
 
-        <span className="text-xs opacity-75">AIBuddy Desktop</span>
+        <div className="flex items-center gap-1.5 opacity-90">
+          <Zap className="w-4 h-4" />
+          <span>AIBuddy Desktop</span>
+        </div>
       </div>
     </div>
   )

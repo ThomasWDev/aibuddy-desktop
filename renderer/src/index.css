@@ -1,67 +1,71 @@
+/* Fonts are loaded from index.html to avoid CSP issues */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 262 83% 58%;
+    /* Dark theme - always dark for Cursor-like experience */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 340 82% 60%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
+    --secondary: 199 89% 55%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 217 33% 20%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 45 93% 58%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 262 83% 58%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 262 83% 58%;
+    --border: 217 33% 25%;
+    --input: 217 33% 20%;
+    --ring: 340 82% 60%;
+    --radius: 0.75rem;
+    --sidebar-background: 217 33% 14%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 340 82% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 262 83% 58%;
+    --sidebar-accent: 199 89% 55%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 217 33% 25%;
+    --sidebar-ring: 340 82% 60%;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 262 83% 58%;
+    /* Same as root - always dark */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 340 82% 60%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --secondary: 199 89% 55%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 217 33% 20%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 45 93% 58%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 262 83% 58%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 262 83% 58%;
+    --border: 217 33% 25%;
+    --input: 217 33% 20%;
+    --ring: 340 82% 60%;
+    --sidebar-background: 217 33% 14%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 340 82% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 262 83% 58%;
+    --sidebar-accent: 199 89% 55%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 217 33% 25%;
+    --sidebar-ring: 340 82% 60%;
   }
 }
 
@@ -69,9 +73,29 @@
   * {
     @apply border-border;
   }
+  html {
+    font-size: 16px;
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+    font-weight: 500;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+    background: #0f172a;
+    color: #f1f5f9;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: #f1f5f9;
+  }
+  code, pre, .mono {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.9em;
   }
 }
 
@@ -86,12 +110,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
+  background: rgba(148, 163, 184, 0.3);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+  background: rgba(148, 163, 184, 0.5);
 }
 
 /* Monaco editor customizations */
@@ -109,41 +133,43 @@
 }
 
 .xterm-viewport::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
+  background: rgba(148, 163, 184, 0.3);
   border-radius: 4px;
 }
 
-/* Activity bar */
+/* Activity bar - Cursor-like narrow icons only */
 .activity-bar {
   width: 48px;
-  background: hsl(var(--sidebar-background));
-  border-right: 1px solid hsl(var(--border));
+  background: #0f172a;
+  border-right: 1px solid #1e293b;
 }
 
 /* Sidebar */
 .sidebar {
   width: 260px;
-  background: hsl(var(--sidebar-background));
-  border-right: 1px solid hsl(var(--border));
+  background: #1e293b;
+  border-right: 1px solid #334155;
+  color: #e2e8f0;
 }
 
 /* Editor area */
 .editor-area {
   flex: 1;
-  background: hsl(var(--background));
+  background: #0f172a;
 }
 
 /* Panel (terminal, output, etc.) */
 .panel {
-  background: hsl(var(--card));
-  border-top: 1px solid hsl(var(--border));
+  background: #1e293b;
+  border-top: 1px solid #334155;
+  color: #e2e8f0;
 }
 
 /* Tab bar */
 .tab-bar {
   height: 35px;
-  background: hsl(var(--sidebar-background));
-  border-bottom: 1px solid hsl(var(--border));
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
 }
 
 .tab {
@@ -152,35 +178,85 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  border-right: 1px solid hsl(var(--border));
+  border-right: 1px solid #334155;
   cursor: pointer;
   font-size: 13px;
+  color: #94a3b8;
 }
 
 .tab.active {
-  background: hsl(var(--background));
+  background: #0f172a;
+  color: #f1f5f9;
 }
 
 .tab:hover:not(.active) {
-  background: hsl(var(--accent));
+  background: #334155;
+  color: #f1f5f9;
 }
 
-/* Status bar */
+/* Status bar - Gradient like Cursor */
 .status-bar {
-  height: 22px;
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  height: 24px;
+  background: linear-gradient(90deg, #ec4899 0%, #f97316 50%, #06b6d4 100%);
+  color: white;
   font-size: 12px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  padding: 0 8px;
+  padding: 0 12px;
 }
 
-/* AI Chat panel */
+/* AI Chat panel - Cursor-like dark theme */
 .ai-panel {
-  width: 400px;
-  background: hsl(var(--sidebar-background));
-  border-left: 1px solid hsl(var(--border));
+  width: 420px;
+  background: #1e293b;
+  border-left: 1px solid #334155;
+  font-family: 'Nunito', sans-serif;
+  color: #e2e8f0;
+}
+
+/* Child-friendly button styles */
+.btn-friendly {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-friendly:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-friendly:active {
+  transform: translateY(0);
+}
+
+/* Colorful badges */
+.badge-pink {
+  background: linear-gradient(135deg, #ff6b9d 0%, #ff8a80 100%);
+  color: white;
+}
+
+.badge-cyan {
+  background: linear-gradient(135deg, #00d4ff 0%, #00b4d8 100%);
+  color: white;
+}
+
+.badge-purple {
+  background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+  color: white;
+}
+
+.badge-amber {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #1a1a2e;
+}
+
+.badge-green {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  color: white;
 }
 
 /* Resizable panels */
@@ -192,7 +268,7 @@
 }
 
 .resize-handle:hover {
-  background: hsl(var(--primary) / 0.5);
+  background: rgba(236, 72, 153, 0.5);
 }
 
 .resize-handle-horizontal {
@@ -207,14 +283,17 @@
   padding: 4px 8px;
   cursor: pointer;
   font-size: 13px;
+  color: #cbd5e1;
 }
 
 .file-tree-item:hover {
-  background: hsl(var(--accent));
+  background: rgba(59, 130, 246, 0.1);
+  color: #f1f5f9;
 }
 
 .file-tree-item.selected {
-  background: hsl(var(--accent));
+  background: rgba(59, 130, 246, 0.2);
+  color: #f1f5f9;
 }
 
 /* Animations */
@@ -238,18 +317,38 @@
 
 /* Drag and drop */
 .drag-over {
-  background: hsl(var(--primary) / 0.1) !important;
-  border: 2px dashed hsl(var(--primary)) !important;
+  background: rgba(236, 72, 153, 0.1) !important;
+  border: 2px dashed #ec4899 !important;
 }
 
 /* Focus styles */
 *:focus-visible {
-  outline: 2px solid hsl(var(--ring));
+  outline: 2px solid #ec4899;
   outline-offset: 2px;
 }
 
 /* Selection */
 ::selection {
-  background: hsl(var(--primary) / 0.3);
+  background: rgba(236, 72, 153, 0.3);
 }
 
+/* Ensure all text is visible on dark backgrounds */
+p, span, div, label, input, textarea, button {
+  color: inherit;
+}
+
+/* Input fields - dark theme */
+input, textarea {
+  background: #0f172a;
+  border: 1px solid #334155;
+  color: #f1f5f9;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #64748b;
+}
+
+input:focus, textarea:focus {
+  border-color: #ec4899;
+  outline: none;
+}

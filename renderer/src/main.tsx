@@ -8,6 +8,9 @@ import './index.css'
 import { initSentryRenderer } from './lib/sentry'
 initSentryRenderer()
 
+// Apply dark mode by default
+document.documentElement.classList.add('dark')
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

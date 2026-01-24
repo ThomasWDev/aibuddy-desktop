@@ -547,7 +547,7 @@ export class AIAgent extends EventEmitter {
    * Get default system prompt
    */
   private getDefaultSystemPrompt(): string {
-    return `You are AIBuddy, an intelligent coding assistant powered by Claude. You help developers write, debug, and improve their code.
+    return `You are AIBuddy, an intelligent coding assistant powered by AIBuddy. You help developers write, debug, and improve their code.
 
 You have access to the following tools:
 - read_file: Read file contents

@@ -81,6 +81,7 @@ linux:
     - AppImage
     - deb
     - rpm
+    - snap
   desktop:
     Name: AIBuddy
     Comment: Your intelligent coding partner
@@ -88,6 +89,21 @@ linux:
 
 appImage:
   artifactName: ${productName}-${version}-${arch}.AppImage
+
+snap:
+  confinement: classic
+  grade: stable
+  summary: Your intelligent coding partner
+  description: |
+    AIBuddy is a powerful AI-powered coding assistant that helps you write,
+    debug, and understand code faster. Features include intelligent code
+    completion, code review, and natural language to code conversion.
+  plugs:
+    - default
+    - home
+    - network
+    - network-bind
+    - removable-media
 
 deb:
   depends:
@@ -103,12 +119,11 @@ rpm:
     - libXScrnSaver
 
 publish:
-provider: github
-    owner: ThomasWDev
-    repo: aibuddy-desktop
+  provider: github
+  owner: ThomasWDev
+  repo: aibuddy-desktop
   releaseType: release
 
 # Auto-updater configuration
 autoUpdater:
   checkForUpdatesOnStartup: true
-

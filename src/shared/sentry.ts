@@ -1,20 +1,48 @@
 /**
- * Sentry Error Monitoring for AIBuddy Desktop
+ * Sentry Error Monitoring for AIBuddy Desktop (Main Process)
  * 
  * This module provides error tracking and user behavior analytics.
  * It's designed to be compatible with the VS Code extension's Sentry implementation
  * so breadcrumbs and errors can be analyzed together in the Sentry dashboard.
  * 
- * Uses @sentry/electron for proper Electron main/renderer process support.
+ * NOTE: Uses a lightweight HTTP-based approach instead of @sentry/electron
+ * to avoid native module issues with Electron's asar packaging.
  */
 
-import * as Sentry from '@sentry/electron/main'
+import { net } from 'electron'
 
 // Same DSN as VS Code extension - all errors go to same project
 const SENTRY_DSN = process.env.SENTRY_DSN || 'https://982b270aa75b24be5d77786b58929121@o1319003.ingest.us.sentry.io/4510695985774592'
 
+// Parse DSN to get project details
+function parseDSN(dsn: string): { publicKey: string; host: string; projectId: string } | null {
+  try {
+    const url = new URL(dsn)
+    const publicKey = url.username
+    const host = url.host
+    const projectId = url.pathname.replace('/', '')
+    return { publicKey, host, projectId }
+  } catch {
+    return null
+  }
+}
+
+const dsnParts = parseDSN(SENTRY_DSN)
+
 let isInitialized = false
 let appVersion = 'unknown'
+let userContext: { id?: string; email?: string } | null = null
+let tags: Record<string, string> = {}
+let breadcrumbs: Array<{
+  message: string
+  category: string
+  data?: Record<string, unknown>
+  level: string
+  timestamp: number
+}> = []
+
+// Keep only last 100 breadcrumbs
+const MAX_BREADCRUMBS = 100
 
 /**
  * Error severity levels
@@ -61,6 +89,41 @@ export type BreadcrumbCategory =
   | 'error'
 
 /**
+ * Send event to Sentry via HTTP
+ */
+async function sendToSentry(event: Record<string, unknown>): Promise<void> {
+  if (!dsnParts) return
+
+  const url = `https://${dsnParts.host}/api/${dsnParts.projectId}/store/?sentry_key=${dsnParts.publicKey}&sentry_version=7`
+  
+  try {
+    const request = net.request({
+      method: 'POST',
+      url,
+    })
+    
+    request.setHeader('Content-Type', 'application/json')
+    
+    const eventData = {
+      ...event,
+      platform: 'javascript',
+      sdk: { name: 'aibuddy-desktop', version: appVersion },
+      release: `aibuddy-desktop@${appVersion}`,
+      environment: process.env.NODE_ENV || 'production',
+      tags,
+      user: userContext,
+      breadcrumbs: breadcrumbs.slice(-50), // Send last 50 breadcrumbs
+      timestamp: Date.now() / 1000,
+    }
+    
+    request.write(JSON.stringify(eventData))
+    request.end()
+  } catch (error) {
+    console.debug('[Sentry] Failed to send event:', error)
+  }
+}
+
+/**
  * Initialize Sentry for the main process
  * Call this in electron/main.ts before creating windows
  */
@@ -69,57 +132,22 @@ export function initSentryMain(version: string): void {
   
   appVersion = version
 
-  if (!SENTRY_DSN) {
+  if (!SENTRY_DSN || !dsnParts) {
     console.debug('[Sentry] DSN not configured - error monitoring disabled')
     return
   }
 
-  try {
-    Sentry.init({
-      dsn: SENTRY_DSN,
-      release: `aibuddy-desktop@${version}`,
-      environment: process.env.NODE_ENV || 'production',
-      
-      // Sample rates
-      sampleRate: 1.0,
-      tracesSampleRate: 0.1,
-      
-      // Don't send PII
-      sendDefaultPii: false,
-      
-      // Filter noisy errors
-      beforeSend(event, hint) {
-        const error = hint.originalException
-        const errorMessage = error instanceof Error ? error.message : String(error)
-        
-        // Filter user-initiated cancellations
-        if (errorMessage.includes('Task aborted') || 
-            errorMessage.includes('Request aborted') ||
-            errorMessage.includes('Canceled')) {
-          return null
-        }
-        
-        // Filter connection errors to local services
-        if (errorMessage.includes('ECONNREFUSED')) {
-          return null
-        }
-        
-        return event
-      },
-    })
-
-    // Set context tags
-    Sentry.setTag('app_type', 'desktop')
-    Sentry.setTag('app_version', version)
-    Sentry.setTag('os', process.platform)
-    Sentry.setTag('arch', process.arch)
-    Sentry.setTag('electron_version', process.versions.electron)
-
-    isInitialized = true
-    console.log('[Sentry] ✅ Error monitoring initialized for desktop app')
-  } catch (error) {
-    console.debug('[Sentry] Failed to initialize:', error)
+  // Set context tags
+  tags = {
+    app_type: 'desktop',
+    app_version: version,
+    os: process.platform,
+    arch: process.arch,
+    electron_version: process.versions.electron || 'unknown',
   }
+
+  isInitialized = true
+  console.log('[Sentry] ✅ Error monitoring initialized for desktop app')
 }
 
 /**
@@ -128,10 +156,10 @@ export function initSentryMain(version: string): void {
 export function setUserContext(userId: string, email?: string): void {
   if (!isInitialized) return
   
-  Sentry.setUser({
+  userContext = {
     id: userId,
     email: email ? `${email.split('@')[0].slice(0, 3)}***@***` : undefined,
-  })
+  }
 }
 
 /**
@@ -139,7 +167,7 @@ export function setUserContext(userId: string, email?: string): void {
  */
 export function clearUserContext(): void {
   if (!isInitialized) return
-  Sentry.setUser(null)
+  userContext = null
 }
 
 /**
@@ -150,15 +178,68 @@ export function captureError(
   context?: Record<string, unknown>,
   severity: ErrorSeverity = 'error'
 ): string | undefined {
+  console.error('[Error]', error.message, context)
+  
   if (!isInitialized) {
-    console.error('[Error]', error.message, context)
     return undefined
   }
 
-  return Sentry.captureException(error, {
+  const errorMessage = error.message || String(error)
+  
+  // Filter user-initiated cancellations
+  if (errorMessage.includes('Task aborted') || 
+      errorMessage.includes('Request aborted') ||
+      errorMessage.includes('Canceled') ||
+      errorMessage.includes('ECONNREFUSED')) {
+    return undefined
+  }
+
+  const eventId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  
+  sendToSentry({
+    event_id: eventId,
     level: severity,
+    message: errorMessage,
+    exception: {
+      values: [{
+        type: error.name || 'Error',
+        value: errorMessage,
+        stacktrace: error.stack ? { frames: parseStackTrace(error.stack) } : undefined,
+      }]
+    },
     extra: context,
   })
+
+  return eventId
+}
+
+/**
+ * Parse stack trace into Sentry format
+ */
+function parseStackTrace(stack: string): Array<{ filename: string; function: string; lineno?: number; colno?: number }> {
+  const lines = stack.split('\n').slice(1) // Skip first line (error message)
+  return lines.map(line => {
+    const match = line.match(/at\s+(.+?)\s+\((.+?):(\d+):(\d+)\)/) ||
+                  line.match(/at\s+(.+?):(\d+):(\d+)/)
+    if (match) {
+      if (match.length === 5) {
+        return {
+          function: match[1],
+          filename: match[2],
+          lineno: parseInt(match[3], 10),
+          colno: parseInt(match[4], 10),
+        }
+      } else {
+        return {
+          function: '<anonymous>',
+          filename: match[1],
+          lineno: parseInt(match[2], 10),
+          colno: parseInt(match[3], 10),
+        }
+      }
+    }
+    return { filename: 'unknown', function: line.trim() }
+  }).filter(f => f.filename !== 'unknown')
 }
 
 /**
@@ -169,15 +250,22 @@ export function captureMessage(
   level: ErrorSeverity = 'info',
   context?: Record<string, unknown>
 ): string | undefined {
+  console.log(`[${level}]`, message, context)
+  
   if (!isInitialized) {
-    console.log(`[${level}]`, message, context)
     return undefined
   }
 
-  return Sentry.captureMessage(message, {
+  const eventId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  
+  sendToSentry({
+    event_id: eventId,
     level,
+    message,
     extra: context,
   })
+
+  return eventId
 }
 
 /**
@@ -189,28 +277,31 @@ export function addBreadcrumb(
   data?: Record<string, unknown>,
   level: ErrorSeverity = 'info'
 ): void {
-  if (!isInitialized) return
-
-  Sentry.addBreadcrumb({
+  const breadcrumb = {
     message,
     category,
     data,
     level,
     timestamp: Date.now() / 1000,
-  })
+  }
+  
+  breadcrumbs.push(breadcrumb)
+  
+  // Keep only last MAX_BREADCRUMBS
+  if (breadcrumbs.length > MAX_BREADCRUMBS) {
+    breadcrumbs = breadcrumbs.slice(-MAX_BREADCRUMBS)
+  }
+  
+  // Also log to console for debugging
+  console.debug(`[Breadcrumb:${category}]`, message, data || '')
 }
 
 /**
- * Flush pending events
+ * Flush pending events (no-op in HTTP implementation, kept for API compatibility)
  */
 export async function flushSentry(): Promise<void> {
-  if (!isInitialized) return
-  
-  try {
-    await Sentry.flush(2000)
-  } catch {
-    // Ignore flush errors
-  }
+  // HTTP requests are fire-and-forget, nothing to flush
+  return Promise.resolve()
 }
 
 // ============================================================

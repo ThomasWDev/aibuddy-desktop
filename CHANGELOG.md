@@ -2,6 +2,132 @@
 
 All notable changes to AIBuddy Desktop will be documented in this file.
 
+---
+
+## [1.4.28] - 2026-01-24
+
+### Major UI/UX Overhaul 🎨
+
+#### Simplified Child-Friendly Interface
+Complete redesign focused on simplicity for young coders (8+ years old):
+
+- **Removed cluttered panels** - No more confusing sidebar, terminal, file explorer
+- **Single chat interface** - Just type what you want, AI does the rest
+- **Big, colorful buttons** - Easy to understand and click
+- **Hover tooltips** - Every button explains what it does
+
+#### New Features
+
+| Feature | Description |
+|---------|-------------|
+| **Credits Display** | Shows your AIBuddy credits in real-time (top right) |
+| **Cost Tracking** | See how much each AI response costs |
+| **Model Indicator** | Shows if Claude 🧠 or DeepSeek 🤖 responded |
+| **Progress Status** | Visual feedback: Validating → Reading → Sending → Thinking → Done |
+| **Low Credits Warning** | Red warning when credits < 5 |
+
+#### Status Progress Steps
+When you send a message, you see each step:
+1. 🔑 Checking your API key...
+2. 📂 Reading your files...
+3. ☁️ Sending to AI...
+4. 🧠 AI is thinking...
+5. ✍️ Writing response...
+6. ✅ Done!
+
+### Bug Fixes 🐛
+
+#### CORS Fix
+- **Fixed:** "Failed to fetch" error when calling API
+- **Cause:** Custom headers (`X-Requested-With`, `X-AIBuddy-API-Key`) not allowed by CORS
+- **Solution:** Removed custom headers, API key sent in request body
+
+#### Content Security Policy (CSP) Fix
+- **Fixed:** Google Fonts and API calls blocked by CSP
+- **Solution:** Updated CSP in both `index.html` and `main.ts` to allow:
+  - `connect-src 'self' https: wss:` (all HTTPS connections)
+  - `style-src-elem` for Google Fonts
+  - `font-src` for Google Fonts
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `renderer/src/App.tsx` | Complete rewrite - simplified single-page chat UI |
+| `renderer/src/index.css` | Dark theme, removed Google Fonts import |
+| `renderer/index.html` | Updated CSP, added Google Fonts link |
+| `electron/main.ts` | Added session CSP headers |
+| `renderer/src/components/layout/TopToolbar.tsx` | New horizontal toolbar |
+| `renderer/src/components/layout/ActivityBar.tsx` | Simplified icons-only |
+
+### Removed Components
+- `WelcomeScreen.tsx` - No longer used (integrated into App.tsx)
+- `AIPanel.tsx` - No longer used (integrated into App.tsx)
+- `Sidebar.tsx` - Removed for simplicity
+- `EditorArea.tsx` - Removed for simplicity
+- `Panel.tsx` - Removed for simplicity
+
+---
+
+## Pending Tasks / TODO 📋
+
+### High Priority
+- [ ] Add file reading capability - show AI what files it's reading
+- [ ] Add terminal command execution with user approval
+- [ ] Add code editing with diff view
+- [ ] Implement streaming responses for real-time output
+
+### Medium Priority
+- [ ] Add Amplitude analytics
+- [ ] Copy system prompts from VS Code extension
+- [ ] Start monorepo setup with pnpm workspaces
+- [ ] Create `@aibuddy/core` shared package
+
+### Low Priority
+- [ ] Add notification when Claude credits are low (admin alert)
+- [ ] Add SMS 2FA for WordPress admin
+- [ ] Set up Snapcraft token for Linux distribution
+
+### Completed ✅
+- [x] Fix CORS error for API calls
+- [x] Fix CSP blocking Google Fonts
+- [x] Add credits display
+- [x] Add cost tracking per message
+- [x] Add model indicator (Claude vs DeepSeek)
+- [x] Add progress status steps
+- [x] Simplify UI for child-friendliness
+- [x] Add hover tooltips to all buttons
+- [x] Remove cluttered panels
+
+---
+
+## [1.4.27] - 2026-01-23
+
+### Critical Fixes 🔧
+
+#### Sentry Module Fix
+- **Fixed:** `Cannot find module '@sentry/node'` crash on app launch
+- **Solution:** Replaced `@sentry/electron` with a lightweight HTTP-based Sentry implementation
+- **Benefit:** No more native module issues with Electron's asar packaging
+
+#### UI Improvements
+- **Redesigned Welcome Screen** with modern gradient aesthetics
+- **Removed:** Documentation and GitHub links (were pointing to wrong URLs)
+- **Added:** "Buy Credits" button linking to https://aibuddy.life/pricing
+- **Fixed:** Buttons now properly clickable (z-index and event handling fixed)
+- **Updated:** Footer now shows "AIBuddy Desktop"
+- **Updated:** All "Powered by" text now shows "Powered by AIBuddy"
+
+#### Files Modified
+| File | Change |
+|------|--------|
+| `src/shared/sentry.ts` | Replaced @sentry/electron with HTTP-based implementation |
+| `renderer/src/lib/sentry.ts` | Replaced @sentry/electron/renderer with HTTP-based implementation |
+| `renderer/src/components/welcome/WelcomeScreen.tsx` | Complete UI redesign |
+| `package.json` | Removed @sentry/electron dependency |
+
+---
+
 ## [1.4.20] - 2026-01-23
 
 ### DeepSeek R1/V3 Integration 🧠
@@ -86,4 +212,3 @@ pnpm package:mac     # Package for macOS
 pnpm package:win     # Package for Windows
 pnpm package:linux   # Package for Linux
 ```
-

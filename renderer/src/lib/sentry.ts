@@ -1,18 +1,67 @@
 /**
  * Sentry for Renderer Process (Browser)
  * 
- * Uses @sentry/electron/renderer for proper Electron renderer support.
+ * Uses a lightweight HTTP-based approach instead of @sentry/electron/renderer
+ * to avoid native module issues with Electron's asar packaging.
  * Shares the same DSN as main process and VS Code extension.
  */
-
-import * as Sentry from '@sentry/electron/renderer'
 
 // Same DSN as main process and VS Code extension
 const SENTRY_DSN = 'https://982b270aa75b24be5d77786b58929121@o1319003.ingest.us.sentry.io/4510695985774592'
 
+// Parse DSN to get project details
+function parseDSN(dsn: string): { publicKey: string; host: string; projectId: string } | null {
+  try {
+    const url = new URL(dsn)
+    const publicKey = url.username
+    const host = url.host
+    const projectId = url.pathname.replace('/', '')
+    return { publicKey, host, projectId }
+  } catch {
+    return null
+  }
+}
+
+const dsnParts = parseDSN(SENTRY_DSN)
+
 let isInitialized = false
+let breadcrumbs: Array<{
+  message: string
+  category: string
+  data?: Record<string, unknown>
+  level: string
+  timestamp: number
+}> = []
+
+const MAX_BREADCRUMBS = 100
 
 export type ErrorSeverity = 'fatal' | 'error' | 'warning' | 'info' | 'debug'
+
+/**
+ * Send event to Sentry via HTTP
+ */
+async function sendToSentry(event: Record<string, unknown>): Promise<void> {
+  if (!dsnParts) return
+
+  const url = `https://${dsnParts.host}/api/${dsnParts.projectId}/store/?sentry_key=${dsnParts.publicKey}&sentry_version=7`
+  
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...event,
+        platform: 'javascript',
+        sdk: { name: 'aibuddy-desktop-renderer', version: '1.0.0' },
+        environment: 'production',
+        breadcrumbs: breadcrumbs.slice(-50),
+        timestamp: Date.now() / 1000,
+      }),
+    })
+  } catch (error) {
+    console.debug('[Sentry Renderer] Failed to send event:', error)
+  }
+}
 
 /**
  * Initialize Sentry for the renderer process
@@ -21,27 +70,13 @@ export type ErrorSeverity = 'fatal' | 'error' | 'warning' | 'info' | 'debug'
 export function initSentryRenderer(): void {
   if (isInitialized) return
 
-  try {
-    Sentry.init({
-      dsn: SENTRY_DSN,
-      
-      // Integrations for browser context
-      integrations: [
-        Sentry.browserTracingIntegration(),
-      ],
-      
-      // Sample rates
-      tracesSampleRate: 0.1,
-      
-      // Don't send PII
-      sendDefaultPii: false,
-    })
-
-    isInitialized = true
-    console.log('[Sentry Renderer] ✅ Initialized')
-  } catch (error) {
-    console.debug('[Sentry Renderer] Failed to initialize:', error)
+  if (!dsnParts) {
+    console.debug('[Sentry Renderer] DSN not configured')
+    return
   }
+
+  isInitialized = true
+  console.log('[Sentry Renderer] ✅ Initialized')
 }
 
 /**
@@ -53,15 +88,21 @@ export function addBreadcrumb(
   data?: Record<string, unknown>,
   level: ErrorSeverity = 'info'
 ): void {
-  if (!isInitialized) return
-
-  Sentry.addBreadcrumb({
+  const breadcrumb = {
     message,
     category,
     data,
     level,
     timestamp: Date.now() / 1000,
-  })
+  }
+  
+  breadcrumbs.push(breadcrumb)
+  
+  if (breadcrumbs.length > MAX_BREADCRUMBS) {
+    breadcrumbs = breadcrumbs.slice(-MAX_BREADCRUMBS)
+  }
+  
+  console.debug(`[Breadcrumb:${category}]`, message, data || '')
 }
 
 /**
@@ -72,15 +113,58 @@ export function captureError(
   context?: Record<string, unknown>,
   severity: ErrorSeverity = 'error'
 ): string | undefined {
+  console.error('[Error]', error.message, context)
+  
   if (!isInitialized) {
-    console.error('[Error]', error.message, context)
     return undefined
   }
 
-  return Sentry.captureException(error, {
+  const eventId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  
+  sendToSentry({
+    event_id: eventId,
     level: severity,
+    message: error.message,
+    exception: {
+      values: [{
+        type: error.name || 'Error',
+        value: error.message,
+        stacktrace: error.stack ? { frames: parseStackTrace(error.stack) } : undefined,
+      }]
+    },
     extra: context,
   })
+
+  return eventId
+}
+
+/**
+ * Parse stack trace into Sentry format
+ */
+function parseStackTrace(stack: string): Array<{ filename: string; function: string; lineno?: number; colno?: number }> {
+  const lines = stack.split('\n').slice(1)
+  return lines.map(line => {
+    const match = line.match(/at\s+(.+?)\s+\((.+?):(\d+):(\d+)\)/) ||
+                  line.match(/at\s+(.+?):(\d+):(\d+)/)
+    if (match) {
+      if (match.length === 5) {
+        return {
+          function: match[1],
+          filename: match[2],
+          lineno: parseInt(match[3], 10),
+          colno: parseInt(match[4], 10),
+        }
+      } else {
+        return {
+          function: '<anonymous>',
+          filename: match[1],
+          lineno: parseInt(match[2], 10),
+          colno: parseInt(match[3], 10),
+        }
+      }
+    }
+    return { filename: 'unknown', function: line.trim() }
+  }).filter(f => f.filename !== 'unknown')
 }
 
 /**
@@ -91,15 +175,22 @@ export function captureMessage(
   level: ErrorSeverity = 'info',
   context?: Record<string, unknown>
 ): string | undefined {
+  console.log(`[${level}]`, message, context)
+  
   if (!isInitialized) {
-    console.log(`[${level}]`, message, context)
     return undefined
   }
 
-  return Sentry.captureMessage(message, {
+  const eventId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  
+  sendToSentry({
+    event_id: eventId,
     level,
+    message,
     extra: context,
   })
+
+  return eventId
 }
 
 // ============================================================
@@ -278,5 +369,27 @@ export function trackThemeChange(theme: string): void {
   )
 }
 
-// Export Sentry for direct access if needed
-export { Sentry }
+/**
+ * Track button click - useful for debugging UI issues
+ */
+export function trackButtonClick(
+  buttonName: string,
+  component: string,
+  data?: Record<string, unknown>
+): void {
+  addBreadcrumb(
+    `Button Click: ${buttonName}`,
+    'ui.click',
+    { button: buttonName, component, ...data }
+  )
+}
+
+/**
+ * Track error - alias for captureError with simpler interface
+ */
+export function trackError(
+  error: Error,
+  context?: Record<string, unknown>
+): string | undefined {
+  return captureError(error, context, 'error')
+}
