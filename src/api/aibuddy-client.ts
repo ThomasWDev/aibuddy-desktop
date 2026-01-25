@@ -161,13 +161,13 @@ function detectTaskHints(content: string): string[] {
 }
 
 export class AIBuddyClient {
-  // Use AWS ALB endpoint (no timeout limit, same as VS Code extension)
+  // Use API Gateway endpoint (HTTPS, works with CSP)
   private baseUrl: string
   private apiKey: string | null = null
 
-  // ALB endpoint - NO timeout limit, can wait for Lambda's full 5-minute timeout
-  // API Gateway has 29-second limit which causes timeouts for complex requests
-  constructor(baseUrl = 'http://3.136.220.194') {
+  // API Gateway endpoint - HTTPS required for Electron CSP
+  // Note: Has 29-second timeout, but most requests complete faster
+  constructor(baseUrl = 'https://i6f81wuqo0.execute-api.us-east-2.amazonaws.com/dev/v1/inference') {
     this.baseUrl = baseUrl
   }
 
@@ -262,7 +262,7 @@ export class AIBuddyClient {
       : ''
     const taskHints = detectTaskHints(userContent)
 
-    // ALB routes to Lambda at root path (no /v1/inference needed)
+    // API Gateway endpoint includes /v1/inference path
     const response = await fetch(this.baseUrl, {
       method: 'POST',
       headers: {

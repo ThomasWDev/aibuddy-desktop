@@ -1,33 +1,33 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { AIBuddyClient } from '../../src/api/aibuddy-client'
 
-// ALB endpoint - the default URL for AIBuddyClient
-const ALB_URL = 'http://3.136.220.194'
+// API Gateway endpoint - the default URL for AIBuddyClient (HTTPS, works with CSP)
+const API_GATEWAY_URL = 'https://i6f81wuqo0.execute-api.us-east-2.amazonaws.com/dev/v1/inference'
 
 describe('AIBuddyClient', () => {
   let client: AIBuddyClient
 
   beforeEach(() => {
-    client = new AIBuddyClient('https://test-api.example.com')
+    client = new AIBuddyClient('https://test-api.example.com/v1/inference')
     vi.clearAllMocks()
   })
 
   describe('constructor', () => {
-    it('should create client with default ALB URL', () => {
+    it('should create client with default API Gateway URL', () => {
       const defaultClient = new AIBuddyClient()
       expect(defaultClient).toBeDefined()
-      // Default should be ALB endpoint (no timeout limit)
+      // Default should be API Gateway endpoint (HTTPS, works with CSP)
     })
 
-    it('should use ALB URL by default (http://3.136.220.194)', () => {
-      // This test verifies the default URL is the ALB, not API Gateway
+    it('should use API Gateway URL by default (HTTPS)', () => {
+      // This test verifies the default URL is API Gateway (HTTPS for CSP compliance)
       const defaultClient = new AIBuddyClient()
       // We can't directly access private baseUrl, but we can verify behavior
       expect(defaultClient).toBeDefined()
     })
 
     it('should create client with custom URL', () => {
-      const customClient = new AIBuddyClient('https://custom.api.com')
+      const customClient = new AIBuddyClient('https://custom.api.com/v1/inference')
       expect(customClient).toBeDefined()
     })
   })
@@ -86,10 +86,9 @@ describe('AIBuddyClient', () => {
         messages: [{ role: 'user', content: 'Hello' }]
       })
 
-      // ALB routes at root path (no /v1/inference needed)
-      // API Gateway would need /v1/inference, but ALB handles it at root
+      // API Gateway endpoint includes full path
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://test-api.example.com',
+        'https://test-api.example.com/v1/inference',
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({

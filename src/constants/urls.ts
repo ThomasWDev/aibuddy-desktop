@@ -16,17 +16,18 @@ export const AIBUDDY_WEBSITE = 'https://aibuddy.life'
 export const AIBUDDY_BUY_CREDITS_URL = 'https://aibuddy.life/pricing'
 
 // API endpoints
-// AWS Application Load Balancer - PRIMARY (NO timeout limit, can wait for Lambda's full 5-minute timeout)
-export const AIBUDDY_ALB_URL = 'http://3.136.220.194'
-// API Gateway - BACKUP (has 29-second timeout limit)
+// API Gateway - PRIMARY (HTTPS, works with CSP, 29-second timeout)
 export const AIBUDDY_API_GATEWAY_URL = 'https://i6f81wuqo0.execute-api.us-east-2.amazonaws.com/dev'
+// AWS Application Load Balancer - BACKUP (HTTP only, blocked by CSP in Electron)
+export const AIBUDDY_ALB_URL = 'http://3.136.220.194'
 // Lambda Function URL - DISABLED (403 Forbidden issue - AWS bug)
 export const AIBUDDY_LAMBDA_URL = 'https://x6s3kwugl426vmsnv4evh6p2se0kbmke.lambda-url.us-east-2.on.aws'
 
-// Use ALB for inference (no timeout issues)
-export const AIBUDDY_API_BASE_URL = AIBUDDY_ALB_URL
-export const AIBUDDY_API_INFERENCE_URL = AIBUDDY_ALB_URL  // ALB handles requests at root
-export const AIBUDDY_API_VALIDATE_KEY_URL = `${AIBUDDY_API_GATEWAY_URL}/v1/inference`  // API Gateway for quick validation
+// Use API Gateway for inference (HTTPS, works with CSP)
+// Note: API Gateway has 29-second timeout, but most requests complete faster
+export const AIBUDDY_API_BASE_URL = AIBUDDY_API_GATEWAY_URL
+export const AIBUDDY_API_INFERENCE_URL = `${AIBUDDY_API_GATEWAY_URL}/v1/inference`
+export const AIBUDDY_API_VALIDATE_KEY_URL = `${AIBUDDY_API_GATEWAY_URL}/v1/inference`
 
 // Documentation
 export const AIBUDDY_DOCS_URL = 'https://aibuddy.life/docs'
