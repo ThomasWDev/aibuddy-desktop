@@ -674,30 +674,81 @@ function App() {
         hasKnowledgeContext: !!knowledgeContext
       })
 
-      const response = await fetch(AIBUDDY_API_INFERENCE_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-          body: JSON.stringify({
-            api_key: apiKey,
-            model: 'claude-opus-4-20250514',
-            messages: [
-              { 
-                role: 'system', 
-                content: generateSystemPrompt({
-                  workspacePath: workspacePath || undefined,
-                  projectType: workspacePath ? detectProjectType(workspacePath) : undefined,
-                  knowledgeContext: knowledgeContext || undefined,
-                  environmentSummary: environmentSummary || undefined
-                })
-              },
-              ...chatMessages
-            ],
-          max_tokens: 4096,
-          temperature: 0.7,
-        })
-      })
+      // API Gateway has 29-second timeout, so we implement retry logic
+      // and progress feedback for long-running requests
+      const MAX_RETRIES = 2
+      const TIMEOUT_MS = 28000 // 28 seconds (just under API Gateway's 29s limit)
+      let lastError: Error | null = null
+      let response: Response | null = null
+
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          // Create abort controller for timeout
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
+          // Show progress for retries
+          if (attempt > 0) {
+            toast.info(`⏳ Request taking longer than expected... Retry ${attempt}/${MAX_RETRIES}`)
+            addBreadcrumb('API retry attempt', 'api.retry', { attempt, maxRetries: MAX_RETRIES })
+          }
+
+          response = await fetch(AIBUDDY_API_INFERENCE_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-AIBuddy-API-Key': apiKey || '',
+            },
+            body: JSON.stringify({
+              api_key: apiKey,
+              model: 'claude-opus-4-20250514',
+              messages: [
+                { 
+                  role: 'system', 
+                  content: generateSystemPrompt({
+                    workspacePath: workspacePath || undefined,
+                    projectType: workspacePath ? detectProjectType(workspacePath) : undefined,
+                    knowledgeContext: knowledgeContext || undefined,
+                    environmentSummary: environmentSummary || undefined
+                  })
+                },
+                ...chatMessages
+              ],
+              max_tokens: 4096,
+              temperature: 0.7,
+            }),
+            signal: controller.signal
+          })
+
+          clearTimeout(timeoutId)
+
+          // If we got a response (even error), break the retry loop
+          if (response) break
+
+        } catch (fetchError: any) {
+          lastError = fetchError
+          
+          // Check if it's a timeout/abort error
+          if (fetchError.name === 'AbortError' || fetchError.message?.includes('aborted')) {
+            console.log(`[App] Request timed out on attempt ${attempt + 1}`)
+            addBreadcrumb('API timeout', 'api.timeout', { attempt, timeoutMs: TIMEOUT_MS })
+            
+            // If this was the last retry, show a helpful message
+            if (attempt === MAX_RETRIES) {
+              toast.error('⏱️ Request timed out. Try a simpler question or break it into smaller parts.')
+            }
+            continue // Try again
+          }
+          
+          // For other errors, don't retry
+          throw fetchError
+        }
+      }
+
+      // If all retries failed
+      if (!response) {
+        throw lastError || new Error('Request failed after all retries')
+      }
 
       const responseTime = Date.now() - startTime
       console.log('[App] API response status:', response.status)
@@ -708,6 +759,36 @@ function App() {
         responseTime,
         ok: response.ok
       })
+
+      // Handle specific HTTP errors with user-friendly messages
+      if (response.status === 504) {
+        // Gateway Timeout - API Gateway's 29-second limit exceeded
+        toast.error('⏱️ Request timed out. The AI is taking too long. Try a simpler question.')
+        addBreadcrumb('Gateway timeout', 'api.error', { status: 504, responseTime })
+        setStatus('idle')
+        return
+      }
+
+      if (response.status === 401) {
+        toast.error('🔑 Invalid API key. Please check your AIBuddy API key in settings.')
+        addBreadcrumb('Auth failed', 'api.error', { status: 401 })
+        setStatus('error')
+        return
+      }
+
+      if (response.status === 429) {
+        toast.error('⏳ Rate limited. Please wait a moment and try again.')
+        addBreadcrumb('Rate limited', 'api.error', { status: 429 })
+        setStatus('idle')
+        return
+      }
+
+      if (response.status === 500 || response.status === 502 || response.status === 503) {
+        toast.error('🔧 Server error. AIBuddy is having issues. Please try again in a moment.')
+        addBreadcrumb('Server error', 'api.error', { status: response.status })
+        setStatus('error')
+        return
+      }
       
       setStatus('generating')
       
