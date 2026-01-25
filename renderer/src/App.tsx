@@ -44,6 +44,9 @@ import {
   AIBUDDY_API_INFERENCE_URL,
   AIBUDDY_WEBSITE 
 } from '../../src/constants/urls'
+
+// Debug: Log the API URL at module load time
+console.log('[App] API URL configured:', AIBUDDY_API_INFERENCE_URL)
 import { generateSystemPrompt } from '../../src/constants/system-prompt'
 
 // Child-friendly tooltip with big text and emojis

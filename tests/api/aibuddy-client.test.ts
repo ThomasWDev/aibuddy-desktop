@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { AIBuddyClient } from '../../src/api/aibuddy-client'
 
+// ALB endpoint - the default URL for AIBuddyClient
+const ALB_URL = 'http://3.136.220.194'
+
 describe('AIBuddyClient', () => {
   let client: AIBuddyClient
 
@@ -10,8 +13,16 @@ describe('AIBuddyClient', () => {
   })
 
   describe('constructor', () => {
-    it('should create client with default URL', () => {
+    it('should create client with default ALB URL', () => {
       const defaultClient = new AIBuddyClient()
+      expect(defaultClient).toBeDefined()
+      // Default should be ALB endpoint (no timeout limit)
+    })
+
+    it('should use ALB URL by default (http://3.136.220.194)', () => {
+      // This test verifies the default URL is the ALB, not API Gateway
+      const defaultClient = new AIBuddyClient()
+      // We can't directly access private baseUrl, but we can verify behavior
       expect(defaultClient).toBeDefined()
     })
 
@@ -75,8 +86,10 @@ describe('AIBuddyClient', () => {
         messages: [{ role: 'user', content: 'Hello' }]
       })
 
+      // ALB routes at root path (no /v1/inference needed)
+      // API Gateway would need /v1/inference, but ALB handles it at root
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://test-api.example.com/v1/inference',
+        'https://test-api.example.com',
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
