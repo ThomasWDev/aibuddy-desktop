@@ -530,6 +530,10 @@ ipcMain.handle('sentry:setUser', (_event, userId: string, email?: string) => {
   return true
 })
 
+// Initialize history handlers
+import { initHistoryHandlers } from './ipc/history'
+initHistoryHandlers()
+
 // Export for use in IPC handlers
 export { mainWindow, store, sessionMetrics }
 

@@ -97,6 +97,22 @@ export interface ElectronAPI {
     getSummary: () => Promise<string>
   }
 
+  // Chat history operations
+  history: {
+    getThreads: () => Promise<unknown[]>
+    getThread: (threadId: string) => Promise<unknown>
+    getActiveThread: () => Promise<unknown>
+    createThread: (firstMessage?: string, workspacePath?: string) => Promise<unknown>
+    setActiveThread: (threadId: string | null) => Promise<boolean>
+    addMessage: (threadId: string, message: { role: 'user' | 'assistant', content: string, images?: unknown[] }) => Promise<unknown>
+    updateMetadata: (threadId: string, metadata: unknown) => Promise<boolean>
+    renameThread: (threadId: string, newTitle: string) => Promise<boolean>
+    deleteThread: (threadId: string) => Promise<boolean>
+    clearAll: () => Promise<boolean>
+    search: (query: string) => Promise<unknown[]>
+    export: (threadId: string) => Promise<string>
+  }
+
   // Generic invoke for backwards compatibility
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
 
@@ -240,6 +256,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
   environment: {
     detectEnvironment: () => ipcRenderer.invoke('env:detect'),
     getSummary: () => ipcRenderer.invoke('env:getSummary'),
+  },
+
+  // Chat history operations
+  history: {
+    getThreads: () => ipcRenderer.invoke('history:getThreads'),
+    getThread: (threadId: string) => ipcRenderer.invoke('history:getThread', threadId),
+    getActiveThread: () => ipcRenderer.invoke('history:getActiveThread'),
+    createThread: (firstMessage?: string, workspacePath?: string) => 
+      ipcRenderer.invoke('history:createThread', firstMessage, workspacePath),
+    setActiveThread: (threadId: string | null) => ipcRenderer.invoke('history:setActiveThread', threadId),
+    addMessage: (threadId: string, message: { role: 'user' | 'assistant', content: string, images?: unknown[] }) => 
+      ipcRenderer.invoke('history:addMessage', threadId, message),
+    updateMetadata: (threadId: string, metadata: unknown) => 
+      ipcRenderer.invoke('history:updateMetadata', threadId, metadata),
+    renameThread: (threadId: string, newTitle: string) => 
+      ipcRenderer.invoke('history:renameThread', threadId, newTitle),
+    deleteThread: (threadId: string) => ipcRenderer.invoke('history:deleteThread', threadId),
+    clearAll: () => ipcRenderer.invoke('history:clearAll'),
+    search: (query: string) => ipcRenderer.invoke('history:search', query),
+    export: (threadId: string) => ipcRenderer.invoke('history:export', threadId),
   },
 
   // Generic invoke for backwards compatibility

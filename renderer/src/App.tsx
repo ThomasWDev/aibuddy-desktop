@@ -22,9 +22,13 @@ import {
   BookOpen,
   Image as ImageIcon,
   Paperclip,
-  Trash2
+  Trash2,
+  History,
+  Plus
 } from 'lucide-react'
 import { CloudKnowledgePanel } from './components/knowledge'
+import { HistorySidebar } from './components/HistorySidebar'
+import type { ChatThread } from '../../src/history/types'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
@@ -295,6 +299,10 @@ function App() {
   // Image attachments
   const [attachedImages, setAttachedImages] = useState<ImageAttachment[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Chat history
+  const [showHistory, setShowHistory] = useState(false)
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -993,6 +1001,32 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       imageCount: currentImages.length
     })
 
+    // Create or get active thread for history
+    let threadId = activeThreadId
+    if (!threadId || messages.length === 0) {
+      // Create new thread for first message
+      try {
+        const thread = await window.electronAPI.history.createThread(trimmedInput, workspacePath || undefined) as ChatThread
+        threadId = thread.id
+        setActiveThreadId(thread.id)
+      } catch (err) {
+        console.error('[App] Failed to create thread:', err)
+      }
+    }
+
+    // Save user message to history
+    if (threadId) {
+      try {
+        await window.electronAPI.history.addMessage(threadId, {
+          role: 'user',
+          content: userMessage.content,
+          images: currentImages.length > 0 ? currentImages : undefined
+        })
+      } catch (err) {
+        console.error('[App] Failed to save user message to history:', err)
+      }
+    }
+
     setMessages(prev => [...prev, userMessage])
     setInput('')
     setAttachedImages([]) // Clear attached images after sending
@@ -1389,6 +1423,25 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       setMessages(prev => [...prev, assistantMessage])
       setStatus('done')
       
+      // Save assistant message to history
+      if (threadId) {
+        try {
+          await window.electronAPI.history.addMessage(threadId, {
+            role: 'assistant',
+            content: assistantMessage.content
+          })
+          // Update thread metadata with cost/tokens
+          await window.electronAPI.history.updateMetadata(threadId, {
+            totalCost: data.api_cost,
+            totalTokensIn: data.usage?.input_tokens,
+            totalTokensOut: data.usage?.output_tokens,
+            model: data.model
+          })
+        } catch (err) {
+          console.error('[App] Failed to save assistant message to history:', err)
+        }
+      }
+      
       // Track successful completion
       addBreadcrumb('AI response displayed', 'chat', {
         responseLength: responseText.length,
@@ -1594,6 +1647,30 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                   {terminalOutput.length}
                 </span>
               )}
+            </button>
+          </Tooltip>
+
+          {/* History Button - Chat Threads */}
+          <Tooltip text="📜 View your chat history! All your conversations are saved here." position="bottom">
+            <button
+              onClick={() => {
+                trackButtonClick('History', 'App')
+                trackPanelToggle('History', true)
+                addBreadcrumb('Opening History panel', 'ui.panel', { panel: 'history' })
+                setShowHistory(true)
+              }}
+              className="flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95"
+              style={{ 
+                background: showHistory 
+                  ? 'linear-gradient(135deg, #06b6d4, #0891b2)' 
+                  : 'rgba(6, 182, 212, 0.2)',
+                color: 'white',
+                border: `3px solid #06b6d4`,
+                boxShadow: showHistory ? '0 8px 24px rgba(6, 182, 212, 0.4)' : 'none'
+              }}
+            >
+              <History className="w-6 h-6" />
+              <span>History</span>
             </button>
           </Tooltip>
 
@@ -2328,6 +2405,42 @@ Be concise and actionable. Focus on fixing the immediate problem.`
           // Add action to chat
           setInput(`${action} for ${provider.name}`)
           setShowKnowledgeBase(false)
+          inputRef.current?.focus()
+        }}
+      />
+
+      {/* History Sidebar */}
+      <HistorySidebar
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        activeThreadId={activeThreadId}
+        onSelectThread={(thread) => {
+          // Load thread messages into chat
+          const loadedMessages: Message[] = thread.messages.map(msg => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            images: msg.images?.map(img => ({
+              id: img.id,
+              base64: img.base64,
+              mimeType: img.mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+              name: img.name,
+              size: 0 // Size not stored in history, default to 0
+            }))
+          }))
+          setMessages(loadedMessages)
+          setActiveThreadId(thread.id)
+          setShowHistory(false)
+          toast.success(`📜 Loaded: ${thread.title}`)
+          addBreadcrumb('Loaded chat thread', 'history', { threadId: thread.id, messageCount: thread.messages.length })
+        }}
+        onNewThread={() => {
+          // Clear current chat and start fresh
+          setMessages([])
+          setActiveThreadId(null)
+          setShowHistory(false)
+          toast.success('✨ Started new chat!')
+          addBreadcrumb('Started new chat thread', 'history')
           inputRef.current?.focus()
         }}
       />
