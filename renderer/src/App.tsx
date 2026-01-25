@@ -254,7 +254,7 @@ function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Load on mount
+  // Load on mount - FAST startup, no blocking network calls
   useEffect(() => {
     const init = async () => {
       const startTime = Date.now()
@@ -262,103 +262,140 @@ function App() {
       
       const electronAPI = (window as any).electronAPI
       
-      // Get API key
+      // PHASE 1: Load local data FAST (no network)
+      // This should complete in <100ms
+      
+      // Get version (local)
+      if (electronAPI?.app?.getVersion) {
+        try {
+          const v = await electronAPI.app.getVersion()
+          setAppVersion(v)
+        } catch {}
+      }
+      
+      // Get API key from local store
+      let hasKey = false
       if (electronAPI?.store?.get) {
         try {
           const key = await electronAPI.store.get('apiKey')
           if (key) {
             setApiKey(key)
-            addBreadcrumb('API key loaded from store', 'app.init', { hasKey: true })
-            // Validate key and get credits
-            validateApiKey(key)
-          } else {
-            setShowSettings(true)
-            addBreadcrumb('No API key found - showing settings', 'app.init', { hasKey: false })
+            hasKey = true
+            
+            // Load cached credits immediately (no network)
+            const cachedCredits = await electronAPI.store.get('cachedCredits')
+            if (cachedCredits) {
+              setCredits(cachedCredits)
+            }
           }
         } catch (err) {
           addBreadcrumb('Failed to load API key', 'app.init', { error: (err as Error).message }, 'error')
         }
-      }
-      
-      // Get version
-      if (electronAPI?.app?.getVersion) {
-        try {
-          const v = await electronAPI.app.getVersion()
-          setAppVersion(v)
-          addBreadcrumb('App version loaded', 'app.init', { version: v })
-        } catch {}
-      }
-      
-      // Get recent workspace
-      if (electronAPI?.store?.get) {
+        
+        // Get recent workspace (local)
         try {
           const recent = await electronAPI.store.get('recentWorkspaces')
           if (recent && recent.length > 0) {
             setWorkspacePath(recent[0])
-            addBreadcrumb('Recent workspace loaded', 'app.init', { 
-              path: recent[0],
-              recentCount: recent.length 
-            })
           }
         } catch {}
       }
       
-      // Detect development environment
-      if (electronAPI?.environment?.getSummary) {
-        try {
-          const envSummary = await electronAPI.environment.getSummary()
-          if (envSummary) {
-            setEnvironmentSummary(envSummary)
-            addBreadcrumb('Environment detected', 'app.init', { 
-              summaryLength: envSummary.length 
-            })
-          }
-        } catch (err) {
-          console.log('[App] Environment detection not available:', err)
-        }
-      }
-      
-      const initTime = Date.now() - startTime
-      addBreadcrumb('App initialization complete', 'app.lifecycle', { 
-        initTimeMs: initTime,
-        hasApiKey: !!electronAPI?.store?.get,
-        platform: navigator.platform,
-        userAgent: navigator.userAgent.substring(0, 50)
+      const phase1Time = Date.now() - startTime
+      addBreadcrumb('App init phase 1 complete (local data)', 'app.lifecycle', { 
+        phase1TimeMs: phase1Time,
+        hasKey
       })
       
-      // Track slow initialization
-      trackSlowOperation('App Initialization', initTime, 2000)
+      // PHASE 2: Background operations (non-blocking)
+      // These run after UI is interactive
+      
+      // Validate API key in background (don't await)
+      if (hasKey && electronAPI?.store?.get) {
+        const key = await electronAPI.store.get('apiKey')
+        if (key) {
+          // Fire and forget - don't block UI
+          validateApiKey(key, false) // false = don't show toast on startup
+        }
+      } else if (!hasKey) {
+        // No key - show settings after a brief delay so UI renders first
+        setTimeout(() => setShowSettings(true), 100)
+      }
+      
+      // Detect environment in background (don't await)
+      if (electronAPI?.environment?.getSummary) {
+        electronAPI.environment.getSummary()
+          .then((envSummary: string) => {
+            if (envSummary) {
+              setEnvironmentSummary(envSummary)
+              addBreadcrumb('Environment detected', 'app.init', { 
+                summaryLength: envSummary.length 
+              })
+            }
+          })
+          .catch(() => {}) // Ignore errors
+      }
+      
+      const totalTime = Date.now() - startTime
+      addBreadcrumb('App initialization complete', 'app.lifecycle', { 
+        initTimeMs: totalTime,
+        phase1TimeMs: phase1Time,
+        hasApiKey: hasKey,
+        platform: navigator.platform
+      })
+      
+      // Track slow initialization (should be <200ms now)
+      trackSlowOperation('App Initialization', totalTime, 500)
     }
     init()
   }, [])
 
-  // Validate API key and get credits
-  const validateApiKey = async (key: string) => {
-    setStatus('validating')
-    addBreadcrumb('Validating API key', 'api.validation', { keyPrefix: key.substring(0, 10) + '...' })
+  // Validate API key and get credits (non-blocking, background operation)
+  const validateApiKey = async (key: string, showToast = true) => {
+    // Don't block UI - validation happens in background
+    // Status stays 'idle' so user can interact immediately
+    addBreadcrumb('Validating API key (background)', 'api.validation', { keyPrefix: key.substring(0, 10) + '...' })
     
     const startTime = Date.now()
+    
+    // Use AbortController for timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout for validation
+    
     try {
-      const response = await fetch(AIBUDDY_API_INFERENCE_URL, {
+      // Use API Gateway for quick validation (29s limit is fine for this)
+      const response = await fetch('https://i6f81wuqo0.execute-api.us-east-2.amazonaws.com/dev/v1/inference', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           api_key: key,
-          model: 'claude-3-5-haiku-20241022',
+          model: 'claude-3-5-haiku-20241022', // Cheapest model for validation
           messages: [{ role: 'user', content: 'hi' }],
-          max_tokens: 10,
-        })
+          max_tokens: 5, // Minimal tokens
+        }),
+        signal: controller.signal
       })
       
+      clearTimeout(timeoutId)
       const responseTime = Date.now() - startTime
       const data = await response.json()
       console.log('[App] API validation response:', data)
       
       if (data.remaining_credits !== undefined) {
         setCredits(data.remaining_credits)
-        toast.success(`✅ AIBuddy API key valid! You have ${data.remaining_credits.toFixed(2)} credits`)
+        
+        // Cache credits locally for instant display next time
+        const electronAPI = (window as any).electronAPI
+        if (electronAPI?.store?.set) {
+          electronAPI.store.set('cachedCredits', data.remaining_credits)
+          electronAPI.store.set('creditsLastUpdated', Date.now())
+        }
+        
+        if (showToast) {
+          toast.success(`✅ AIBuddy API key valid! You have ${data.remaining_credits.toFixed(2)} credits`)
+        }
         
         // Track successful validation
         addBreadcrumb('API key validated successfully', 'api.validation', {
@@ -372,21 +409,43 @@ function App() {
           addBreadcrumb('Low credits warning', 'billing', { 
             credits: data.remaining_credits 
           }, 'warning')
+          toast.warning('⚠️ Low credits! Consider buying more at aibuddy.life')
         }
       }
-      setStatus('idle')
     } catch (err) {
+      clearTimeout(timeoutId)
       const responseTime = Date.now() - startTime
-      console.error('[App] API validation error:', err)
       
-      // Track validation failure
-      addBreadcrumb('API key validation failed', 'api.validation', {
-        error: (err as Error).message,
-        responseTime
-      }, 'error')
-      trackError(err as Error, { context: 'api_validation' })
+      // Don't show error on startup - just log it
+      // User can still use the app, validation will retry on first message
+      console.log('[App] API validation skipped (network issue):', (err as Error).message)
       
-      setStatus('idle')
+      // Try to load cached credits
+      const electronAPI = (window as any).electronAPI
+      if (electronAPI?.store?.get) {
+        try {
+          const cachedCredits = await electronAPI.store.get('cachedCredits')
+          const lastUpdated = await electronAPI.store.get('creditsLastUpdated')
+          if (cachedCredits && lastUpdated) {
+            const ageMinutes = (Date.now() - lastUpdated) / 60000
+            if (ageMinutes < 60) { // Use cache if less than 1 hour old
+              setCredits(cachedCredits)
+              addBreadcrumb('Using cached credits', 'api.validation', { 
+                cachedCredits, 
+                ageMinutes: ageMinutes.toFixed(1) 
+              })
+            }
+          }
+        } catch {}
+      }
+      
+      // Only track as error if it's not a timeout/abort
+      if ((err as Error).name !== 'AbortError') {
+        addBreadcrumb('API key validation failed', 'api.validation', {
+          error: (err as Error).message,
+          responseTime
+        }, 'warning') // Warning, not error - app still works
+      }
     }
   }
 
