@@ -161,11 +161,13 @@ function detectTaskHints(content: string): string[] {
 }
 
 export class AIBuddyClient {
-  // Use AWS Lambda endpoint (same as VS Code extension)
+  // Use AWS ALB endpoint (no timeout limit, same as VS Code extension)
   private baseUrl: string
   private apiKey: string | null = null
 
-  constructor(baseUrl = 'https://i6f81wuqo0.execute-api.us-east-2.amazonaws.com/dev') {
+  // ALB endpoint - NO timeout limit, can wait for Lambda's full 5-minute timeout
+  // API Gateway has 29-second limit which causes timeouts for complex requests
+  constructor(baseUrl = 'http://3.136.220.194') {
     this.baseUrl = baseUrl
   }
 
@@ -260,7 +262,8 @@ export class AIBuddyClient {
       : ''
     const taskHints = detectTaskHints(userContent)
 
-    const response = await fetch(`${this.baseUrl}/v1/inference`, {
+    // ALB routes to Lambda at root path (no /v1/inference needed)
+    const response = await fetch(this.baseUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
