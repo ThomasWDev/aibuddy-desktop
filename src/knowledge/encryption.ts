@@ -8,6 +8,7 @@
  */
 
 import * as crypto from 'crypto'
+import * as os from 'os'
 import { EncryptedCredential, generateId } from './types'
 
 // =============================================================================
@@ -62,7 +63,6 @@ export function generateSalt(): Buffer {
  * Combines hostname, username, and platform info
  */
 export function getMachineId(): string {
-  const os = require('os')
   const parts = [
     os.hostname(),
     os.userInfo().username,
