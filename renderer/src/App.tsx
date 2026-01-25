@@ -45,6 +45,7 @@ import {
 import { 
   AIBUDDY_BUY_CREDITS_URL, 
   AIBUDDY_API_INFERENCE_URL,
+  AIBUDDY_WORDPRESS_INFERENCE_URL,
   AIBUDDY_WEBSITE 
 } from '../../src/constants/urls'
 
@@ -1094,104 +1095,139 @@ Be concise and actionable. Focus on fixing the immediate problem.`
         imageCount: currentImages.length
       })
 
-      // API Gateway has 29-second timeout
-      // For simple requests, use shorter timeout. For complex (images), use longer.
-      const MAX_RETRIES = 1 // Reduce retries to avoid long waits
-      const TIMEOUT_MS = hasImages ? 55000 : 25000 // 55s for images, 25s for text
+      // API Architecture:
+      // 1. API Gateway (PRIMARY): HTTPS, 29-second timeout - good for most requests
+      // 2. WordPress (FALLBACK): HTTPS, 60-second timeout - for Claude Opus 4.5 long responses
+      // 
+      // Claude Opus 4.5 can take 2+ minutes for complex requests, so we:
+      // - Try API Gateway first (fast for simple requests)
+      // - On 504 timeout, fallback to WordPress (longer timeout)
+      
+      const API_GATEWAY_TIMEOUT = 28000 // 28s (just under API Gateway's 29s limit)
+      const WORDPRESS_TIMEOUT = 90000 // 90s (WordPress has 60s PHP timeout + buffer)
       let lastError: Error | null = null
       let response: Response | null = null
+      let usedFallback = false
 
-      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      // Prepare request body
+      const requestBody = {
+        api_key: apiKey,
+        model: initialModel,
+        messages: [
+          { 
+            role: 'system', 
+            content: generateSystemPrompt({
+              workspacePath: workspacePath || undefined,
+              projectType: workspacePath ? detectProjectType(workspacePath) : undefined,
+              knowledgeContext: knowledgeContext || undefined,
+              environmentSummary: environmentSummary || undefined,
+              hasImages
+            })
+          },
+          ...chatMessages
+        ],
+        max_tokens: 4096,
+        temperature: 0.7,
+      }
+
+      // Try API Gateway first
+      try {
+        toast.info(`🚀 Sending to AI...`)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => {
+          console.log(`[App] API Gateway timeout after ${API_GATEWAY_TIMEOUT/1000}s, aborting...`)
+          controller.abort()
+        }, API_GATEWAY_TIMEOUT)
+
+        response = await fetch(AIBUDDY_API_INFERENCE_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-AIBuddy-API-Key': apiKey || '',
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal
+        })
+
+        clearTimeout(timeoutId)
+
+        // Check for 504 Gateway Timeout - need to use WordPress fallback
+        if (response.status === 504) {
+          console.log('[App] API Gateway returned 504, trying WordPress fallback...')
+          response = null // Clear to trigger fallback
+        }
+
+      } catch (fetchError: any) {
+        lastError = fetchError
+        console.log(`[App] API Gateway error:`, fetchError.name, fetchError.message)
+        
+        // Network errors - don't fallback
+        if (fetchError.message?.includes('Failed to fetch') || fetchError.message?.includes('NetworkError')) {
+          toast.error('🌐 Network error. Check your internet connection.')
+          setStatus('error')
+          setIsLoading(false)
+          return
+        }
+        
+        // Timeout/abort - will try WordPress fallback
+        if (fetchError.name !== 'AbortError' && !fetchError.message?.includes('aborted')) {
+          throw fetchError
+        }
+      }
+
+      // WordPress Fallback for long requests (Claude Opus 4.5)
+      if (!response || response.status === 504) {
         try {
-          // Create abort controller for timeout
+          usedFallback = true
+          toast.info(`⏳ Request taking longer... Using extended timeout for Claude Opus 4.5`)
+          addBreadcrumb('WordPress fallback', 'api.fallback', { reason: 'API Gateway timeout' })
+          
           const controller = new AbortController()
           const timeoutId = setTimeout(() => {
-            console.log(`[App] Request timeout after ${TIMEOUT_MS/1000}s, aborting...`)
+            console.log(`[App] WordPress timeout after ${WORDPRESS_TIMEOUT/1000}s, aborting...`)
             controller.abort()
-          }, TIMEOUT_MS)
+          }, WORDPRESS_TIMEOUT)
 
-          // Show progress for retries
-          if (attempt > 0) {
-            toast.info(`⏳ Retrying request... (${attempt}/${MAX_RETRIES})`)
-            addBreadcrumb('API retry attempt', 'api.retry', { attempt, maxRetries: MAX_RETRIES })
-          } else {
-            toast.info(`🚀 Sending to AI...`)
-          }
-
-          response = await fetch(AIBUDDY_API_INFERENCE_URL, {
+          response = await fetch(AIBUDDY_WORDPRESS_INFERENCE_URL, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'X-AIBuddy-API-Key': apiKey || '',
             },
-            body: JSON.stringify({
-              api_key: apiKey,
-              // Use DeepSeek for execution tasks (fast, cheap), Opus for analysis
-              model: initialModel,
-              messages: [
-                { 
-                  role: 'system', 
-                  content: generateSystemPrompt({
-                    workspacePath: workspacePath || undefined,
-                    projectType: workspacePath ? detectProjectType(workspacePath) : undefined,
-                    knowledgeContext: knowledgeContext || undefined,
-                    environmentSummary: environmentSummary || undefined,
-                    hasImages // Include image analysis prompt when images are present
-                  })
-                },
-                ...chatMessages
-              ],
-              max_tokens: 4096,
-              temperature: 0.7,
-            }),
+            body: JSON.stringify(requestBody),
             signal: controller.signal
           })
 
           clearTimeout(timeoutId)
 
-          // If we got a response (even error), break the retry loop
-          if (response) break
-
-        } catch (fetchError: any) {
-          lastError = fetchError
-          console.log(`[App] Fetch error on attempt ${attempt + 1}:`, fetchError.name, fetchError.message)
+        } catch (fallbackError: any) {
+          lastError = fallbackError
+          console.log(`[App] WordPress fallback error:`, fallbackError.name, fallbackError.message)
           
-          // Check if it's a timeout/abort error
-          if (fetchError.name === 'AbortError' || fetchError.message?.includes('aborted')) {
-            console.log(`[App] Request timed out on attempt ${attempt + 1} after ${TIMEOUT_MS/1000}s`)
-            addBreadcrumb('API timeout', 'api.timeout', { attempt, timeoutMs: TIMEOUT_MS })
-            
-            // If this was the last retry, show a helpful message
-            if (attempt === MAX_RETRIES) {
-              toast.error('⏱️ Request timed out. The AI server is busy. Please try again.')
-              setStatus('idle')
-              setIsLoading(false)
-              return
-            }
-            continue // Try again
-          }
-          
-          // Network errors
-          if (fetchError.message?.includes('Failed to fetch') || fetchError.message?.includes('NetworkError')) {
-            toast.error('🌐 Network error. Check your internet connection.')
-            setStatus('error')
+          if (fallbackError.name === 'AbortError' || fallbackError.message?.includes('aborted')) {
+            toast.error('⏱️ Request timed out. Claude Opus 4.5 is taking too long. Try a simpler question or use DeepSeek.')
+            addBreadcrumb('WordPress timeout', 'api.timeout', { timeoutMs: WORDPRESS_TIMEOUT })
+            setStatus('idle')
             setIsLoading(false)
             return
           }
-          
-          // For other errors, don't retry
-          throw fetchError
+          throw fallbackError
         }
       }
 
-      // If all retries failed (shouldn't reach here normally)
+      // If still no response
       if (!response) {
         const errorMsg = lastError?.message || 'Request failed'
-        console.error('[App] All retries failed:', errorMsg)
+        console.error('[App] All endpoints failed:', errorMsg)
         toast.error(`❌ ${errorMsg}`)
         setStatus('error')
         setIsLoading(false)
         return
+      }
+      
+      // Log which endpoint was used
+      if (usedFallback) {
+        console.log('[App] Response received from WordPress fallback')
       }
 
       const responseTime = Date.now() - startTime
@@ -1206,9 +1242,10 @@ Be concise and actionable. Focus on fixing the immediate problem.`
 
       // Handle specific HTTP errors with user-friendly messages
       if (response.status === 504) {
-        // Gateway Timeout - API Gateway's 29-second limit exceeded
-        toast.error('⏱️ Request timed out. The AI is taking too long. Try a simpler question.')
-        addBreadcrumb('Gateway timeout', 'api.error', { status: 504, responseTime })
+        // Gateway Timeout - shouldn't happen now with WordPress fallback
+        // But handle it just in case
+        toast.error('⏱️ Request timed out. The AI is taking too long. Try a simpler question or use DeepSeek.')
+        addBreadcrumb('Gateway timeout after fallback', 'api.error', { status: 504, responseTime, usedFallback })
         setStatus('idle')
         return
       }
