@@ -4,6 +4,54 @@ All notable changes to AIBuddy Desktop will be documented in this file.
 
 ---
 
+## [1.4.31] - 2026-01-25
+
+### 🔧 API Endpoint Fix - ALB Migration
+
+#### Root Cause Analysis
+- **Issue:** App showed cached credits (80788) but API calls failed with "Failed to fetch"
+- **Cause:** API calls were going to API Gateway (29s timeout) instead of ALB (no timeout)
+- **Solution:** Migrated all API calls to AWS Application Load Balancer
+
+#### Changes
+
+| Component | Before | After |
+|-----------|--------|-------|
+| Default URL | API Gateway | ALB (`http://3.136.220.194`) |
+| Path | `/v1/inference` | Root (`/`) |
+| Timeout | 29 seconds | No limit (5 min Lambda) |
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/api/aibuddy-client.ts` | Changed default URL to ALB, removed `/v1/inference` path |
+| `src/constants/urls.ts` | Updated `AIBUDDY_API_INFERENCE_URL` to use ALB |
+| `tests/api/aibuddy-client.test.ts` | Updated tests for new URL structure |
+| `renderer/src/App.tsx` | Added debug logging for URL verification |
+
+#### TDD Approach
+- ✅ Updated tests FIRST to expect ALB URL
+- ✅ All 232 tests passing
+- ✅ Debug logging added for runtime verification
+
+### 🤖 Agentic Execution Protocol
+
+#### New: Cursor-like Behavior
+Added `AGENTIC_EXECUTION` protocol to make AIBuddy behave like Cursor:
+
+| Feature | Description |
+|---------|-------------|
+| Execute → Analyze → Adapt → Repeat | Autonomous task completion loop |
+| Error Recovery | Auto-fix permission denied, missing tools, etc. |
+| Progress Tracking | Shows 1/5, 2/5, checkboxes |
+| Never Just List Commands | Actually executes them |
+
+#### Files Added
+- `packages/prompts/src/core/agentic-execution.ts`
+
+---
+
 ## [1.4.30] - 2026-01-24
 
 ### 🎯 Shared System Prompts Package
