@@ -184,6 +184,10 @@ function createWindow(): void {
   })
 
   // Set CSP headers to allow API calls
+  // IMPORTANT: We allow HTTP to the ALB (3.136.220.194) because:
+  // - ALB has NO timeout limit (can wait for Lambda's full 5-minute timeout)
+  // - API Gateway has 29-second hard limit (not enough for Claude Opus 4.5)
+  // - This is the same endpoint the VS Code extension uses successfully
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -195,7 +199,8 @@ function createWindow(): void {
           "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
           "img-src 'self' data: https:; " +
           "font-src 'self' data: https://fonts.gstatic.com; " +
-          "connect-src 'self' https: wss:;"  // Allow ALL https connections
+          // Allow HTTPS everywhere + HTTP to ALB (no timeout limit for Claude Opus 4.5)
+          "connect-src 'self' https: wss: http://3.136.220.194;"
         ]
       }
     })
