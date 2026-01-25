@@ -19,7 +19,10 @@ import {
   Cloud,
   CheckCircle,
   AlertTriangle,
-  BookOpen
+  BookOpen,
+  Image as ImageIcon,
+  Paperclip,
+  Trash2
 } from 'lucide-react'
 import { CloudKnowledgePanel } from './components/knowledge'
 import ReactMarkdown from 'react-markdown'
@@ -165,6 +168,14 @@ function BigButton({
   )
 }
 
+interface ImageAttachment {
+  id: string
+  base64: string
+  mimeType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+  name: string
+  size: number
+}
+
 interface Message {
   id: string
   role: 'user' | 'assistant'
@@ -172,6 +183,7 @@ interface Message {
   cost?: number
   model?: string
   executionResults?: CommandResult[]
+  images?: ImageAttachment[]
 }
 
 interface CommandResult {
@@ -180,6 +192,23 @@ interface CommandResult {
   stderr: string
   exitCode: number
   executed: boolean
+}
+
+// Terminal output for real-time display
+interface TerminalOutput {
+  type: 'command' | 'stdout' | 'stderr' | 'info' | 'success' | 'error'
+  text: string
+  timestamp: number
+}
+
+// Model routing configuration - DeepSeek first, then Opus 4.5
+const MODEL_CONFIG = {
+  // DeepSeek for command execution (fast, cheap)
+  execution: 'deepseek-chat',
+  // Opus 4.5 for complex analysis (fallback after 2 DeepSeek failures)
+  analysis: 'claude-opus-4-20250514',
+  // Max DeepSeek retries before escalating to Opus
+  maxDeepSeekRetries: 2
 }
 
 // Parse code blocks from AI response to find executable commands
@@ -254,8 +283,22 @@ function App() {
   // Environment Detection
   const [environmentSummary, setEnvironmentSummary] = useState<string>('')
   
+  // Terminal output panel
+  const [showTerminal, setShowTerminal] = useState(false)
+  const [terminalOutput, setTerminalOutput] = useState<TerminalOutput[]>([])
+  const [isExecutingCommands, setIsExecutingCommands] = useState(false)
+  const [currentCommand, setCurrentCommand] = useState<string | null>(null)
+  
+  // Error recovery state
+  const [deepSeekRetryCount, setDeepSeekRetryCount] = useState(0)
+  
+  // Image attachments
+  const [attachedImages, setAttachedImages] = useState<ImageAttachment[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const terminalEndRef = useRef<HTMLDivElement>(null)
 
   // Load on mount - FAST startup, no blocking network calls
   useEffect(() => {
@@ -349,9 +392,35 @@ function App() {
       
       // Track slow initialization (should be <200ms now)
       trackSlowOperation('App Initialization', totalTime, 500)
+      
+      // Set up terminal output listeners
+      if (electronAPI?.terminal?.onOutput) {
+        const unsubOutput = electronAPI.terminal.onOutput((data: { type: string; text: string; command: string }) => {
+          setTerminalOutput(prev => [...prev, {
+            type: data.type === 'stderr' ? 'stderr' : 'stdout',
+            text: data.text,
+            timestamp: Date.now()
+          }])
+          // Auto-scroll terminal
+          setTimeout(() => {
+            const terminalEl = document.getElementById('terminal-output')
+            if (terminalEl) terminalEl.scrollTop = terminalEl.scrollHeight
+          }, 50)
+        })
+        
+        // Clean up on unmount
+        return () => unsubOutput()
+      }
     }
     init()
   }, [])
+  
+  // Auto-scroll terminal when output changes
+  useEffect(() => {
+    if (terminalEndRef.current) {
+      terminalEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [terminalOutput])
 
   // Validate API key and get credits (non-blocking, background operation)
   const validateApiKey = async (key: string, showToast = true) => {
@@ -601,13 +670,301 @@ function App() {
     validateApiKey(apiKeyInput.trim())
     setApiKeyInput('')
   }
+  
+  // Add terminal output helper
+  const addTerminalLine = (type: TerminalOutput['type'], text: string) => {
+    setTerminalOutput(prev => [...prev, { type, text, timestamp: Date.now() }])
+  }
+  
+  // Clear terminal
+  const clearTerminal = () => {
+    setTerminalOutput([])
+  }
+  
+  // Image handling functions
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+    
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} is not an image`)
+        continue
+      }
+      
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} is too large (max 10MB)`)
+        continue
+      }
+      
+      // Convert to base64
+      const reader = new FileReader()
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1]
+        const mimeType = file.type as ImageAttachment['mimeType']
+        
+        setAttachedImages(prev => [...prev, {
+          id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          base64,
+          mimeType,
+          name: file.name,
+          size: file.size
+        }])
+        
+        toast.success(`📷 Added: ${file.name}`)
+        addBreadcrumb('Image attached', 'chat.image', { 
+          name: file.name, 
+          size: file.size,
+          type: mimeType 
+        })
+      }
+      reader.readAsDataURL(file)
+    }
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+  
+  const handlePasteImage = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+    
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault()
+        const file = item.getAsFile()
+        if (!file) continue
+        
+        const reader = new FileReader()
+        reader.onload = () => {
+          const base64 = (reader.result as string).split(',')[1]
+          const mimeType = file.type as ImageAttachment['mimeType']
+          
+          setAttachedImages(prev => [...prev, {
+            id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            base64,
+            mimeType,
+            name: `pasted-image-${Date.now()}.${mimeType.split('/')[1]}`,
+            size: file.size
+          }])
+          
+          toast.success('📷 Image pasted from clipboard!')
+          addBreadcrumb('Image pasted', 'chat.image', { 
+            size: file.size,
+            type: mimeType 
+          })
+        }
+        reader.readAsDataURL(file)
+      }
+    }
+  }
+  
+  const removeImage = (id: string) => {
+    setAttachedImages(prev => prev.filter(img => img.id !== id))
+    toast.info('Image removed')
+  }
+  
+  const clearAllImages = () => {
+    setAttachedImages([])
+  }
+  
+  // Call AI with model routing - DeepSeek first, Opus 4.5 as fallback
+  const callAIWithRouting = async (
+    messages: { role: string; content: string }[],
+    systemPrompt: string,
+    purpose: 'execution' | 'analysis' = 'execution',
+    retryCount = 0
+  ): Promise<{ response: string; model: string; cost: number; credits: number }> => {
+    // Use DeepSeek for execution tasks, Opus for analysis
+    // After 2 DeepSeek failures, escalate to Opus
+    const useOpus = purpose === 'analysis' || retryCount >= MODEL_CONFIG.maxDeepSeekRetries
+    const model = useOpus ? MODEL_CONFIG.analysis : MODEL_CONFIG.execution
+    
+    addBreadcrumb('AI call with routing', 'api.routing', {
+      purpose,
+      model,
+      retryCount,
+      escalatedToOpus: useOpus && purpose === 'execution'
+    })
+    
+    if (useOpus && purpose === 'execution' && retryCount >= MODEL_CONFIG.maxDeepSeekRetries) {
+      toast.info('🧠 Escalating to Opus 4.5 for complex analysis...')
+    }
+    
+    const response = await fetch(AIBUDDY_API_INFERENCE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-AIBuddy-API-Key': apiKey || '',
+      },
+      body: JSON.stringify({
+        api_key: apiKey,
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages
+        ],
+        max_tokens: 4096,
+        temperature: 0.7,
+      }),
+    })
+    
+    const data = await response.json()
+    
+    if (!response.ok || data.error) {
+      throw new Error(data.error?.message || data.message || 'API request failed')
+    }
+    
+    // Extract response text
+    let responseText = ''
+    if (data.response) {
+      responseText = data.response
+    } else if (data.content && Array.isArray(data.content)) {
+      responseText = data.content
+        .filter((c: any) => c.type === 'text')
+        .map((c: any) => c.text)
+        .join('\n')
+    }
+    
+    return {
+      response: responseText,
+      model: data.model || model,
+      cost: data.api_cost || 0,
+      credits: data.remaining_credits || 0
+    }
+  }
+  
+  // Execute commands with error recovery loop
+  const executeCommandsWithRecovery = async (
+    commands: string[],
+    originalRequest: string
+  ): Promise<{ results: CommandResult[]; needsMoreHelp: boolean; errorSummary: string }> => {
+    const results: CommandResult[] = []
+    const electronAPI = (window as any).electronAPI
+    let hasErrors = false
+    let errorSummary = ''
+    
+    if (!electronAPI?.terminal?.execute || !workspacePath) {
+      return { results: [], needsMoreHelp: false, errorSummary: 'Terminal not available' }
+    }
+    
+    // Show terminal panel
+    setShowTerminal(true)
+    setIsExecutingCommands(true)
+    
+    for (const command of commands) {
+      setCurrentCommand(command)
+      addTerminalLine('command', `$ ${command}`)
+      toast.info(`⚡ Running: ${command.substring(0, 50)}...`)
+      
+      try {
+        const result = await electronAPI.terminal.execute(command, workspacePath)
+        
+        results.push({
+          command,
+          stdout: result.stdout,
+          stderr: result.stderr,
+          exitCode: result.exitCode,
+          executed: true
+        })
+        
+        // Add output to terminal
+        if (result.stdout) {
+          addTerminalLine('stdout', result.stdout)
+        }
+        if (result.stderr) {
+          addTerminalLine('stderr', result.stderr)
+        }
+        
+        if (result.exitCode === 0) {
+          addTerminalLine('success', `✓ Command succeeded (exit code: 0)`)
+          toast.success(`✅ ${command.substring(0, 30)}... succeeded`)
+        } else {
+          hasErrors = true
+          errorSummary += `Command "${command}" failed with exit code ${result.exitCode}:\n${result.stderr || result.stdout}\n\n`
+          addTerminalLine('error', `✗ Command failed (exit code: ${result.exitCode})`)
+          toast.warning(`⚠️ ${command.substring(0, 30)}... failed`)
+        }
+        
+      } catch (execErr) {
+        hasErrors = true
+        const errMsg = (execErr as Error).message
+        errorSummary += `Command "${command}" threw error: ${errMsg}\n\n`
+        
+        results.push({
+          command,
+          stdout: '',
+          stderr: errMsg,
+          exitCode: -1,
+          executed: false
+        })
+        
+        addTerminalLine('error', `✗ Error: ${errMsg}`)
+        toast.error(`❌ ${command.substring(0, 30)}... error`)
+      }
+    }
+    
+    setCurrentCommand(null)
+    setIsExecutingCommands(false)
+    
+    return { results, needsMoreHelp: hasErrors, errorSummary }
+  }
+  
+  // Analyze errors and get fix suggestions from AI
+  const analyzeErrorsAndGetFix = async (
+    originalRequest: string,
+    errorSummary: string,
+    retryCount: number
+  ): Promise<string> => {
+    const errorAnalysisPrompt = `You are AIBuddy, an expert developer assistant. The user asked to "${originalRequest}" but some commands failed.
+
+ERRORS ENCOUNTERED:
+${errorSummary}
+
+ENVIRONMENT INFO:
+${environmentSummary || 'Not available'}
+
+WORKSPACE: ${workspacePath}
+
+Analyze these errors and provide:
+1. A brief explanation of what went wrong
+2. The EXACT commands to fix the issue (in bash code blocks)
+3. If it's a version/compatibility issue, suggest the specific fix
+
+Be concise and actionable. Focus on fixing the immediate problem.`
+
+    try {
+      const result = await callAIWithRouting(
+        [{ role: 'user', content: `Fix these errors:\n${errorSummary}` }],
+        errorAnalysisPrompt,
+        'execution',
+        retryCount
+      )
+      
+      // Update credits
+      if (result.credits) {
+        setCredits(result.credits)
+      }
+      
+      return result.response
+    } catch (err) {
+      console.error('[App] Error analysis failed:', err)
+      return `Unable to analyze errors: ${(err as Error).message}`
+    }
+  }
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
-    if (!input.trim() || isLoading) return
+    if ((!input.trim() && attachedImages.length === 0) || isLoading) return
 
     // Track user action
-    trackButtonClick('send_message', 'App', { messageLength: input.trim().length })
+    trackButtonClick('send_message', 'App', { 
+      messageLength: input.trim().length,
+      imageCount: attachedImages.length 
+    })
 
     if (!apiKey) {
       setShowSettings(true)
@@ -617,67 +974,130 @@ function App() {
     }
 
     const trimmedInput = input.trim()
+    const currentImages = [...attachedImages] // Copy images before clearing
+    
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: trimmedInput
+      content: trimmedInput || (currentImages.length > 0 ? '📷 [Image attached - please analyze]' : ''),
+      images: currentImages.length > 0 ? currentImages : undefined
     }
 
     // Track user message
-    trackUserMessage(userMessage.content.length, false, false, messages.length === 0)
+    trackUserMessage(userMessage.content.length, currentImages.length > 0, false, messages.length === 0)
     addBreadcrumb('User sent message', 'chat', { 
       messageLength: userMessage.content.length,
       isFirstMessage: messages.length === 0,
       hasKnowledgeContext: !!knowledgeContext,
-      workspacePath: workspacePath || 'none'
+      workspacePath: workspacePath || 'none',
+      imageCount: currentImages.length
     })
 
     setMessages(prev => [...prev, userMessage])
     setInput('')
+    setAttachedImages([]) // Clear attached images after sending
     setIsLoading(true)
     setLastCost(null)
     setLastModel(null)
+    
+    // Reset DeepSeek retry count for new conversation
+    setDeepSeekRetryCount(0)
+    
+    // Clear terminal for new task if user is asking to run something
+    const userWantsExecution = trimmedInput.toLowerCase().match(/\b(run|execute|build|test|start|install|deploy|fix|debug)\b/)
+    if (userWantsExecution) {
+      clearTerminal()
+      addTerminalLine('info', `🚀 Starting task: ${trimmedInput.substring(0, 100)}...`)
+    }
 
     // Progress through status steps
     setStatus('validating')
-    await new Promise(r => setTimeout(r, 300))
+    await new Promise(r => setTimeout(r, 200))
     
     setStatus('reading')
-    await new Promise(r => setTimeout(r, 500))
+    await new Promise(r => setTimeout(r, 300))
     
     setStatus('sending')
-    await new Promise(r => setTimeout(r, 300))
+    await new Promise(r => setTimeout(r, 200))
     
     setStatus('thinking')
 
     const startTime = Date.now()
+    const hasImages = currentImages.length > 0
 
     try {
-      console.log('[App] Sending API request...')
+      console.log('[App] Sending API request...', hasImages ? `with ${currentImages.length} image(s)` : '')
       
-      const chatMessages = messages.map(m => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content
-      }))
-      chatMessages.push({ role: 'user', content: userMessage.content })
+      // Build messages array - handle images for vision-capable models
+      const chatMessages: any[] = messages.map(m => {
+        if (m.images && m.images.length > 0) {
+          // Message with images - use content array format
+          return {
+            role: m.role,
+            content: [
+              { type: 'text', text: m.content },
+              ...m.images.map(img => ({
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: img.mimeType,
+                  data: img.base64
+                }
+              }))
+            ]
+          }
+        }
+        return {
+          role: m.role as 'user' | 'assistant',
+          content: m.content
+        }
+      })
+      
+      // Add current message with images if present
+      if (currentImages.length > 0) {
+        chatMessages.push({
+          role: 'user',
+          content: [
+            { type: 'text', text: trimmedInput || 'Please analyze this image and help me fix any issues you see.' },
+            ...currentImages.map(img => ({
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: img.mimeType,
+                data: img.base64
+              }
+            }))
+          ]
+        })
+      } else {
+        chatMessages.push({ role: 'user', content: userMessage.content })
+      }
 
+      // Determine model - use Opus for image analysis (vision capable)
+      // DeepSeek doesn't support vision, so always use Opus for images
+      const isExecutionTask = userWantsExecution !== null && !hasImages
+      const initialModel = hasImages ? MODEL_CONFIG.analysis : (isExecutionTask ? MODEL_CONFIG.execution : MODEL_CONFIG.analysis)
+      
       // Track AI request
       trackAIRequest({
-        model: 'claude-opus-4-20250514',
+        model: initialModel,
         messageCount: chatMessages.length + 1, // +1 for system
-        hasImages: false,
+        hasImages,
         hasTools: false
       })
       addBreadcrumb('Sending AI request', 'api.request', {
-        model: 'claude-opus-4-20250514',
+        model: initialModel,
         messageCount: chatMessages.length + 1,
-        hasKnowledgeContext: !!knowledgeContext
+        hasKnowledgeContext: !!knowledgeContext,
+        isExecutionTask,
+        hasImages,
+        imageCount: currentImages.length
       })
 
-      // API Gateway has 29-second timeout, so we implement retry logic
-      // and progress feedback for long-running requests
-      const MAX_RETRIES = 2
-      const TIMEOUT_MS = 28000 // 28 seconds (just under API Gateway's 29s limit)
+      // API Gateway has 29-second timeout
+      // For simple requests, use shorter timeout. For complex (images), use longer.
+      const MAX_RETRIES = 1 // Reduce retries to avoid long waits
+      const TIMEOUT_MS = hasImages ? 55000 : 25000 // 55s for images, 25s for text
       let lastError: Error | null = null
       let response: Response | null = null
 
@@ -685,12 +1105,17 @@ function App() {
         try {
           // Create abort controller for timeout
           const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
+          const timeoutId = setTimeout(() => {
+            console.log(`[App] Request timeout after ${TIMEOUT_MS/1000}s, aborting...`)
+            controller.abort()
+          }, TIMEOUT_MS)
 
           // Show progress for retries
           if (attempt > 0) {
-            toast.info(`⏳ Request taking longer than expected... Retry ${attempt}/${MAX_RETRIES}`)
+            toast.info(`⏳ Retrying request... (${attempt}/${MAX_RETRIES})`)
             addBreadcrumb('API retry attempt', 'api.retry', { attempt, maxRetries: MAX_RETRIES })
+          } else {
+            toast.info(`🚀 Sending to AI...`)
           }
 
           response = await fetch(AIBUDDY_API_INFERENCE_URL, {
@@ -701,7 +1126,8 @@ function App() {
             },
             body: JSON.stringify({
               api_key: apiKey,
-              model: 'claude-opus-4-20250514',
+              // Use DeepSeek for execution tasks (fast, cheap), Opus for analysis
+              model: initialModel,
               messages: [
                 { 
                   role: 'system', 
@@ -709,7 +1135,8 @@ function App() {
                     workspacePath: workspacePath || undefined,
                     projectType: workspacePath ? detectProjectType(workspacePath) : undefined,
                     knowledgeContext: knowledgeContext || undefined,
-                    environmentSummary: environmentSummary || undefined
+                    environmentSummary: environmentSummary || undefined,
+                    hasImages // Include image analysis prompt when images are present
                   })
                 },
                 ...chatMessages
@@ -727,17 +1154,29 @@ function App() {
 
         } catch (fetchError: any) {
           lastError = fetchError
+          console.log(`[App] Fetch error on attempt ${attempt + 1}:`, fetchError.name, fetchError.message)
           
           // Check if it's a timeout/abort error
           if (fetchError.name === 'AbortError' || fetchError.message?.includes('aborted')) {
-            console.log(`[App] Request timed out on attempt ${attempt + 1}`)
+            console.log(`[App] Request timed out on attempt ${attempt + 1} after ${TIMEOUT_MS/1000}s`)
             addBreadcrumb('API timeout', 'api.timeout', { attempt, timeoutMs: TIMEOUT_MS })
             
             // If this was the last retry, show a helpful message
             if (attempt === MAX_RETRIES) {
-              toast.error('⏱️ Request timed out. Try a simpler question or break it into smaller parts.')
+              toast.error('⏱️ Request timed out. The AI server is busy. Please try again.')
+              setStatus('idle')
+              setIsLoading(false)
+              return
             }
             continue // Try again
+          }
+          
+          // Network errors
+          if (fetchError.message?.includes('Failed to fetch') || fetchError.message?.includes('NetworkError')) {
+            toast.error('🌐 Network error. Check your internet connection.')
+            setStatus('error')
+            setIsLoading(false)
+            return
           }
           
           // For other errors, don't retry
@@ -745,9 +1184,14 @@ function App() {
         }
       }
 
-      // If all retries failed
+      // If all retries failed (shouldn't reach here normally)
       if (!response) {
-        throw lastError || new Error('Request failed after all retries')
+        const errorMsg = lastError?.message || 'Request failed'
+        console.error('[App] All retries failed:', errorMsg)
+        toast.error(`❌ ${errorMsg}`)
+        setStatus('error')
+        setIsLoading(false)
+        return
       }
 
       const responseTime = Date.now() - startTime
@@ -839,8 +1283,9 @@ function App() {
       }
 
       // Check if user asked to run/execute something and auto-execute commands
-      const userWantsExecution = trimmedInput.toLowerCase().match(/\b(run|execute|build|test|start|install|deploy)\b/)
+      // Now with ERROR RECOVERY LOOP - will retry with AI analysis if commands fail
       let executionResults: CommandResult[] = []
+      let totalExecutionOutput = ''
       const electronAPI = (window as any).electronAPI
       
       if (userWantsExecution && workspacePath && electronAPI?.terminal?.execute) {
@@ -848,54 +1293,81 @@ function App() {
         
         if (codeBlocks.length > 0) {
           setStatus('generating')
+          setShowTerminal(true) // Show terminal panel
+          
           addBreadcrumb('Auto-executing commands', 'terminal', { 
             blockCount: codeBlocks.length,
             workspacePath 
           })
           
+          // Collect all commands from all code blocks
+          const allCommands: string[] = []
           for (const block of codeBlocks) {
             const commands = extractCommands(block.code)
+            allCommands.push(...commands)
+          }
+          
+          // Execute commands with error recovery
+          let currentRetry = 0
+          const MAX_ERROR_RETRIES = MODEL_CONFIG.maxDeepSeekRetries + 1 // +1 for Opus escalation
+          let commandsToRun = allCommands
+          
+          while (commandsToRun.length > 0 && currentRetry <= MAX_ERROR_RETRIES) {
+            addTerminalLine('info', currentRetry > 0 
+              ? `🔄 Retry attempt ${currentRetry}/${MAX_ERROR_RETRIES}...` 
+              : `📋 Executing ${commandsToRun.length} command(s)...`)
             
-            for (const command of commands) {
-              try {
-                toast.info(`⚡ Running: ${command.substring(0, 50)}...`)
-                addBreadcrumb('Executing command', 'terminal', { command })
-                
-                const result = await electronAPI.terminal.execute(command, workspacePath)
-                
-                executionResults.push({
-                  command,
-                  stdout: result.stdout,
-                  stderr: result.stderr,
-                  exitCode: result.exitCode,
-                  executed: true
-                })
-                
-                if (result.exitCode === 0) {
-                  toast.success(`✅ Command succeeded: ${command.substring(0, 30)}...`)
-                } else {
-                  toast.warning(`⚠️ Command exited with code ${result.exitCode}`)
-                }
-                
-                addBreadcrumb('Command completed', 'terminal', { 
-                  command, 
-                  exitCode: result.exitCode,
-                  outputLength: result.stdout.length + result.stderr.length
-                })
-              } catch (execErr) {
-                executionResults.push({
-                  command,
-                  stdout: '',
-                  stderr: (execErr as Error).message,
-                  exitCode: -1,
-                  executed: false
-                })
-                toast.error(`❌ Failed: ${command.substring(0, 30)}...`)
-                addBreadcrumb('Command failed', 'terminal', { 
-                  command, 
-                  error: (execErr as Error).message 
-                }, 'error')
+            const { results, needsMoreHelp, errorSummary } = await executeCommandsWithRecovery(
+              commandsToRun,
+              trimmedInput
+            )
+            
+            executionResults.push(...results)
+            
+            // If there were errors and we haven't exceeded retries, ask AI for fixes
+            if (needsMoreHelp && currentRetry < MAX_ERROR_RETRIES) {
+              currentRetry++
+              setDeepSeekRetryCount(currentRetry)
+              
+              addTerminalLine('info', `🤖 Analyzing errors and getting fix suggestions...`)
+              toast.info(`🔧 Analyzing errors... (attempt ${currentRetry}/${MAX_ERROR_RETRIES})`)
+              
+              // Get fix suggestions from AI (uses DeepSeek first, then Opus)
+              const fixResponse = await analyzeErrorsAndGetFix(
+                trimmedInput,
+                errorSummary,
+                currentRetry
+              )
+              
+              // Parse new commands from the fix response
+              const fixBlocks = parseCodeBlocks(fixResponse)
+              const fixCommands: string[] = []
+              for (const block of fixBlocks) {
+                fixCommands.push(...extractCommands(block.code))
               }
+              
+              if (fixCommands.length > 0) {
+                commandsToRun = fixCommands
+                addTerminalLine('info', `📝 AI suggested ${fixCommands.length} fix command(s)`)
+                
+                // Add fix response to output
+                totalExecutionOutput += `\n\n### 🔧 Fix Attempt ${currentRetry}\n\n${fixResponse}\n`
+              } else {
+                // No more commands to try
+                addTerminalLine('error', `❌ AI couldn't provide executable fix commands`)
+                totalExecutionOutput += `\n\n### ❌ Fix Attempt ${currentRetry} Failed\n\n${fixResponse}\n`
+                break
+              }
+            } else {
+              // No errors or max retries reached
+              if (needsMoreHelp) {
+                addTerminalLine('error', `⚠️ Max retries reached. Some commands still failing.`)
+                toast.warning('⚠️ Some commands failed after multiple attempts')
+              } else {
+                addTerminalLine('success', `✅ All commands completed successfully!`)
+                toast.success('🎉 All commands executed successfully!')
+              }
+              break
             }
           }
         }
@@ -916,6 +1388,11 @@ function App() {
           }
           executionOutput += `**Exit Code:** ${result.exitCode}\n\n`
         }
+        
+        // Add any fix attempt outputs
+        if (totalExecutionOutput) {
+          executionOutput += totalExecutionOutput
+        }
       }
 
       const assistantMessage: Message = {
@@ -935,7 +1412,8 @@ function App() {
         responseLength: responseText.length,
         model: data.model,
         cost: data.api_cost,
-        totalResponseTime: responseTime
+        totalResponseTime: responseTime,
+        executionRetries: deepSeekRetryCount
       })
       
       setTimeout(() => setStatus('idle'), 2000)
@@ -1103,6 +1581,37 @@ function App() {
             >
               <FolderOpen className="w-6 h-6" />
               <span className="text-base">Open Folder</span>
+            </button>
+          </Tooltip>
+
+          {/* Terminal Button */}
+          <Tooltip text="🖥️ Show/hide the terminal output panel" position="bottom">
+            <button
+              onClick={() => {
+                trackButtonClick('Terminal', 'App')
+                trackPanelToggle('Terminal', !showTerminal)
+                setShowTerminal(!showTerminal)
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105 active:scale-95"
+              style={{ 
+                background: showTerminal 
+                  ? 'linear-gradient(135deg, #22c55e, #16a34a)' 
+                  : 'rgba(34, 197, 94, 0.2)',
+                color: 'white',
+                border: `2px solid #22c55e`,
+                boxShadow: showTerminal ? '0 4px 16px rgba(34, 197, 94, 0.4)' : 'none'
+              }}
+            >
+              <span>🖥️</span>
+              <span>Terminal</span>
+              {terminalOutput.length > 0 && (
+                <span 
+                  className="px-2 py-0.5 rounded-full text-xs font-bold"
+                  style={{ background: 'rgba(255,255,255,0.2)' }}
+                >
+                  {terminalOutput.length}
+                </span>
+              )}
             </button>
           </Tooltip>
 
@@ -1374,7 +1883,36 @@ function App() {
                       </ReactMarkdown>
                     </div>
                   ) : (
-                    <p className="text-sm">{message.content}</p>
+                    <div>
+                      {/* User message text */}
+                      <p className="text-sm">{message.content}</p>
+                      
+                      {/* User attached images */}
+                      {message.images && message.images.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {message.images.map(img => (
+                            <div key={img.id} className="relative">
+                              <img 
+                                src={`data:${img.mimeType};base64,${img.base64}`}
+                                alt={img.name}
+                                className="max-w-[200px] max-h-[150px] object-contain rounded-lg border-2 border-cyan-400/50 cursor-pointer hover:border-cyan-400 transition-colors"
+                                onClick={() => {
+                                  // Open image in new window for full view
+                                  const win = window.open()
+                                  if (win) {
+                                    win.document.write(`<img src="data:${img.mimeType};base64,${img.base64}" style="max-width:100%;max-height:100vh;margin:auto;display:block;background:#1e293b;" />`)
+                                    win.document.title = img.name
+                                  }
+                                }}
+                              />
+                              <span className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-2 py-0.5 rounded">
+                                📷 {img.name.substring(0, 20)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                   
                   {/* Cost indicator for assistant messages */}
@@ -1445,6 +1983,49 @@ function App() {
       {/* Input */}
       <footer className="p-4" style={{ borderTop: '2px solid #334155' }}>
         <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
+          {/* Image Attachments Preview */}
+          {attachedImages.length > 0 && (
+            <div 
+              className="flex flex-wrap gap-2 mb-3 p-3 rounded-2xl"
+              style={{ background: 'rgba(139, 92, 246, 0.1)', border: '2px solid #8b5cf6' }}
+            >
+              <div className="w-full flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-purple-300">
+                  📷 {attachedImages.length} image{attachedImages.length > 1 ? 's' : ''} attached
+                </span>
+                <button
+                  type="button"
+                  onClick={clearAllImages}
+                  className="text-xs text-slate-400 hover:text-red-400 transition-colors"
+                >
+                  Clear all
+                </button>
+              </div>
+              {attachedImages.map(img => (
+                <div 
+                  key={img.id}
+                  className="relative group"
+                >
+                  <img 
+                    src={`data:${img.mimeType};base64,${img.base64}`}
+                    alt={img.name}
+                    className="w-20 h-20 object-cover rounded-lg border-2 border-purple-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(img.id)}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-4 h-4 text-white" />
+                  </button>
+                  <span className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1 truncate rounded-b-lg">
+                    {img.name.substring(0, 15)}...
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          
           {/* Big Input Box */}
           <div 
             className="flex items-end gap-4 p-4 rounded-3xl"
@@ -1454,6 +2035,34 @@ function App() {
               boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
             }}
           >
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+            
+            {/* Image Upload Button */}
+            <Tooltip text="📷 Attach an image (screenshot, error, UI) for analysis">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading}
+                className="flex items-center justify-center w-12 h-12 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                style={{ 
+                  background: attachedImages.length > 0 
+                    ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' 
+                    : 'rgba(139, 92, 246, 0.2)',
+                  border: '2px solid #8b5cf6'
+                }}
+              >
+                <ImageIcon className="w-6 h-6 text-purple-300" />
+              </button>
+            </Tooltip>
+            
             {/* Input Area */}
             <div className="flex-1 relative">
               <textarea
@@ -1466,7 +2075,11 @@ function App() {
                     handleSubmit()
                   }
                 }}
-                placeholder="🤔 What do you want to build today? Type here..."
+                onPaste={handlePasteImage}
+                placeholder={attachedImages.length > 0 
+                  ? "📷 Describe what you need help with, or just send the image..."
+                  : "🤔 What do you want to build today? Type here or paste an image..."
+                }
                 className="w-full bg-transparent text-white text-lg resize-none outline-none placeholder-slate-400 font-semibold"
                 style={{ minHeight: '60px', maxHeight: '150px' }}
                 rows={2}
@@ -1474,7 +2087,7 @@ function App() {
               />
               {/* Helper text */}
               <p className="text-xs text-slate-500 mt-1">
-                💡 Tip: Press Enter to send, Shift+Enter for new line
+                💡 Tip: Press Enter to send • Paste images with Ctrl/Cmd+V • Click 📷 to attach
               </p>
             </div>
             
@@ -1482,13 +2095,13 @@ function App() {
             <Tooltip text="🚀 Click here to send your message to me!">
               <button
                 type="submit"
-                disabled={!input.trim() || isLoading}
+                disabled={(!input.trim() && attachedImages.length === 0) || isLoading}
                 className="flex items-center gap-3 px-6 py-4 rounded-2xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
                 style={{ 
-                  background: input.trim() && !isLoading 
+                  background: (input.trim() || attachedImages.length > 0) && !isLoading 
                     ? 'linear-gradient(135deg, #ec4899, #f97316)'
                     : 'rgba(100,100,100,0.3)',
-                  boxShadow: input.trim() && !isLoading 
+                  boxShadow: (input.trim() || attachedImages.length > 0) && !isLoading 
                     ? '0 8px 24px rgba(236, 72, 153, 0.5)'
                     : 'none'
                 }}
@@ -1499,7 +2112,7 @@ function App() {
                   <Send className="w-7 h-7 text-white" />
                 )}
                 <span className="text-white font-bold text-lg hidden sm:block">
-                  {isLoading ? 'Thinking...' : 'Send'}
+                  {isLoading ? 'Thinking...' : (attachedImages.length > 0 ? 'Analyze' : 'Send')}
                 </span>
               </button>
             </Tooltip>
@@ -1507,7 +2120,7 @@ function App() {
           
           {/* Helpful Footer */}
           <p className="text-center text-slate-400 text-sm mt-3 font-semibold">
-            Press Enter to send • Powered by AIBuddy ✨
+            Press Enter to send • Paste or attach images for analysis • Powered by AIBuddy ✨
           </p>
         </form>
       </footer>
@@ -1636,6 +2249,87 @@ function App() {
       )}
 
       <Toaster position="top-right" theme="dark" richColors />
+
+      {/* Terminal Output Panel - Slide up from bottom */}
+      {showTerminal && (
+        <div 
+          className="fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300"
+          style={{ 
+            height: '300px',
+            background: 'linear-gradient(180deg, #0c0c0c 0%, #1a1a1a 100%)',
+            borderTop: '3px solid #334155',
+            boxShadow: '0 -8px 32px rgba(0,0,0,0.5)'
+          }}
+        >
+          {/* Terminal Header */}
+          <div 
+            className="flex items-center justify-between px-4 py-2"
+            style={{ borderBottom: '1px solid #334155', background: 'rgba(0,0,0,0.3)' }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                <div className="w-3 h-3 rounded-full bg-green-500" />
+              </div>
+              <span className="text-sm font-bold text-slate-300">
+                🖥️ Terminal Output
+              </span>
+              {isExecutingCommands && (
+                <span className="flex items-center gap-2 text-xs text-cyan-400 animate-pulse">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Running: {currentCommand?.substring(0, 40)}...
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={clearTerminal}
+                className="px-3 py-1 rounded text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => setShowTerminal(false)}
+                className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          
+          {/* Terminal Content */}
+          <div 
+            id="terminal-output"
+            className="h-[calc(100%-40px)] overflow-y-auto p-4 font-mono text-sm"
+            style={{ background: '#0c0c0c' }}
+          >
+            {terminalOutput.length === 0 ? (
+              <div className="text-slate-500 text-center py-8">
+                Terminal output will appear here when commands are executed...
+              </div>
+            ) : (
+              terminalOutput.map((line, i) => (
+                <div 
+                  key={i}
+                  className={`whitespace-pre-wrap break-all ${
+                    line.type === 'command' ? 'text-cyan-400 font-bold mt-2' :
+                    line.type === 'stdout' ? 'text-green-400' :
+                    line.type === 'stderr' ? 'text-red-400' :
+                    line.type === 'info' ? 'text-blue-400' :
+                    line.type === 'success' ? 'text-green-500 font-bold' :
+                    line.type === 'error' ? 'text-red-500 font-bold' :
+                    'text-slate-300'
+                  }`}
+                >
+                  {line.text}
+                </div>
+              ))
+            )}
+            <div ref={terminalEndRef} />
+          </div>
+        </div>
+      )}
 
       {/* Knowledge Base Panel */}
       <CloudKnowledgePanel

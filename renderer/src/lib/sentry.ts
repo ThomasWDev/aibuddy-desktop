@@ -393,3 +393,130 @@ export function trackError(
 ): string | undefined {
   return captureError(error, context, 'error')
 }
+
+// ============================================================
+// WEB RESEARCH BREADCRUMBS
+// ============================================================
+
+/**
+ * Track web search request
+ */
+export function trackWebSearch(
+  query: string,
+  options?: { searchDepth?: string; maxResults?: number }
+): void {
+  addBreadcrumb(
+    `Web Search: ${query.substring(0, 50)}${query.length > 50 ? '...' : ''}`,
+    'web.search',
+    { query, ...options }
+  )
+}
+
+/**
+ * Track web search result
+ */
+export function trackWebSearchResult(
+  query: string,
+  resultCount: number,
+  responseTime: number,
+  hasAnswer: boolean
+): void {
+  addBreadcrumb(
+    `Web Search Result: ${resultCount} results in ${responseTime}ms`,
+    'web.search.result',
+    { query: query.substring(0, 30), resultCount, responseTime, hasAnswer }
+  )
+}
+
+/**
+ * Track web extract request
+ */
+export function trackWebExtract(urls: string[]): void {
+  addBreadcrumb(
+    `Web Extract: ${urls.length} URL(s)`,
+    'web.extract',
+    { urlCount: urls.length, firstUrl: urls[0] }
+  )
+}
+
+/**
+ * Track web crawl request
+ */
+export function trackWebCrawl(url: string, maxPages?: number): void {
+  addBreadcrumb(
+    `Web Crawl: ${url}`,
+    'web.crawl',
+    { url, maxPages }
+  )
+}
+
+// ============================================================
+// AUTO-MODE BREADCRUMBS
+// ============================================================
+
+/**
+ * Track auto-mode decision
+ */
+export function trackAutoModeDecision(
+  action: string,
+  approved: boolean,
+  reason: string,
+  riskLevel?: string
+): void {
+  const level: ErrorSeverity = approved ? 'info' : 'warning'
+  addBreadcrumb(
+    `Auto-Mode: ${approved ? 'Approved' : 'Blocked'} - ${action}`,
+    'auto_mode.decision',
+    { action, approved, reason, riskLevel },
+    level
+  )
+}
+
+/**
+ * Track auto-mode execution
+ */
+export function trackAutoModeExecution(
+  command: string,
+  success: boolean,
+  duration?: number
+): void {
+  const level: ErrorSeverity = success ? 'info' : 'warning'
+  addBreadcrumb(
+    `Auto-Mode Execute: ${command.substring(0, 40)}...`,
+    'auto_mode.execute',
+    { command: command.substring(0, 100), success, duration },
+    level
+  )
+}
+
+// ============================================================
+// USER JOURNEY BREADCRUMBS
+// ============================================================
+
+/**
+ * Track onboarding step
+ */
+export function trackOnboardingStep(
+  step: 'api_key_entered' | 'first_workspace' | 'first_message' | 'first_success',
+  details?: Record<string, unknown>
+): void {
+  addBreadcrumb(
+    `Onboarding: ${step}`,
+    'user.onboarding',
+    { step, ...details }
+  )
+}
+
+/**
+ * Track feature discovery
+ */
+export function trackFeatureDiscovery(
+  feature: string,
+  source: 'tooltip' | 'menu' | 'keyboard' | 'suggestion'
+): void {
+  addBreadcrumb(
+    `Feature Discovered: ${feature}`,
+    'user.discovery',
+    { feature, source }
+  )
+}

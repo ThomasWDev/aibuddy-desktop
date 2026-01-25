@@ -45,6 +45,11 @@ export interface ElectronAPI {
     onData: (callback: (id: number, data: string) => void) => () => void
     onExit: (callback: (id: number, exitCode: number) => void) => () => void
     execute: (command: string, cwd?: string) => Promise<{ stdout: string; stderr: string; exitCode: number }>
+    executeStreaming: (command: string, cwd?: string) => Promise<{ pid: number }>
+    onOutput: (callback: (data: { type: string; text: string; command: string }) => void) => () => void
+    onComplete: (callback: (data: { command: string; exitCode: number; stdout: string; stderr: string }) => void) => () => void
+    onStream: (callback: (data: { pid: number; type: string; text: string }) => void) => () => void
+    onStreamEnd: (callback: (data: { pid: number; exitCode: number }) => void) => () => void
   }
 
   // Git operations
@@ -160,7 +165,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('terminal:exit', handler)
       return () => ipcRenderer.removeListener('terminal:exit', handler)
     },
-    execute: (command: string, cwd?: string) => ipcRenderer.invoke('terminal:execute', command, cwd)
+    execute: (command: string, cwd?: string) => ipcRenderer.invoke('terminal:execute', command, cwd),
+    executeStreaming: (command: string, cwd?: string) => ipcRenderer.invoke('terminal:executeStreaming', command, cwd),
+    onOutput: (callback: (data: { type: string; text: string; command: string }) => void) => {
+      const handler = (_event: IpcRendererEvent, data: { type: string; text: string; command: string }) => callback(data)
+      ipcRenderer.on('terminal:output', handler)
+      return () => ipcRenderer.removeListener('terminal:output', handler)
+    },
+    onComplete: (callback: (data: { command: string; exitCode: number; stdout: string; stderr: string }) => void) => {
+      const handler = (_event: IpcRendererEvent, data: { command: string; exitCode: number; stdout: string; stderr: string }) => callback(data)
+      ipcRenderer.on('terminal:complete', handler)
+      return () => ipcRenderer.removeListener('terminal:complete', handler)
+    },
+    onStream: (callback: (data: { pid: number; type: string; text: string }) => void) => {
+      const handler = (_event: IpcRendererEvent, data: { pid: number; type: string; text: string }) => callback(data)
+      ipcRenderer.on('terminal:stream', handler)
+      return () => ipcRenderer.removeListener('terminal:stream', handler)
+    },
+    onStreamEnd: (callback: (data: { pid: number; exitCode: number }) => void) => {
+      const handler = (_event: IpcRendererEvent, data: { pid: number; exitCode: number }) => callback(data)
+      ipcRenderer.on('terminal:streamEnd', handler)
+      return () => ipcRenderer.removeListener('terminal:streamEnd', handler)
+    }
   },
 
   // Git operations

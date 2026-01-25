@@ -1,6 +1,8 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { spawn, ChildProcess } from 'child_process'
 import * as os from 'os'
+import * as path from 'path'
+import * as fs from 'fs'
 
 interface TerminalInstance {
   id: number
@@ -20,7 +22,87 @@ function getDefaultShell(): string {
   if (process.platform === 'win32') {
     return process.env.COMSPEC || 'cmd.exe'
   }
-  return process.env.SHELL || '/bin/bash'
+  return process.env.SHELL || '/bin/zsh'
+}
+
+/**
+ * Get enhanced environment with common SDK paths
+ * This ensures tools like adb, gradle, flutter, etc. are available
+ */
+function getEnhancedEnvironment(): Record<string, string> {
+  const homeDir = os.homedir()
+  const env = { ...process.env } as Record<string, string>
+  
+  // Android SDK
+  const androidSdkPaths = [
+    process.env.ANDROID_HOME,
+    process.env.ANDROID_SDK_ROOT,
+    path.join(homeDir, 'Library/Android/sdk'),  // macOS default
+    path.join(homeDir, 'Android/Sdk'),           // Linux default
+    'C:\\Users\\' + os.userInfo().username + '\\AppData\\Local\\Android\\Sdk'  // Windows
+  ]
+  
+  const androidHome = androidSdkPaths.find(p => p && fs.existsSync(p)) || ''
+  if (androidHome) {
+    env.ANDROID_HOME = androidHome
+    env.ANDROID_SDK_ROOT = androidHome
+  }
+  
+  // Java - prefer Java 17 for modern Android/Gradle compatibility
+  const javaPaths = [
+    process.env.JAVA_HOME,
+    '/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home',
+    '/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home',
+    '/Library/Java/JavaVirtualMachines/adoptopenjdk-17.jdk/Contents/Home',
+    '/usr/lib/jvm/java-17-openjdk',
+    '/usr/lib/jvm/temurin-17-jdk',
+  ]
+  
+  const javaHome = javaPaths.find(p => p && fs.existsSync(p))
+  if (javaHome) {
+    env.JAVA_HOME = javaHome
+  }
+  
+  // Flutter
+  const flutterPaths = [
+    process.env.FLUTTER_HOME,
+    path.join(homeDir, 'flutter'),
+    path.join(homeDir, 'development/flutter'),
+    '/opt/flutter',
+  ]
+  
+  const flutterHome = flutterPaths.find(p => p && fs.existsSync(p))
+  if (flutterHome) {
+    env.FLUTTER_HOME = flutterHome
+  }
+  
+  // Build enhanced PATH
+  const pathParts: string[] = [env.PATH || '']
+  
+  if (androidHome) {
+    pathParts.push(path.join(androidHome, 'platform-tools'))
+    pathParts.push(path.join(androidHome, 'emulator'))
+    pathParts.push(path.join(androidHome, 'cmdline-tools/latest/bin'))
+    pathParts.push(path.join(androidHome, 'tools/bin'))
+  }
+  
+  if (javaHome) {
+    pathParts.push(path.join(javaHome, 'bin'))
+  }
+  
+  if (flutterHome) {
+    pathParts.push(path.join(flutterHome, 'bin'))
+  }
+  
+  // Common tool paths
+  pathParts.push('/usr/local/bin')
+  pathParts.push('/opt/homebrew/bin')
+  pathParts.push(path.join(homeDir, '.nvm/versions/node/*/bin').replace('*', 'v20.0.0')) // Approximate
+  pathParts.push(path.join(homeDir, 'bin'))
+  
+  env.PATH = pathParts.filter(Boolean).join(path.delimiter)
+  
+  return env
 }
 
 /**
@@ -192,48 +274,148 @@ export function initTerminalHandlers(): void {
   })
 
   // Execute command and wait for completion (with cwd support)
-  ipcMain.handle('terminal:execute', async (_event, command: string, cwd?: string, timeout = 60000): Promise<{
+  // Now with enhanced environment and real-time output streaming
+  ipcMain.handle('terminal:execute', async (_event, command: string, cwd?: string, timeout = 120000): Promise<{
     stdout: string
     stderr: string
     exitCode: number
   }> => {
     return new Promise((resolve, reject) => {
       const shell = getDefaultShell()
-      const shellArgs = process.platform === 'win32' ? ['/c', command] : ['-c', command]
+      // Use -l for login shell to load .zshrc/.bashrc, -i for interactive
+      const shellArgs = process.platform === 'win32' 
+        ? ['/c', command] 
+        : ['-l', '-c', command]
       
       let stdout = ''
       let stderr = ''
       let exitCode = 0
 
       const timeoutId = setTimeout(() => {
+        if (child && !child.killed) {
+          child.kill('SIGTERM')
+        }
         reject(new Error(`Command timed out after ${timeout/1000}s: ${command}`))
       }, timeout)
 
+      // Get enhanced environment with SDK paths
+      const enhancedEnv = getEnhancedEnvironment()
+      
+      console.log('[Terminal] Executing command:', command)
+      console.log('[Terminal] Working directory:', cwd || os.homedir())
+      console.log('[Terminal] ANDROID_HOME:', enhancedEnv.ANDROID_HOME || 'not set')
+      console.log('[Terminal] JAVA_HOME:', enhancedEnv.JAVA_HOME || 'not set')
+
       const child = spawn(shell, shellArgs, {
         cwd: cwd || os.homedir(),
-        env: process.env as Record<string, string>,
+        env: enhancedEnv,
         shell: false
       })
 
+      // Stream output to all windows in real-time
+      const windows = BrowserWindow.getAllWindows()
+
       child.stdout?.on('data', (chunk) => {
-        stdout += chunk.toString()
+        const text = chunk.toString()
+        stdout += text
+        // Send real-time output to renderer
+        windows.forEach((win) => {
+          win.webContents.send('terminal:output', { 
+            type: 'stdout', 
+            text,
+            command 
+          })
+        })
       })
 
       child.stderr?.on('data', (chunk) => {
-        stderr += chunk.toString()
+        const text = chunk.toString()
+        stderr += text
+        // Send real-time output to renderer
+        windows.forEach((win) => {
+          win.webContents.send('terminal:output', { 
+            type: 'stderr', 
+            text,
+            command 
+          })
+        })
       })
 
       child.on('close', (code) => {
         clearTimeout(timeoutId)
         exitCode = code || 0
+        console.log('[Terminal] Command completed with exit code:', exitCode)
+        
+        // Notify renderer that command completed
+        windows.forEach((win) => {
+          win.webContents.send('terminal:complete', { 
+            command,
+            exitCode,
+            stdout: stdout.substring(0, 5000), // Limit for IPC
+            stderr: stderr.substring(0, 2000)
+          })
+        })
+        
         resolve({ stdout, stderr, exitCode })
       })
 
       child.on('error', (err) => {
         clearTimeout(timeoutId)
+        console.error('[Terminal] Command error:', err.message)
         reject(err)
       })
     })
+  })
+  
+  // Execute command with streaming output (for long-running commands)
+  ipcMain.handle('terminal:executeStreaming', async (_event, command: string, cwd?: string): Promise<{
+    pid: number
+  }> => {
+    const shell = getDefaultShell()
+    const shellArgs = process.platform === 'win32' 
+      ? ['/c', command] 
+      : ['-l', '-c', command]
+    
+    const enhancedEnv = getEnhancedEnvironment()
+    
+    const child = spawn(shell, shellArgs, {
+      cwd: cwd || os.homedir(),
+      env: enhancedEnv,
+      shell: false
+    })
+    
+    const windows = BrowserWindow.getAllWindows()
+    
+    child.stdout?.on('data', (chunk) => {
+      windows.forEach((win) => {
+        win.webContents.send('terminal:stream', { 
+          pid: child.pid,
+          type: 'stdout', 
+          text: chunk.toString()
+        })
+      })
+    })
+    
+    child.stderr?.on('data', (chunk) => {
+      windows.forEach((win) => {
+        win.webContents.send('terminal:stream', { 
+          pid: child.pid,
+          type: 'stderr', 
+          text: chunk.toString()
+        })
+      })
+    })
+    
+    child.on('close', (code) => {
+      windows.forEach((win) => {
+        win.webContents.send('terminal:streamEnd', { 
+          pid: child.pid,
+          exitCode: code || 0
+        })
+      })
+    })
+    
+    return { pid: child.pid || 0 }
   })
 }
 

@@ -11,6 +11,7 @@ import type {
   CloudProviderType,
   KnowledgeBasePreferences 
 } from '../../../src/knowledge/types'
+import { addBreadcrumb } from '../lib/sentry'
 
 interface KnowledgeBaseStats {
   providerCount: number
@@ -120,12 +121,15 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
   const addProvider = useCallback(async (type: CloudProviderType, name?: string): Promise<CloudProvider | null> => {
     if (!hasAPI()) return null
 
+    addBreadcrumb('KB: Adding provider', 'knowledge_base', { type, name })
     try {
       const provider = await electronAPI.kb.addProvider(type, name)
       await refresh()
+      addBreadcrumb('KB: Provider added', 'knowledge_base', { type, providerId: provider?.id })
       return provider
     } catch (err) {
       console.error('[useKnowledgeBase] Failed to add provider:', err)
+      addBreadcrumb('KB: Failed to add provider', 'knowledge_base', { type, error: (err as Error).message }, 'error')
       setError((err as Error).message)
       return null
     }
@@ -148,12 +152,15 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
   const deleteProvider = useCallback(async (id: string): Promise<boolean> => {
     if (!hasAPI()) return false
 
+    addBreadcrumb('KB: Deleting provider', 'knowledge_base', { providerId: id })
     try {
       const result = await electronAPI.kb.deleteProvider(id)
       await refresh()
+      addBreadcrumb('KB: Provider deleted', 'knowledge_base', { providerId: id, success: result })
       return result
     } catch (err) {
       console.error('[useKnowledgeBase] Failed to delete provider:', err)
+      addBreadcrumb('KB: Failed to delete provider', 'knowledge_base', { providerId: id, error: (err as Error).message }, 'error')
       setError((err as Error).message)
       return false
     }
@@ -219,12 +226,15 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
   ): Promise<any> => {
     if (!hasAPI()) return null
 
+    addBreadcrumb('KB: Importing document', 'knowledge_base', { providerId, filename, contentLength: content.length })
     try {
       const doc = await electronAPI.kb.importDocument(providerId, filename, content)
       await refresh()
+      addBreadcrumb('KB: Document imported', 'knowledge_base', { providerId, filename, success: !!doc })
       return doc
     } catch (err) {
       console.error('[useKnowledgeBase] Failed to import document:', err)
+      addBreadcrumb('KB: Failed to import document', 'knowledge_base', { providerId, filename, error: (err as Error).message }, 'error')
       setError((err as Error).message)
       return null
     }
@@ -296,10 +306,14 @@ export function useKnowledgeBase(): UseKnowledgeBaseReturn {
   const openTerminalWithSsh = useCallback(async (sshCommand: string): Promise<boolean> => {
     if (!hasAPI()) return false
 
+    addBreadcrumb('KB: Opening SSH terminal', 'knowledge_base', { commandPreview: sshCommand.substring(0, 50) })
     try {
-      return await electronAPI.kb.openTerminalWithSsh(sshCommand)
+      const result = await electronAPI.kb.openTerminalWithSsh(sshCommand)
+      addBreadcrumb('KB: SSH terminal opened', 'knowledge_base', { success: result })
+      return result
     } catch (err) {
       console.error('[useKnowledgeBase] Failed to open terminal:', err)
+      addBreadcrumb('KB: Failed to open SSH terminal', 'knowledge_base', { error: (err as Error).message }, 'error')
       setError((err as Error).message)
       return false
     }
