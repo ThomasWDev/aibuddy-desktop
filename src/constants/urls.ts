@@ -16,15 +16,15 @@ export const AIBUDDY_WEBSITE = 'https://aibuddy.life'
 export const AIBUDDY_BUY_CREDITS_URL = 'https://aibuddy.life/pricing'
 
 // API endpoints
-// Lambda Function URL - No timeout limit (up to 15 min), better for long AI requests
-export const AIBUDDY_LAMBDA_URL = 'https://2urax4awsopj522tuij6dyo4ce0kvaoh.lambda-url.us-east-2.on.aws'
-// API Gateway - Has 29-second timeout limit, use for quick requests only
+// API Gateway - Primary endpoint, 29-second timeout (sufficient for most requests)
 export const AIBUDDY_API_GATEWAY_URL = 'https://i6f81wuqo0.execute-api.us-east-2.amazonaws.com/dev'
+// Lambda Function URL - For future use when timeout issues are resolved
+export const AIBUDDY_LAMBDA_URL = 'https://ipekyj4amaxaiguqtyyq2zjxse0rwwlk.lambda-url.us-east-2.on.aws'
 
-// Use Lambda Function URL for inference (no timeout issues)
-export const AIBUDDY_API_BASE_URL = AIBUDDY_LAMBDA_URL
-export const AIBUDDY_API_INFERENCE_URL = AIBUDDY_LAMBDA_URL  // Lambda URL handles /v1/inference at root
-export const AIBUDDY_API_VALIDATE_KEY_URL = `${AIBUDDY_API_GATEWAY_URL}/v1/validate-key`  // Quick validation can use API Gateway
+// Use API Gateway for all requests (Lambda URL has auth issues currently)
+export const AIBUDDY_API_BASE_URL = AIBUDDY_API_GATEWAY_URL
+export const AIBUDDY_API_INFERENCE_URL = `${AIBUDDY_API_GATEWAY_URL}/v1/inference`
+export const AIBUDDY_API_VALIDATE_KEY_URL = `${AIBUDDY_API_GATEWAY_URL}/v1/inference`  // Use inference endpoint for validation
 
 // Documentation
 export const AIBUDDY_DOCS_URL = 'https://aibuddy.life/docs'

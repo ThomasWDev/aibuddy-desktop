@@ -364,7 +364,7 @@ function App() {
     
     try {
       // Use API Gateway for quick validation (29s limit is fine for this)
-      const response = await fetch('https://i6f81wuqo0.execute-api.us-east-2.amazonaws.com/dev/v1/inference', {
+      const response = await fetch(AIBUDDY_API_INFERENCE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
