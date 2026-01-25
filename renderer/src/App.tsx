@@ -339,7 +339,7 @@ function App() {
     
     const startTime = Date.now()
     try {
-      const response = await fetch('https://i6f81wuqo0.execute-api.us-east-2.amazonaws.com/dev/v1/inference', {
+      const response = await fetch(AIBUDDY_API_INFERENCE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -612,7 +612,7 @@ function App() {
         hasKnowledgeContext: !!knowledgeContext
       })
 
-      const response = await fetch('https://i6f81wuqo0.execute-api.us-east-2.amazonaws.com/dev/v1/inference', {
+      const response = await fetch(AIBUDDY_API_INFERENCE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
