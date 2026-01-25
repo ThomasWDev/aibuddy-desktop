@@ -1529,7 +1529,19 @@ Be concise and actionable. Focus on fixing the immediate problem.`
           </Tooltip>
           
           <div>
-            <h1 className="text-2xl font-black text-white">AIBuddy</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-black text-white">AIBuddy</h1>
+              <span 
+                className="px-2 py-0.5 text-xs font-bold rounded-full"
+                style={{ 
+                  background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+                  color: 'white',
+                  boxShadow: '0 2px 8px rgba(139, 92, 246, 0.4)'
+                }}
+              >
+                v{appVersion}
+              </span>
+            </div>
             <p className="text-sm text-slate-400 font-semibold">Your Coding Friend! 🚀</p>
           </div>
           
