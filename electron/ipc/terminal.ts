@@ -191,40 +191,42 @@ export function initTerminalHandlers(): void {
     }))
   })
 
-  // Execute command and wait for completion
-  ipcMain.handle('terminal:execute', async (_event, _id: number, command: string, timeout = 30000): Promise<{
-    output: string
+  // Execute command and wait for completion (with cwd support)
+  ipcMain.handle('terminal:execute', async (_event, command: string, cwd?: string, timeout = 60000): Promise<{
+    stdout: string
+    stderr: string
     exitCode: number
   }> => {
     return new Promise((resolve, reject) => {
       const shell = getDefaultShell()
       const shellArgs = process.platform === 'win32' ? ['/c', command] : ['-c', command]
       
-      let output = ''
+      let stdout = ''
+      let stderr = ''
       let exitCode = 0
 
       const timeoutId = setTimeout(() => {
-        reject(new Error('Command execution timed out'))
+        reject(new Error(`Command timed out after ${timeout/1000}s: ${command}`))
       }, timeout)
 
       const child = spawn(shell, shellArgs, {
-        cwd: os.homedir(),
+        cwd: cwd || os.homedir(),
         env: process.env as Record<string, string>,
         shell: false
       })
 
       child.stdout?.on('data', (chunk) => {
-        output += chunk.toString()
+        stdout += chunk.toString()
       })
 
       child.stderr?.on('data', (chunk) => {
-        output += chunk.toString()
+        stderr += chunk.toString()
       })
 
       child.on('close', (code) => {
         clearTimeout(timeoutId)
         exitCode = code || 0
-        resolve({ output, exitCode })
+        resolve({ stdout, stderr, exitCode })
       })
 
       child.on('error', (err) => {

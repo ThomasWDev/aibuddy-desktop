@@ -44,6 +44,7 @@ export interface ElectronAPI {
     kill: (id: number) => Promise<void>
     onData: (callback: (id: number, data: string) => void) => () => void
     onExit: (callback: (id: number, exitCode: number) => void) => () => void
+    execute: (command: string, cwd?: string) => Promise<{ stdout: string; stderr: string; exitCode: number }>
   }
 
   // Git operations
@@ -158,7 +159,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       const handler = (_event: IpcRendererEvent, id: number, exitCode: number) => callback(id, exitCode)
       ipcRenderer.on('terminal:exit', handler)
       return () => ipcRenderer.removeListener('terminal:exit', handler)
-    }
+    },
+    execute: (command: string, cwd?: string) => ipcRenderer.invoke('terminal:execute', command, cwd)
   },
 
   // Git operations

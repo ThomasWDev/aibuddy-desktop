@@ -168,6 +168,49 @@ interface Message {
   content: string
   cost?: number
   model?: string
+  executionResults?: CommandResult[]
+}
+
+interface CommandResult {
+  command: string
+  stdout: string
+  stderr: string
+  exitCode: number
+  executed: boolean
+}
+
+// Parse code blocks from AI response to find executable commands
+function parseCodeBlocks(content: string): { language: string; code: string }[] {
+  const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g
+  const blocks: { language: string; code: string }[] = []
+  let match
+  
+  while ((match = codeBlockRegex.exec(content)) !== null) {
+    const language = match[1].toLowerCase() || 'bash'
+    const code = match[2].trim()
+    
+    // Only include shell/bash commands
+    if (['bash', 'sh', 'shell', 'zsh', ''].includes(language)) {
+      blocks.push({ language: 'bash', code })
+    }
+  }
+  
+  return blocks
+}
+
+// Extract individual commands from a code block
+function extractCommands(codeBlock: string): string[] {
+  return codeBlock
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => {
+      // Skip empty lines, comments, and non-command lines
+      if (!line) return false
+      if (line.startsWith('#')) return false
+      if (line.startsWith('//')) return false
+      if (line.startsWith('echo "')) return false // Skip echo explanations
+      return true
+    })
 }
 
 // Status steps for visual feedback
@@ -511,10 +554,11 @@ function App() {
       return
     }
 
+    const trimmedInput = input.trim()
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim()
+      content: trimmedInput
     }
 
     // Track user message
@@ -651,12 +695,93 @@ function App() {
           .join('\n')
       }
 
+      // Check if user asked to run/execute something and auto-execute commands
+      const userWantsExecution = trimmedInput.toLowerCase().match(/\b(run|execute|build|test|start|install|deploy)\b/)
+      let executionResults: CommandResult[] = []
+      const electronAPI = (window as any).electronAPI
+      
+      if (userWantsExecution && workspacePath && electronAPI?.terminal?.execute) {
+        const codeBlocks = parseCodeBlocks(responseText)
+        
+        if (codeBlocks.length > 0) {
+          setStatus('generating')
+          addBreadcrumb('Auto-executing commands', 'terminal', { 
+            blockCount: codeBlocks.length,
+            workspacePath 
+          })
+          
+          for (const block of codeBlocks) {
+            const commands = extractCommands(block.code)
+            
+            for (const command of commands) {
+              try {
+                toast.info(`⚡ Running: ${command.substring(0, 50)}...`)
+                addBreadcrumb('Executing command', 'terminal', { command })
+                
+                const result = await electronAPI.terminal.execute(command, workspacePath)
+                
+                executionResults.push({
+                  command,
+                  stdout: result.stdout,
+                  stderr: result.stderr,
+                  exitCode: result.exitCode,
+                  executed: true
+                })
+                
+                if (result.exitCode === 0) {
+                  toast.success(`✅ Command succeeded: ${command.substring(0, 30)}...`)
+                } else {
+                  toast.warning(`⚠️ Command exited with code ${result.exitCode}`)
+                }
+                
+                addBreadcrumb('Command completed', 'terminal', { 
+                  command, 
+                  exitCode: result.exitCode,
+                  outputLength: result.stdout.length + result.stderr.length
+                })
+              } catch (execErr) {
+                executionResults.push({
+                  command,
+                  stdout: '',
+                  stderr: (execErr as Error).message,
+                  exitCode: -1,
+                  executed: false
+                })
+                toast.error(`❌ Failed: ${command.substring(0, 30)}...`)
+                addBreadcrumb('Command failed', 'terminal', { 
+                  command, 
+                  error: (execErr as Error).message 
+                }, 'error')
+              }
+            }
+          }
+        }
+      }
+
+      // Build execution output to append to response
+      let executionOutput = ''
+      if (executionResults.length > 0) {
+        executionOutput = '\n\n---\n\n## 🖥️ Execution Results\n\n'
+        for (const result of executionResults) {
+          const statusIcon = result.exitCode === 0 ? '✅' : '❌'
+          executionOutput += `### ${statusIcon} \`${result.command}\`\n\n`
+          if (result.stdout) {
+            executionOutput += `**Output:**\n\`\`\`\n${result.stdout.substring(0, 2000)}\n\`\`\`\n\n`
+          }
+          if (result.stderr) {
+            executionOutput += `**Errors:**\n\`\`\`\n${result.stderr.substring(0, 1000)}\n\`\`\`\n\n`
+          }
+          executionOutput += `**Exit Code:** ${result.exitCode}\n\n`
+        }
+      }
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: responseText || "I'm here to help! What would you like me to do? 🤖",
+        content: (responseText || "I'm here to help! What would you like me to do? 🤖") + executionOutput,
         cost: data.api_cost,
-        model: data.model
+        model: data.model,
+        executionResults
       }
 
       setMessages(prev => [...prev, assistantMessage])
