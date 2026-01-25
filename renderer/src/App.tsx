@@ -75,10 +75,14 @@ function Tooltip({ text, children, position = 'top' }: { text: string; children:
             borderRadius: '16px',
             fontSize: '16px',
             fontWeight: 700,
-            whiteSpace: 'nowrap',
+            whiteSpace: 'normal',
+            wordWrap: 'break-word',
             boxShadow: '0 8px 32px rgba(124, 58, 237, 0.4)',
             border: '3px solid rgba(255,255,255,0.3)',
-            maxWidth: '300px',
+            maxWidth: '320px',
+            minWidth: '200px',
+            textAlign: 'center',
+            lineHeight: '1.4',
           }}
         >
           {/* Arrow */}
