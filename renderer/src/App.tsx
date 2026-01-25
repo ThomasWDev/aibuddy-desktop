@@ -175,10 +175,10 @@ type StatusStep = 'idle' | 'validating' | 'reading' | 'sending' | 'thinking' | '
 
 const statusConfig: Record<StatusStep, { text: string; icon: React.ReactNode; color: string }> = {
   idle: { text: 'Ready to help! 🚀', icon: <Sparkles className="w-5 h-5" />, color: '#22c55e' },
-  validating: { text: '🔑 Checking your API key...', icon: <Key className="w-5 h-5" />, color: '#f59e0b' },
+  validating: { text: '🔑 Checking your AIBuddy API key...', icon: <Key className="w-5 h-5" />, color: '#f59e0b' },
   reading: { text: '📂 Reading your files...', icon: <FileSearch className="w-5 h-5" />, color: '#3b82f6' },
   sending: { text: '☁️ Sending to AI...', icon: <Cloud className="w-5 h-5" />, color: '#8b5cf6' },
-  thinking: { text: '🧠 AI is thinking...', icon: <Loader2 className="w-5 h-5 animate-spin" />, color: '#f97316' },
+  thinking: { text: '🧠 AIBuddy is thinking...', icon: <Loader2 className="w-5 h-5 animate-spin" />, color: '#f97316' },
   generating: { text: '✍️ Writing response...', icon: <Zap className="w-5 h-5" />, color: '#ec4899' },
   done: { text: '✅ Done!', icon: <CheckCircle className="w-5 h-5" />, color: '#22c55e' },
   error: { text: '❌ Something went wrong', icon: <AlertTriangle className="w-5 h-5" />, color: '#ef4444' },
@@ -315,7 +315,7 @@ function App() {
       
       if (data.remaining_credits !== undefined) {
         setCredits(data.remaining_credits)
-        toast.success(`✅ API key valid! You have ${data.remaining_credits.toFixed(2)} credits`)
+        toast.success(`✅ AIBuddy API key valid! You have ${data.remaining_credits.toFixed(2)} credits`)
         
         // Track successful validation
         addBreadcrumb('API key validated successfully', 'api.validation', {
@@ -506,7 +506,7 @@ function App() {
 
     if (!apiKey) {
       setShowSettings(true)
-      toast.error('🔑 Please add your API key first!')
+      toast.error('🔑 Please add your AIBuddy API key first! Get one at aibuddy.life')
       addBreadcrumb('API key missing - showing settings', 'user.action', { trigger: 'send_message' }, 'warning')
       return
     }
@@ -696,7 +696,7 @@ function App() {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `😅 **Oops!** Something went wrong.\n\n**Error:** ${(err as Error).message}\n\n**Try:**\n1. Check your internet\n2. Make sure your API key is correct\n3. Try again in a moment`
+        content: `😅 **Oops!** Something went wrong.\n\n**Error:** ${(err as Error).message}\n\n**Try:**\n1. Check your internet connection\n2. Make sure your AIBuddy API key is correct\n3. Get your API key at https://aibuddy.life\n4. Try again in a moment`
       }
       setMessages(prev => [...prev, errorMessage])
       toast.error('Failed to get response')
