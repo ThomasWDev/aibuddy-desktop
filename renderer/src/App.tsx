@@ -222,11 +222,12 @@ function parseCodeBlocks(content: string): { language: string; code: string }[] 
   let match
   
   while ((match = codeBlockRegex.exec(content)) !== null) {
-    const language = match[1].toLowerCase() || 'bash'
+    const language = match[1].toLowerCase()
     const code = match[2].trim()
     
-    // Only include shell/bash commands
-    if (['bash', 'sh', 'shell', 'zsh', ''].includes(language)) {
+    // ONLY include explicitly marked shell/bash commands
+    // Do NOT include blocks without a language tag (they're usually output examples)
+    if (['bash', 'sh', 'shell', 'zsh'].includes(language)) {
       blocks.push({ language: 'bash', code })
     }
   }
@@ -240,11 +241,36 @@ function extractCommands(codeBlock: string): string[] {
     .split('\n')
     .map(line => line.trim())
     .filter(line => {
-      // Skip empty lines, comments, and non-command lines
+      // Skip empty lines
       if (!line) return false
+      // Skip comments
       if (line.startsWith('#')) return false
       if (line.startsWith('//')) return false
-      if (line.startsWith('echo "')) return false // Skip echo explanations
+      // Skip echo explanations
+      if (line.startsWith('echo "')) return false
+      // Skip lines that look like terminal output (not commands)
+      if (line.startsWith('total ')) return false // ls output
+      if (line.match(/^[d-][rwx-]{9}/)) return false // ls -l output (drwxr-xr-x)
+      if (line.match(/^[a-z0-9_-]+\s+\d+\s+\d+/i)) return false // ps output
+      if (line.startsWith('List of devices')) return false // adb output
+      if (line.match(/^\d+\s+actionable/)) return false // gradle output
+      if (line.startsWith('BUILD ')) return false // gradle output
+      if (line.startsWith('> Task')) return false // gradle task output
+      if (line.startsWith('Starting:')) return false // adb output
+      if (line.startsWith('Installed on')) return false // adb output
+      if (line.startsWith('Error type')) return false // error messages
+      if (line.startsWith('Error:')) return false // error messages
+      if (line.startsWith('WARNING:')) return false // warnings
+      if (line.startsWith('INFO')) return false // info messages
+      if (line.startsWith('FAILURE:')) return false // gradle failures
+      if (line.match(/^[A-Z][a-z]+:$/)) return false // Section headers like "Output:"
+      // Skip lines that are clearly not commands (contain only special chars or look like output)
+      if (line.match(/^[\s\-\|=\+]+$/)) return false // Separator lines
+      if (line.match(/^\d+\.\d+\.\d+/)) return false // Version numbers
+      // Skip gradle/java output patterns
+      if (line.includes('at org.gradle')) return false
+      if (line.includes('at java.base')) return false
+      if (line.includes('Caused by:')) return false
       return true
     })
 }
@@ -1561,99 +1587,66 @@ Be concise and actionable. Focus on fixing the immediate problem.`
           </Tooltip>
         </div>
 
-        {/* Credits & Actions - Bigger Buttons */}
-        <div className="flex items-center gap-3">
-          {/* Credits Display - Big & Clear */}
+        {/* Credits & Actions - Consistent Button Sizes */}
+        <div className="flex items-center gap-2">
+          {/* Credits Display */}
           <Tooltip text="💰 These are your AIBuddy credits! Each question uses some credits." position="bottom">
             <div 
-              className="flex items-center gap-3 px-5 py-3 rounded-2xl cursor-help"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl cursor-help h-10"
               style={{ 
                 background: credits !== null && credits < 5 
                   ? 'rgba(239, 68, 68, 0.2)' 
                   : 'rgba(34, 197, 94, 0.15)',
-                border: `3px solid ${credits !== null && credits < 5 ? '#ef4444' : '#22c55e'}`,
-                boxShadow: `0 4px 16px ${credits !== null && credits < 5 ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`
+                border: `2px solid ${credits !== null && credits < 5 ? '#ef4444' : '#22c55e'}`,
               }}
             >
-              <Coins className="w-6 h-6" style={{ color: credits !== null && credits < 5 ? '#ef4444' : '#22c55e' }} />
+              <Coins className="w-5 h-5" style={{ color: credits !== null && credits < 5 ? '#ef4444' : '#22c55e' }} />
               <span 
-                className="text-lg font-black"
+                className="text-sm font-bold"
                 style={{ color: credits !== null && credits < 5 ? '#ef4444' : '#22c55e' }}
               >
-                {credits !== null ? `${credits.toFixed(0)} Credits` : '...'}
+                {credits !== null ? `${credits.toFixed(0)}` : '...'}
               </span>
-              {credits !== null && credits < 5 && (
-                <span className="text-sm font-bold text-red-400 animate-pulse">⚠️ Low!</span>
-              )}
             </div>
           </Tooltip>
 
-          {/* Last Cost - Only show if recent */}
-          {lastCost !== null && (
-            <Tooltip text="⚡ This is how many credits your last question used" position="bottom">
-              <div 
-                className="flex items-center gap-2 px-4 py-2 rounded-xl cursor-help"
-                style={{ background: 'rgba(139, 92, 246, 0.15)', border: '2px solid #8b5cf6' }}
-              >
-                <Zap className="w-5 h-5 text-purple-400" />
-                <span className="text-base font-bold text-purple-300">-{lastCost.toFixed(2)}</span>
-              </div>
-            </Tooltip>
-          )}
-
-          {/* Model Used */}
-          {lastModel && (
-            <Tooltip text="🧠 This shows which AI brain answered your question!" position="bottom">
-              <div 
-                className="px-4 py-2 rounded-xl cursor-help"
-                style={{ background: 'rgba(6, 182, 212, 0.15)', border: '2px solid #22d3ee' }}
-              >
-                <span className="text-base font-bold text-cyan-300">
-                  🤖 AIBuddy
-                </span>
-              </div>
-            </Tooltip>
-          )}
-
-          {/* Big Action Buttons */}
-          <Tooltip text="📁 Click here to open your code folder! This tells me which project you're working on." position="bottom">
+          {/* Open Folder Button */}
+          <Tooltip text="📁 Open your code folder" position="bottom">
             <button
               onClick={handleOpenFolder}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 h-10"
               style={{ 
                 background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
                 color: 'white',
-                boxShadow: '0 4px 16px rgba(6, 182, 212, 0.4)'
               }}
             >
-              <FolderOpen className="w-6 h-6" />
-              <span className="text-base">Open Folder</span>
+              <FolderOpen className="w-5 h-5" />
+              <span>Open Folder</span>
             </button>
           </Tooltip>
 
           {/* Terminal Button */}
-          <Tooltip text="🖥️ Show/hide the terminal output panel" position="bottom">
+          <Tooltip text="🖥️ Show/hide terminal" position="bottom">
             <button
               onClick={() => {
                 trackButtonClick('Terminal', 'App')
                 trackPanelToggle('Terminal', !showTerminal)
                 setShowTerminal(!showTerminal)
               }}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105 active:scale-95"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 h-10"
               style={{ 
                 background: showTerminal 
                   ? 'linear-gradient(135deg, #22c55e, #16a34a)' 
                   : 'rgba(34, 197, 94, 0.2)',
                 color: 'white',
                 border: `2px solid #22c55e`,
-                boxShadow: showTerminal ? '0 4px 16px rgba(34, 197, 94, 0.4)' : 'none'
               }}
             >
               <span>🖥️</span>
               <span>Terminal</span>
               {terminalOutput.length > 0 && (
                 <span 
-                  className="px-2 py-0.5 rounded-full text-xs font-bold"
+                  className="px-1.5 py-0.5 rounded-full text-xs font-bold"
                   style={{ background: 'rgba(255,255,255,0.2)' }}
                 >
                   {terminalOutput.length}
@@ -1662,8 +1655,8 @@ Be concise and actionable. Focus on fixing the immediate problem.`
             </button>
           </Tooltip>
 
-          {/* History Button - Chat Threads */}
-          <Tooltip text="📜 View your chat history! All your conversations are saved here." position="bottom">
+          {/* History Button */}
+          <Tooltip text="📜 Chat history" position="bottom">
             <button
               onClick={() => {
                 trackButtonClick('History', 'App')
@@ -1671,23 +1664,22 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                 addBreadcrumb('Opening History panel', 'ui.panel', { panel: 'history' })
                 setShowHistory(true)
               }}
-              className="flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 h-10"
               style={{ 
                 background: showHistory 
                   ? 'linear-gradient(135deg, #06b6d4, #0891b2)' 
                   : 'rgba(6, 182, 212, 0.2)',
                 color: 'white',
-                border: `3px solid #06b6d4`,
-                boxShadow: showHistory ? '0 8px 24px rgba(6, 182, 212, 0.4)' : 'none'
+                border: `2px solid #06b6d4`,
               }}
             >
-              <History className="w-6 h-6" />
+              <History className="w-5 h-5" />
               <span>History</span>
             </button>
           </Tooltip>
 
-          {/* Knowledge Base Button - Big & Friendly */}
-          <Tooltip text="📚 Save your server info here! I'll remember it forever and help you connect!" position="bottom">
+          {/* Knowledge Base Button */}
+          <Tooltip text="📚 Knowledge base" position="bottom">
             <button
               onClick={() => {
                 trackButtonClick('Knowledge Base', 'App')
@@ -1695,29 +1687,28 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                 addBreadcrumb('Opening Knowledge Base panel', 'ui.panel', { panel: 'knowledge_base' })
                 setShowKnowledgeBase(true)
               }}
-              className="flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 h-10"
               style={{ 
                 background: showKnowledgeBase 
                   ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' 
                   : 'rgba(139, 92, 246, 0.2)',
                 color: 'white',
-                border: `3px solid #8b5cf6`,
-                boxShadow: showKnowledgeBase ? '0 8px 24px rgba(139, 92, 246, 0.4)' : 'none'
+                border: `2px solid #8b5cf6`,
               }}
             >
-              <BookOpen className="w-6 h-6" />
+              <BookOpen className="w-5 h-5" />
               <span>Knowledge</span>
               {knowledgeContext && (
                 <span 
-                  className="w-3 h-3 rounded-full animate-pulse"
+                  className="w-2 h-2 rounded-full animate-pulse"
                   style={{ background: '#22c55e', boxShadow: '0 0 8px #22c55e' }}
                 />
               )}
             </button>
           </Tooltip>
 
-          {/* Settings Button - Big & Clear */}
-          <Tooltip text="🔑 Click here to add your API key! You need this to talk to me." position="bottom">
+          {/* Settings Button */}
+          <Tooltip text="🔑 API key settings" position="bottom">
             <button
               onClick={() => {
                 trackButtonClick('Settings', 'App', { hasApiKey: !!apiKey })
@@ -1728,23 +1719,22 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                 })
                 setShowSettings(true)
               }}
-              className="flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 h-10"
               style={{ 
                 background: apiKey 
                   ? 'rgba(34, 197, 94, 0.2)' 
                   : 'linear-gradient(135deg, #fbbf24, #f59e0b)',
                 color: apiKey ? '#22c55e' : 'white',
-                border: `3px solid ${apiKey ? '#22c55e' : '#fbbf24'}`,
-                boxShadow: !apiKey ? '0 8px 24px rgba(251, 191, 36, 0.4)' : 'none'
+                border: `2px solid ${apiKey ? '#22c55e' : '#fbbf24'}`,
               }}
             >
-              <Key className="w-6 h-6" />
+              <Key className="w-5 h-5" />
               <span>{apiKey ? '✓ Key Set' : 'Add Key'}</span>
             </button>
           </Tooltip>
 
-          {/* Buy Credits - Big & Friendly */}
-          <Tooltip text="💳 Need more credits? Click here to get more so we can keep coding together!" position="bottom">
+          {/* Buy Credits Button */}
+          <Tooltip text="💳 Buy more credits" position="bottom">
             <button
               onClick={() => {
                 trackButtonClick('Buy Credits', 'App', { currentCredits: credits })
@@ -1759,14 +1749,13 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                   window.open(AIBUDDY_BUY_CREDITS_URL, '_blank')
                 }
               }}
-              className="flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 h-10"
               style={{ 
                 background: 'linear-gradient(135deg, #22c55e, #16a34a)',
                 color: 'white',
-                boxShadow: '0 4px 16px rgba(34, 197, 94, 0.4)'
               }}
             >
-              <CreditCard className="w-6 h-6" />
+              <CreditCard className="w-5 h-5" />
               <span>Buy Credits</span>
             </button>
           </Tooltip>

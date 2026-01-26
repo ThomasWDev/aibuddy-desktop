@@ -459,7 +459,7 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
               {selectedFile ? selectedFile.name : 'Drop your doc file here'}
             </p>
             <p style={{ color: '#888', fontSize: '14px', marginBottom: '16px' }}>
-              Supports: .md, .txt, .json, .yaml
+              Supports: .md, .txt, .json, .yaml, .env, .conf, .cfg, .ini
             </p>
             <label
               style={{
@@ -476,7 +476,7 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
               Browse Files
               <input
                 type="file"
-                accept=".md,.txt,.json,.yaml,.yml"
+                accept=".md,.txt,.json,.yaml,.yml,.env,.conf,.cfg,.ini,.toml,.xml,.properties,text/*"
                 onChange={handleFileSelect}
                 style={{ display: 'none' }}
               />
