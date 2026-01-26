@@ -324,6 +324,7 @@ function App() {
   
   // Image attachments
   const [attachedImages, setAttachedImages] = useState<ImageAttachment[]>([])
+  const [isDraggingOver, setIsDraggingOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Chat history
@@ -803,6 +804,70 @@ function App() {
   
   const clearAllImages = () => {
     setAttachedImages([])
+  }
+  
+  // Drag and drop handlers for images
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingOver(true)
+  }
+  
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingOver(false)
+  }
+  
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingOver(false)
+    
+    const files = e.dataTransfer.files
+    if (!files || files.length === 0) return
+    
+    let addedCount = 0
+    for (const file of Array.from(files)) {
+      // Only accept images
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} is not an image`)
+        continue
+      }
+      
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} is too large (max 10MB)`)
+        continue
+      }
+      
+      // Convert to base64
+      const reader = new FileReader()
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1]
+        const mimeType = file.type as ImageAttachment['mimeType']
+        
+        setAttachedImages(prev => [...prev, {
+          id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          base64,
+          mimeType,
+          name: file.name,
+          size: file.size
+        }])
+        
+        addBreadcrumb('Image dropped', 'chat.image', { 
+          name: file.name, 
+          size: file.size,
+          type: mimeType 
+        })
+      }
+      reader.readAsDataURL(file)
+      addedCount++
+    }
+    
+    if (addedCount > 0) {
+      toast.success(`📷 Added ${addedCount} image${addedCount > 1 ? 's' : ''}!`)
+    }
   }
   
   // Call AI with model routing - DeepSeek first, Opus 4.5 as fallback
@@ -2086,15 +2151,34 @@ Be concise and actionable. Focus on fixing the immediate problem.`
             </div>
           )}
           
-          {/* Big Input Box */}
+          {/* Big Input Box - with drag and drop support */}
           <div 
-            className="flex items-end gap-4 p-4 rounded-3xl"
+            className={`relative flex items-end gap-4 p-4 rounded-3xl transition-all ${isDraggingOver ? 'scale-[1.02]' : ''}`}
             style={{ 
-              background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-              border: '3px solid #334155',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+              background: isDraggingOver 
+                ? 'linear-gradient(135deg, #4c1d95, #7c3aed)' 
+                : 'linear-gradient(135deg, #1e293b, #0f172a)',
+              border: isDraggingOver 
+                ? '3px dashed #a78bfa' 
+                : '3px solid #334155',
+              boxShadow: isDraggingOver 
+                ? '0 8px 32px rgba(139, 92, 246, 0.5)' 
+                : '0 8px 32px rgba(0,0,0,0.3)'
             }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
           >
+            {/* Drag overlay indicator */}
+            {isDraggingOver && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-3xl pointer-events-none z-10">
+                <div className="text-center">
+                  <ImageIcon className="w-12 h-12 text-purple-300 mx-auto mb-2 animate-bounce" />
+                  <p className="text-purple-200 font-bold text-lg">Drop images here!</p>
+                </div>
+              </div>
+            )}
+            
             {/* Hidden file input */}
             <input
               ref={fileInputRef}
@@ -2147,7 +2231,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
               />
               {/* Helper text */}
               <p className="text-xs text-slate-500 mt-1">
-                💡 Tip: Press Enter to send • Paste images with Ctrl/Cmd+V • Click 📷 to attach
+                💡 Tip: Press Enter to send • Drag & drop or paste images • Click 📷 to attach
               </p>
             </div>
             
