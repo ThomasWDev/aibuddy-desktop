@@ -140,6 +140,75 @@ export function initKnowledgeBaseHandlers(): void {
     }
   })
 
+  // Read file from a given path (for multi-file import)
+  ipcMain.handle('kb:readFilePath', async (_, filePath: string) => {
+    const fs = require('fs')
+    const path = require('path')
+    
+    // Expand ~ to home directory
+    let expandedPath = filePath.trim()
+    if (expandedPath.startsWith('~')) {
+      expandedPath = path.join(require('os').homedir(), expandedPath.slice(1))
+    }
+    
+    try {
+      // Check if file exists
+      if (!fs.existsSync(expandedPath)) {
+        throw new Error(`File not found: ${expandedPath}`)
+      }
+      
+      // Check if it's a file (not directory)
+      const stats = fs.statSync(expandedPath)
+      if (stats.isDirectory()) {
+        throw new Error(`Path is a directory, not a file: ${expandedPath}`)
+      }
+      
+      // Read the file
+      const content = fs.readFileSync(expandedPath, 'utf-8')
+      console.log(`[KnowledgeBase IPC] Read file: ${expandedPath} (${content.length} chars)`)
+      return content
+    } catch (err) {
+      console.error('[KnowledgeBase IPC] Failed to read file path:', err)
+      throw new Error(`Failed to read file: ${(err as Error).message}`)
+    }
+  })
+
+  // Read multiple files from paths
+  ipcMain.handle('kb:readMultipleFiles', async (_, filePaths: string[]) => {
+    const fs = require('fs')
+    const path = require('path')
+    const os = require('os')
+    
+    const results: { path: string; content: string; error?: string }[] = []
+    
+    for (const filePath of filePaths) {
+      let expandedPath = filePath.trim()
+      if (expandedPath.startsWith('~')) {
+        expandedPath = path.join(os.homedir(), expandedPath.slice(1))
+      }
+      
+      try {
+        if (!fs.existsSync(expandedPath)) {
+          results.push({ path: filePath, content: '', error: 'File not found' })
+          continue
+        }
+        
+        const stats = fs.statSync(expandedPath)
+        if (stats.isDirectory()) {
+          results.push({ path: filePath, content: '', error: 'Path is a directory' })
+          continue
+        }
+        
+        const content = fs.readFileSync(expandedPath, 'utf-8')
+        results.push({ path: filePath, content })
+      } catch (err) {
+        results.push({ path: filePath, content: '', error: (err as Error).message })
+      }
+    }
+    
+    return results
+  })
+
   // =========================================================================
   // Credential Operations
   // =========================================================================
@@ -259,7 +328,8 @@ export function cleanupKnowledgeBaseHandlers(): void {
     'kb:addProvider', 'kb:updateProvider', 'kb:deleteProvider',
     'kb:getServers', 'kb:getServersByProvider', 'kb:addServer',
     'kb:updateServer', 'kb:deleteServer', 'kb:importDocument',
-    'kb:openFileDialog', 'kb:unlock', 'kb:lock', 'kb:isUnlocked',
+    'kb:openFileDialog', 'kb:readFilePath', 'kb:readMultipleFiles',
+    'kb:unlock', 'kb:lock', 'kb:isUnlocked',
     'kb:addCredential', 'kb:getCredentialValue', 'kb:deleteCredential',
     'kb:generateAIContext', 'kb:getRelevantContext',
     'kb:getPreferences', 'kb:savePreferences', 'kb:getStats',

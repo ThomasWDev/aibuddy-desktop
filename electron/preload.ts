@@ -245,6 +245,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     importDocument: (providerId: string, filename: string, content: string) => 
       ipcRenderer.invoke('kb:importDocument', providerId, filename, content),
     openFileDialog: () => ipcRenderer.invoke('kb:openFileDialog'),
+    readFilePath: (filePath: string) => ipcRenderer.invoke('kb:readFilePath', filePath),
+    readMultipleFiles: (filePaths: string[]) => ipcRenderer.invoke('kb:readMultipleFiles', filePaths),
     unlock: (password: string) => ipcRenderer.invoke('kb:unlock', password),
     lock: () => ipcRenderer.invoke('kb:lock'),
     generateAIContext: () => ipcRenderer.invoke('kb:generateAIContext'),

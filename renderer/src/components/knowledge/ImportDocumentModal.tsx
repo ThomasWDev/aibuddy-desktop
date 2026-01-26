@@ -3,10 +3,30 @@
  * 
  * Modal for importing infrastructure documentation files.
  * Parses markdown/text files and extracts server configs, API keys, etc.
+ * 
+ * Features:
+ * - Browse files from file system
+ * - Paste text directly
+ * - Paste file paths (multiple) to read from disk
+ * - Auto-detect credentials, servers, domains, API keys
+ * - Save to local encrypted storage (shared across apps)
  */
 
 import React, { useState, useCallback } from 'react'
 import type { ExtractedData, CloudProviderType } from '../../../../src/knowledge/types'
+
+// Extended extracted data with credential detection
+interface ExtendedExtractedData extends ExtractedData {
+  credentials: {
+    type: 'api_key' | 'password' | 'token' | 'secret'
+    name: string
+    value: string
+    service: string
+    masked: string
+  }[]
+  filePaths: string[]
+  fileContents: { path: string; content: string; error?: string }[]
+}
 
 interface ImportDocumentModalProps {
   isOpen: boolean
@@ -14,6 +34,8 @@ interface ImportDocumentModalProps {
   onImport: (filename: string, content: string, providerId: string) => Promise<void>
   providers: { id: string; name: string; emoji: string; type: CloudProviderType }[]
 }
+
+type ImportMode = 'browse' | 'paste' | 'paths'
 
 export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
   isOpen,
@@ -25,10 +47,12 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileContent, setFileContent] = useState<string>('')
   const [selectedProvider, setSelectedProvider] = useState<string>('')
-  const [extractedData, setExtractedData] = useState<ExtractedData | null>(null)
+  const [extractedData, setExtractedData] = useState<ExtendedExtractedData | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [pasteMode, setPasteMode] = useState(false)
+  const [importMode, setImportMode] = useState<ImportMode>('browse')
   const [pastedText, setPastedText] = useState('')
+  const [pathsText, setPathsText] = useState('')
+  const [loadedFiles, setLoadedFiles] = useState<{ path: string; content: string; error?: string }[]>([])
 
   // Handle drag events
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -76,19 +100,108 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
     }
   }
 
+  // Handle file paths - read multiple files from disk
+  const handleFilePaths = async () => {
+    if (!pathsText.trim()) return
+    
+    setIsProcessing(true)
+    const paths = pathsText
+      .split('\n')
+      .map(p => p.trim())
+      .filter(p => p && !p.startsWith('#')) // Filter empty lines and comments
+    
+    const results: { path: string; content: string; error?: string }[] = []
+    let combinedContent = ''
+    
+    for (const filePath of paths) {
+      try {
+        // Use Electron API to read file
+        const electronAPI = (window as any).electronAPI
+        if (electronAPI?.kb?.readFilePath) {
+          const content = await electronAPI.kb.readFilePath(filePath)
+          results.push({ path: filePath, content })
+          combinedContent += `\n\n# === ${filePath} ===\n\n${content}`
+        } else {
+          results.push({ path: filePath, content: '', error: 'API not available' })
+        }
+      } catch (err) {
+        results.push({ path: filePath, content: '', error: (err as Error).message })
+      }
+    }
+    
+    setLoadedFiles(results)
+    setFileContent(combinedContent)
+    parseContent(combinedContent, paths)
+    setIsProcessing(false)
+  }
+
+  // Mask sensitive values for display
+  const maskValue = (value: string): string => {
+    if (value.length <= 8) return '****'
+    return value.slice(0, 4) + '****' + value.slice(-4)
+  }
+
+  // Detect credential type from key name
+  const detectCredentialType = (key: string): 'api_key' | 'password' | 'token' | 'secret' => {
+    const keyLower = key.toLowerCase()
+    if (keyLower.includes('password') || keyLower.includes('pwd')) return 'password'
+    if (keyLower.includes('token')) return 'token'
+    if (keyLower.includes('secret')) return 'secret'
+    return 'api_key'
+  }
+
+  // Detect service from context
+  const detectService = (key: string, context: string): string => {
+    const combined = (key + ' ' + context).toLowerCase()
+    if (combined.includes('sendgrid')) return 'SendGrid'
+    if (combined.includes('stripe')) return 'Stripe'
+    if (combined.includes('aws') || combined.includes('amazon')) return 'AWS'
+    if (combined.includes('anthropic') || combined.includes('claude')) return 'Anthropic'
+    if (combined.includes('openai') || combined.includes('gpt')) return 'OpenAI'
+    if (combined.includes('deepseek')) return 'DeepSeek'
+    if (combined.includes('github')) return 'GitHub'
+    if (combined.includes('bitbucket')) return 'Bitbucket'
+    if (combined.includes('gitlab')) return 'GitLab'
+    if (combined.includes('sentry')) return 'Sentry'
+    if (combined.includes('firebase')) return 'Firebase'
+    if (combined.includes('twilio')) return 'Twilio'
+    if (combined.includes('mailgun')) return 'Mailgun'
+    if (combined.includes('cloudflare')) return 'Cloudflare'
+    if (combined.includes('digitalocean')) return 'DigitalOcean'
+    if (combined.includes('heroku')) return 'Heroku'
+    if (combined.includes('vercel')) return 'Vercel'
+    if (combined.includes('netlify')) return 'Netlify'
+    if (combined.includes('supabase')) return 'Supabase'
+    if (combined.includes('mongodb')) return 'MongoDB'
+    if (combined.includes('postgres')) return 'PostgreSQL'
+    if (combined.includes('mysql')) return 'MySQL'
+    if (combined.includes('redis')) return 'Redis'
+    return 'Unknown'
+  }
+
   // Parse content for infrastructure info
-  const parseContent = (content: string) => {
-    const extracted: ExtractedData = {
+  const parseContent = (content: string, filePaths: string[] = []) => {
+    const extracted: ExtendedExtractedData = {
       servers: [],
       apiKeys: [],
       domains: [],
       accountIds: [],
       keyValuePairs: {},
+      credentials: [],
+      filePaths,
+      fileContents: loadedFiles,
     }
 
     const lines = content.split('\n')
     let currentSection = ''
     let currentServer: any = {}
+
+    // Regex patterns for credential detection
+    const apiKeyPatterns = [
+      /(?:api[_-]?key|apikey|api_secret|secret_key|access_key|private_key|auth_key|authorization_key)\s*[:=]\s*['"]?([a-zA-Z0-9_\-\.]{20,})['"]?/gi,
+      /(?:sk|pk|api|key|token|secret)[_-][a-zA-Z0-9_\-]{20,}/gi,
+      /(?:SENDGRID|STRIPE|ANTHROPIC|OPENAI|AWS|GITHUB|SENTRY)[_A-Z]*[_-]?(?:KEY|TOKEN|SECRET)\s*[:=]\s*['"]?([^\s'"]+)['"]?/gi,
+    ]
 
     for (const line of lines) {
       const trimmed = line.trim()
@@ -109,13 +222,40 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
       }
 
       // Parse key-value pairs
-      const kvMatch = trimmed.match(/^-?\s*([^:]+):\s*(.+)$/)
+      const kvMatch = trimmed.match(/^-?\s*\*?\*?([^:]+)\*?\*?:\s*(.+)$/)
       if (kvMatch) {
         const [, key, value] = kvMatch
         const keyLower = key.toLowerCase().trim()
-        const valueTrimmed = value.trim()
+        const valueTrimmed = value.trim().replace(/^['"`]|['"`]$/g, '') // Remove quotes
 
         extracted.keyValuePairs[key.trim()] = valueTrimmed
+
+        // Detect credentials (API keys, tokens, secrets, passwords)
+        const isCredential = keyLower.includes('key') || 
+                            keyLower.includes('token') || 
+                            keyLower.includes('secret') || 
+                            keyLower.includes('password') ||
+                            keyLower.includes('api') ||
+                            keyLower.includes('auth')
+        
+        // Check if value looks like a credential (long alphanumeric string)
+        const looksLikeCredential = /^[a-zA-Z0-9_\-\.]{16,}$/.test(valueTrimmed) ||
+                                    valueTrimmed.startsWith('sk-') ||
+                                    valueTrimmed.startsWith('pk_') ||
+                                    valueTrimmed.startsWith('SG.') ||
+                                    valueTrimmed.startsWith('xoxb-') ||
+                                    valueTrimmed.startsWith('ghp_') ||
+                                    valueTrimmed.startsWith('gho_')
+
+        if (isCredential && looksLikeCredential && valueTrimmed.length >= 16) {
+          extracted.credentials.push({
+            type: detectCredentialType(keyLower),
+            name: key.trim(),
+            value: valueTrimmed,
+            service: detectService(keyLower, currentSection),
+            masked: maskValue(valueTrimmed),
+          })
+        }
 
         // Extract specific fields
         if (keyLower.includes('server ip') || keyLower === 'ip') {
@@ -188,8 +328,10 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
     setFileContent('')
     setExtractedData(null)
     setSelectedProvider('')
-    setPasteMode(false)
+    setImportMode('browse')
     setPastedText('')
+    setPathsText('')
+    setLoadedFiles([])
     onClose()
   }
 
@@ -244,17 +386,17 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
         </div>
 
         {/* Mode Toggle */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
           <button
-            onClick={() => setPasteMode(false)}
+            onClick={() => setImportMode('browse')}
             style={{
               flex: 1,
-              padding: '12px',
-              background: !pasteMode ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255,255,255,0.1)',
-              border: !pasteMode ? '2px solid #ec4899' : '2px solid transparent',
+              padding: '10px 8px',
+              background: importMode === 'browse' ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255,255,255,0.1)',
+              border: importMode === 'browse' ? '2px solid #ec4899' : '2px solid transparent',
               borderRadius: '12px',
               color: '#fff',
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: 500,
               cursor: 'pointer',
             }}
@@ -262,25 +404,41 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
             📁 Browse Files
           </button>
           <button
-            onClick={() => setPasteMode(true)}
+            onClick={() => setImportMode('paste')}
             style={{
               flex: 1,
-              padding: '12px',
-              background: pasteMode ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255,255,255,0.1)',
-              border: pasteMode ? '2px solid #ec4899' : '2px solid transparent',
+              padding: '10px 8px',
+              background: importMode === 'paste' ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255,255,255,0.1)',
+              border: importMode === 'paste' ? '2px solid #ec4899' : '2px solid transparent',
               borderRadius: '12px',
               color: '#fff',
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: 500,
               cursor: 'pointer',
             }}
           >
             📋 Paste Text
           </button>
+          <button
+            onClick={() => setImportMode('paths')}
+            style={{
+              flex: 1,
+              padding: '10px 8px',
+              background: importMode === 'paths' ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255,255,255,0.1)',
+              border: importMode === 'paths' ? '2px solid #ec4899' : '2px solid transparent',
+              borderRadius: '12px',
+              color: '#fff',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            📂 File Paths
+          </button>
         </div>
 
-        {/* File Drop Zone or Paste Area */}
-        {!pasteMode ? (
+        {/* File Drop Zone, Paste Area, or Paths Input */}
+        {importMode === 'browse' && (
           <div
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
@@ -324,7 +482,9 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
               />
             </label>
           </div>
-        ) : (
+        )}
+        
+        {importMode === 'paste' && (
           <div style={{ marginBottom: '20px' }}>
             <textarea
               value={pastedText}
@@ -361,6 +521,82 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
             </button>
           </div>
         )}
+        
+        {importMode === 'paths' && (
+          <div style={{ marginBottom: '20px' }}>
+            <p style={{ color: '#888', fontSize: '13px', marginBottom: '12px' }}>
+              Paste file paths (one per line). The tool will read all files and extract credentials, servers, and other infrastructure info.
+            </p>
+            <textarea
+              value={pathsText}
+              onChange={(e) => setPathsText(e.target.value)}
+              placeholder={`/Users/you/Documents/API_KEYS.md
+/Users/you/project/docs/SERVERS.md
+/Users/you/project/.env
+# Lines starting with # are ignored`}
+              style={{
+                width: '100%',
+                height: '180px',
+                padding: '16px',
+                background: 'rgba(0,0,0,0.2)',
+                border: '2px solid rgba(255,255,255,0.2)',
+                borderRadius: '12px',
+                color: '#fff',
+                fontSize: '13px',
+                fontFamily: 'monospace',
+                resize: 'vertical',
+                lineHeight: '1.6',
+              }}
+            />
+            <button
+              onClick={handleFilePaths}
+              disabled={isProcessing || !pathsText.trim()}
+              style={{
+                marginTop: '12px',
+                padding: '12px 24px',
+                background: pathsText.trim() 
+                  ? 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)'
+                  : 'rgba(255,255,255,0.1)',
+                border: 'none',
+                borderRadius: '12px',
+                color: '#fff',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: pathsText.trim() ? 'pointer' : 'not-allowed',
+                opacity: pathsText.trim() ? 1 : 0.5,
+              }}
+            >
+              {isProcessing ? '⏳ Reading Files...' : '📖 Read & Parse Files'}
+            </button>
+            
+            {/* Show loaded files status */}
+            {loadedFiles.length > 0 && (
+              <div style={{ marginTop: '16px' }}>
+                <h4 style={{ color: '#fff', fontSize: '14px', marginBottom: '8px' }}>
+                  📁 Files Loaded ({loadedFiles.filter(f => !f.error).length}/{loadedFiles.length})
+                </h4>
+                {loadedFiles.map((file, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      padding: '8px 12px',
+                      background: file.error ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                      borderRadius: '8px',
+                      marginBottom: '4px',
+                      fontSize: '12px',
+                      color: file.error ? '#ef4444' : '#22c55e',
+                      fontFamily: 'monospace',
+                    }}
+                  >
+                    {file.error ? '❌' : '✅'} {file.path.split('/').pop()}
+                    {file.error && <span style={{ marginLeft: '8px', color: '#888' }}>({file.error})</span>}
+                    {!file.error && <span style={{ marginLeft: '8px', color: '#888' }}>({file.content.length} chars)</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Extracted Data Preview */}
         {extractedData && (
@@ -369,10 +605,61 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
               🔍 AIBuddy detected the following:
             </h3>
 
+            {/* Credentials - Most Important */}
+            {extractedData.credentials && extractedData.credentials.length > 0 && (
+              <div style={{ marginBottom: '12px' }}>
+                <h4 style={{ color: '#f59e0b', fontSize: '14px', marginBottom: '8px' }}>
+                  🔐 Credentials ({extractedData.credentials.length}) - Will be encrypted
+                </h4>
+                {extractedData.credentials.map((cred, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      padding: '10px 12px',
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      borderRadius: '8px',
+                      marginBottom: '6px',
+                      fontSize: '13px',
+                      color: '#fff',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <strong>{cred.name}</strong>
+                        <span style={{ 
+                          marginLeft: '8px', 
+                          padding: '2px 8px', 
+                          background: 'rgba(139, 92, 246, 0.2)', 
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          color: '#8b5cf6',
+                        }}>
+                          {cred.service}
+                        </span>
+                      </div>
+                      <span style={{ 
+                        padding: '2px 8px', 
+                        background: 'rgba(245, 158, 11, 0.2)', 
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        color: '#f59e0b',
+                      }}>
+                        {cred.type}
+                      </span>
+                    </div>
+                    <div style={{ color: '#888', fontSize: '12px', marginTop: '4px', fontFamily: 'monospace' }}>
+                      {cred.masked}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {extractedData.servers.length > 0 && (
               <div style={{ marginBottom: '12px' }}>
                 <h4 style={{ color: '#22c55e', fontSize: '14px', marginBottom: '8px' }}>
-                  ✅ Servers ({extractedData.servers.length})
+                  🖥️ Servers ({extractedData.servers.length})
                 </h4>
                 {extractedData.servers.map((server, i) => (
                   <div
@@ -397,7 +684,7 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
             {extractedData.accountIds.length > 0 && (
               <div style={{ marginBottom: '12px' }}>
                 <h4 style={{ color: '#3b82f6', fontSize: '14px', marginBottom: '8px' }}>
-                  ✅ Account IDs ({extractedData.accountIds.length})
+                  🏢 Account IDs ({extractedData.accountIds.length})
                 </h4>
                 {extractedData.accountIds.map((acc, i) => (
                   <div
@@ -420,7 +707,7 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
             {extractedData.apiKeys.length > 0 && (
               <div style={{ marginBottom: '12px' }}>
                 <h4 style={{ color: '#f59e0b', fontSize: '14px', marginBottom: '8px' }}>
-                  ⚠️ API Keys Detected (will be encrypted)
+                  🔑 API Keys Referenced ({extractedData.apiKeys.length})
                 </h4>
                 {extractedData.apiKeys.map((key, i) => (
                   <div
@@ -443,10 +730,10 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
             {extractedData.domains.length > 0 && (
               <div style={{ marginBottom: '12px' }}>
                 <h4 style={{ color: '#8b5cf6', fontSize: '14px', marginBottom: '8px' }}>
-                  ✅ Domains ({extractedData.domains.length})
+                  🌐 Domains ({extractedData.domains.length})
                 </h4>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {extractedData.domains.map((domain, i) => (
+                  {extractedData.domains.slice(0, 20).map((domain, i) => (
                     <span
                       key={i}
                       style={{
@@ -460,6 +747,11 @@ export const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
                       {domain}
                     </span>
                   ))}
+                  {extractedData.domains.length > 20 && (
+                    <span style={{ padding: '4px 12px', fontSize: '12px', color: '#888' }}>
+                      +{extractedData.domains.length - 20} more
+                    </span>
+                  )}
                 </div>
               </div>
             )}
