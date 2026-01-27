@@ -911,6 +911,14 @@ function App() {
       }),
     })
     
+    // Check for non-JSON responses (WAF blocks, server errors, etc.)
+    const contentType = response.headers.get('content-type')
+    if (!contentType?.includes('application/json')) {
+      const text = await response.text()
+      console.error('[App] Non-JSON response:', response.status, text.substring(0, 200))
+      throw new Error(`Server returned non-JSON response (${response.status}). This may be a temporary issue - please try again.`)
+    }
+    
     const data = await response.json()
     
     if (!response.ok || data.error) {
