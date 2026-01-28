@@ -39,6 +39,7 @@ import {
 import { CloudKnowledgePanel } from './components/knowledge'
 import { HistorySidebar } from './components/HistorySidebar'
 import { ShareModal } from './components/ShareModal'
+import { UsageLimitsPanel } from './components/UsageLimitsPanel'
 import { useTheme, type Theme, type FontSize } from './hooks/useTheme'
 import { useVoiceInput } from './hooks/useVoiceInput'
 import type { ChatThread } from '../../src/history/types'
@@ -3267,6 +3268,15 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                 <div><kbd className="mr-1">Esc</kbd> Close Panel</div>
               </div>
             </div>
+            
+            {/* Divider */}
+            <div className="my-6 border-t border-slate-700" />
+            
+            {/* Usage Limits */}
+            <UsageLimitsPanel 
+              credits={credits} 
+              sessionMessages={messages.length}
+            />
           </div>
         </div>
       )}
