@@ -60,6 +60,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Build prompts package
+        run: pnpm --filter @aibuddy/prompts build
+
       - name: Build
         run: pnpm build
 
