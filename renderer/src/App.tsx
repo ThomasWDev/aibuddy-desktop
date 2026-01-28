@@ -33,10 +33,12 @@ import {
   Keyboard,
   MessageSquare,
   Mic,
-  MicOff
+  MicOff,
+  Share2
 } from 'lucide-react'
 import { CloudKnowledgePanel } from './components/knowledge'
 import { HistorySidebar } from './components/HistorySidebar'
+import { ShareModal } from './components/ShareModal'
 import { useTheme, type Theme, type FontSize } from './hooks/useTheme'
 import { useVoiceInput } from './hooks/useVoiceInput'
 import type { ChatThread } from '../../src/history/types'
@@ -380,6 +382,7 @@ function App() {
   const [workspacePath, setWorkspacePath] = useState<string | null>(null)
   const [apiKey, setApiKey] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [appVersion, setAppVersion] = useState('1.4.27')
@@ -2155,6 +2158,32 @@ Be concise and actionable. Focus on fixing the immediate problem.`
             </button>
           </Tooltip>
 
+          {/* Share Button */}
+          <Tooltip text="🔗 Share conversation" position="bottom">
+            <button
+              onClick={() => {
+                trackButtonClick('Share', 'App', { messageCount: messages.length })
+                addBreadcrumb('Opening share modal', 'ui.panel', { 
+                  panel: 'share',
+                  messageCount: messages.length,
+                  threadId: currentThreadId
+                })
+                setShowShareModal(true)
+              }}
+              disabled={messages.length === 0}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 h-10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              style={{ 
+                background: 'rgba(168, 85, 247, 0.2)',
+                color: '#a855f7',
+                border: '2px solid #a855f7',
+              }}
+              aria-label="Share conversation"
+            >
+              <Share2 className="w-5 h-5" />
+              <span>Share</span>
+            </button>
+          </Tooltip>
+
           {/* Settings Button */}
           <Tooltip text="🔑 API key settings" position="bottom">
             <button
@@ -3378,6 +3407,15 @@ Be concise and actionable. Focus on fixing the immediate problem.`
           addBreadcrumb('Started new chat thread', 'history')
           inputRef.current?.focus()
         }}
+      />
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        threadId={activeThreadId || 'temp-' + Date.now()}
+        threadTitle={messages.length > 0 ? messages[0].content.slice(0, 50) + (messages[0].content.length > 50 ? '...' : '') : undefined}
+        messageCount={messages.length}
       />
     </div>
   )
