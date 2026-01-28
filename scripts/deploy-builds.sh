@@ -39,11 +39,15 @@ PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 DIST_DIR="$PROJECT_ROOT/release"
 
 # Server configurations
-DENVER_SERVER="root@denvermobileappdeveloper.com"
-DENVER_PATH="/var/www/denvermobileappdeveloper.com/public/downloads/aibuddy-desktop"
+DENVER_SERVER="ubuntu@3.132.25.123"
+DENVER_KEY="$HOME/.ssh/denver_veterans.pem"
+DENVER_SSH="ssh -o IdentitiesOnly=yes -i $DENVER_KEY"
+DENVER_PATH="/var/www/deploy/denvermobileappdeveloper/current/public/downloads/aibuddy-desktop"
 
-AIBUDDY_SERVER="root@aibuddy.life"
-AIBUDDY_PATH="/var/www/aibuddy.life/public/downloads"
+AIBUDDY_SERVER="u1998-ymfomzglajhz@aibuddy.life"
+AIBUDDY_PORT="18765"
+AIBUDDY_SSH="ssh -p $AIBUDDY_PORT"
+AIBUDDY_PATH="/home/u1998-ymfomzglajhz/www/aibuddy.life/public_html/downloads"
 
 # Get version from package.json or argument
 if [ -n "$1" ]; then
@@ -127,7 +131,7 @@ deploy_to_denver() {
     echo ""
     
     step "Creating directory structure..."
-    ssh $DENVER_SERVER "mkdir -p $DENVER_PATH/$VERSION_FOLDER" 2>/dev/null || {
+    $DENVER_SSH $DENVER_SERVER "mkdir -p $DENVER_PATH/$VERSION_FOLDER" 2>/dev/null || {
         warn "Could not connect to Denver server. Skipping..."
         return 1
     }
@@ -137,43 +141,43 @@ deploy_to_denver() {
     
     # Upload each file if it exists
     if [ -n "$MAC_ARM64_DMG" ]; then
-        rsync -avz --progress "$MAC_ARM64_DMG" "$DENVER_SERVER:$DENVER_PATH/$VERSION_FOLDER/" && \
+        rsync -avz --progress -e "$DENVER_SSH" "$MAC_ARM64_DMG" "$DENVER_SERVER:$DENVER_PATH/$VERSION_FOLDER/" && \
             success "Uploaded: $(basename "$MAC_ARM64_DMG")"
     fi
     
     if [ -n "$MAC_X64_DMG" ]; then
-        rsync -avz --progress "$MAC_X64_DMG" "$DENVER_SERVER:$DENVER_PATH/$VERSION_FOLDER/" && \
+        rsync -avz --progress -e "$DENVER_SSH" "$MAC_X64_DMG" "$DENVER_SERVER:$DENVER_PATH/$VERSION_FOLDER/" && \
             success "Uploaded: $(basename "$MAC_X64_DMG")"
     fi
     
     if [ -n "$MAC_UNIVERSAL_DMG" ]; then
-        rsync -avz --progress "$MAC_UNIVERSAL_DMG" "$DENVER_SERVER:$DENVER_PATH/$VERSION_FOLDER/" && \
+        rsync -avz --progress -e "$DENVER_SSH" "$MAC_UNIVERSAL_DMG" "$DENVER_SERVER:$DENVER_PATH/$VERSION_FOLDER/" && \
             success "Uploaded: $(basename "$MAC_UNIVERSAL_DMG")"
     fi
     
     if [ -n "$WINDOWS_EXE" ]; then
-        rsync -avz --progress "$WINDOWS_EXE" "$DENVER_SERVER:$DENVER_PATH/$VERSION_FOLDER/" && \
+        rsync -avz --progress -e "$DENVER_SSH" "$WINDOWS_EXE" "$DENVER_SERVER:$DENVER_PATH/$VERSION_FOLDER/" && \
             success "Uploaded: $(basename "$WINDOWS_EXE")"
     fi
     
     if [ -n "$LINUX_APPIMAGE" ]; then
-        rsync -avz --progress "$LINUX_APPIMAGE" "$DENVER_SERVER:$DENVER_PATH/$VERSION_FOLDER/" && \
+        rsync -avz --progress -e "$DENVER_SSH" "$LINUX_APPIMAGE" "$DENVER_SERVER:$DENVER_PATH/$VERSION_FOLDER/" && \
             success "Uploaded: $(basename "$LINUX_APPIMAGE")"
     fi
     
     if [ -n "$LINUX_DEB" ]; then
-        rsync -avz --progress "$LINUX_DEB" "$DENVER_SERVER:$DENVER_PATH/$VERSION_FOLDER/" && \
+        rsync -avz --progress -e "$DENVER_SSH" "$LINUX_DEB" "$DENVER_SERVER:$DENVER_PATH/$VERSION_FOLDER/" && \
             success "Uploaded: $(basename "$LINUX_DEB")"
     fi
     
     # Create/update latest symlink
     step "Updating 'latest' symlink..."
-    ssh $DENVER_SERVER "cd $DENVER_PATH && rm -f latest && ln -s $VERSION_FOLDER latest"
+    $DENVER_SSH $DENVER_SERVER "cd $DENVER_PATH && rm -f latest && ln -s $VERSION_FOLDER latest"
     success "Symlink updated: latest -> $VERSION_FOLDER"
     
     # Generate download page data
     step "Generating download metadata..."
-    ssh $DENVER_SERVER "cat > $DENVER_PATH/$VERSION_FOLDER/manifest.json << 'MANIFEST'
+    $DENVER_SSH $DENVER_SERVER "cat > $DENVER_PATH/$VERSION_FOLDER/manifest.json << 'MANIFEST'
 {
   \"version\": \"$VERSION\",
   \"releaseDate\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
