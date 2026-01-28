@@ -31,11 +31,14 @@ import {
   MoreHorizontal,
   Settings,
   Keyboard,
-  MessageSquare
+  MessageSquare,
+  Mic,
+  MicOff
 } from 'lucide-react'
 import { CloudKnowledgePanel } from './components/knowledge'
 import { HistorySidebar } from './components/HistorySidebar'
 import { useTheme, type Theme, type FontSize } from './hooks/useTheme'
+import { useVoiceInput } from './hooks/useVoiceInput'
 import type { ChatThread } from '../../src/history/types'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -350,8 +353,28 @@ function App() {
   // Theme and font settings
   const { theme, setTheme, fontSize, setFontSize } = useTheme()
   
-  const [messages, setMessages] = useState<Message[]>([])
+  // Input state (declared first for voice input dependency)
   const [input, setInput] = useState('')
+  
+  // Voice input / dictation
+  const { 
+    state: voiceState, 
+    isSupported: voiceSupported, 
+    interimTranscript,
+    toggleListening: toggleVoice,
+    errorMessage: voiceError 
+  } = useVoiceInput({
+    onResult: (transcript, isFinal) => {
+      if (isFinal) {
+        setInput(prev => prev ? `${prev} ${transcript}` : transcript)
+      }
+    },
+    onError: (error) => {
+      toast.error(error)
+    }
+  })
+  
+  const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState<StatusStep>('idle')
   const [workspacePath, setWorkspacePath] = useState<string | null>(null)
@@ -2955,6 +2978,38 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                   aria-label="Message input"
                 />
               </div>
+              
+              {/* Voice Input Button - Dictation */}
+              {voiceSupported && (
+                <Tooltip text={voiceState === 'listening' ? '🛑 Stop dictation' : '🎤 Start dictation'}>
+                  <button
+                    type="button"
+                    onClick={toggleVoice}
+                    disabled={isLoading}
+                    className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex-shrink-0 self-center ${
+                      voiceState === 'listening' ? 'animate-pulse' : ''
+                    }`}
+                    style={{ 
+                      background: voiceState === 'listening' 
+                        ? 'linear-gradient(135deg, #ef4444, #dc2626)' 
+                        : 'rgba(107, 114, 128, 0.2)',
+                      border: voiceState === 'listening' 
+                        ? '2px solid #ef4444' 
+                        : '2px solid #6b7280',
+                      boxShadow: voiceState === 'listening' 
+                        ? '0 0 20px rgba(239, 68, 68, 0.5)' 
+                        : 'none'
+                    }}
+                    aria-label={voiceState === 'listening' ? 'Stop voice input' : 'Start voice input'}
+                  >
+                    {voiceState === 'listening' ? (
+                      <MicOff className="w-5 h-5 text-white" />
+                    ) : (
+                      <Mic className="w-5 h-5 text-slate-400" />
+                    )}
+                  </button>
+                </Tooltip>
+              )}
               
               {/* Send Button - aligned with input */}
               <Tooltip text="🚀 Send message">
