@@ -24,10 +24,18 @@ import {
   Paperclip,
   Trash2,
   History,
-  Plus
+  Plus,
+  RefreshCw,
+  ThumbsUp,
+  ThumbsDown,
+  MoreHorizontal,
+  Settings,
+  Keyboard,
+  MessageSquare
 } from 'lucide-react'
 import { CloudKnowledgePanel } from './components/knowledge'
 import { HistorySidebar } from './components/HistorySidebar'
+import { useTheme, type Theme, type FontSize } from './hooks/useTheme'
 import type { ChatThread } from '../../src/history/types'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -186,6 +194,8 @@ interface Message {
   content: string
   cost?: number
   model?: string
+  tokensIn?: number
+  tokensOut?: number
   executionResults?: CommandResult[]
   images?: ImageAttachment[]
 }
@@ -204,6 +214,53 @@ interface TerminalOutput {
   text: string
   timestamp: number
 }
+
+// Model options for user selection
+interface ModelOption {
+  id: string
+  name: string
+  description: string
+  speed: 'fast' | 'medium' | 'slow'
+  cost: 'low' | 'medium' | 'high'
+}
+
+const MODEL_OPTIONS: ModelOption[] = [
+  { 
+    id: 'auto', 
+    name: 'Auto (Recommended)', 
+    description: 'Smart routing: Fast model first, upgrades if needed',
+    speed: 'fast',
+    cost: 'low'
+  },
+  { 
+    id: 'deepseek-chat', 
+    name: 'DeepSeek Chat', 
+    description: 'Fast & affordable for most tasks',
+    speed: 'fast',
+    cost: 'low'
+  },
+  { 
+    id: 'deepseek-reasoner', 
+    name: 'DeepSeek Reasoner', 
+    description: 'Better reasoning, slightly slower',
+    speed: 'medium',
+    cost: 'low'
+  },
+  { 
+    id: 'claude-sonnet-4-20250514', 
+    name: 'Claude Sonnet 4', 
+    description: 'Balanced performance and cost',
+    speed: 'medium',
+    cost: 'medium'
+  },
+  { 
+    id: 'claude-opus-4-20250514', 
+    name: 'Claude Opus 4', 
+    description: 'Most capable, best for complex tasks',
+    speed: 'slow',
+    cost: 'high'
+  }
+]
 
 // Model routing configuration - DeepSeek first, then Opus 4.5
 const MODEL_CONFIG = {
@@ -290,6 +347,9 @@ const statusConfig: Record<StatusStep, { text: string; icon: React.ReactNode; co
 }
 
 function App() {
+  // Theme and font settings
+  const { theme, setTheme, fontSize, setFontSize } = useTheme()
+  
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -330,6 +390,25 @@ function App() {
   // Chat history
   const [showHistory, setShowHistory] = useState(false)
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
+  
+  // Message feedback state (thumbs up/down)
+  const [messageFeedback, setMessageFeedback] = useState<Record<string, 'up' | 'down' | null>>({})
+  
+  // Track last user message for regenerate feature
+  const [lastUserMessage, setLastUserMessage] = useState<{ content: string; images?: ImageAttachment[] } | null>(null)
+  
+  // Model selection
+  const [selectedModel, setSelectedModel] = useState<string>('auto')
+  const [showModelSelector, setShowModelSelector] = useState(false)
+  
+  // Error and retry state
+  const [lastError, setLastError] = useState<{ message: string; canRetry: boolean } | null>(null)
+  const [isOffline, setIsOffline] = useState(!navigator.onLine)
+  const [requestStartTime, setRequestStartTime] = useState<number | null>(null)
+  
+  // Recent threads for adaptive empty state
+  const [recentThreads, setRecentThreads] = useState<ChatThread[]>([])
+  const [hasUsedBefore, setHasUsedBefore] = useState(false)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -372,6 +451,15 @@ function App() {
         } catch (err) {
           addBreadcrumb('Failed to load API key', 'app.init', { error: (err as Error).message }, 'error')
         }
+        
+        // Load recent threads for adaptive empty state
+        try {
+          const threads = await electronAPI.history.getThreads() as ChatThread[]
+          if (threads && threads.length > 0) {
+            setRecentThreads(threads.slice(0, 5)) // Top 5 recent
+            setHasUsedBefore(true)
+          }
+        } catch {}
         
         // Get recent workspace (local)
         try {
@@ -456,6 +544,86 @@ function App() {
       terminalEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [terminalOutput])
+  
+  // Track online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false)
+      toast.success('🌐 Back online!')
+      addBreadcrumb('Network restored', 'network', {})
+    }
+    
+    const handleOffline = () => {
+      setIsOffline(true)
+      toast.error('📡 You are offline. Check your internet connection.')
+      addBreadcrumb('Network lost', 'network', {})
+    }
+    
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+  
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Cmd/Ctrl modifier
+      const isMod = e.metaKey || e.ctrlKey
+      
+      if (isMod) {
+        switch (e.key.toLowerCase()) {
+          case 'k':
+            // Cmd+K: Open settings
+            e.preventDefault()
+            setShowSettings(true)
+            trackButtonClick('keyboard_shortcut', 'App', { shortcut: 'Cmd+K' })
+            break
+          case 'n':
+            // Cmd+N: New chat
+            e.preventDefault()
+            setMessages([])
+            setActiveThreadId(null)
+            setInput('')
+            setAttachedImages([])
+            inputRef.current?.focus()
+            toast.info('🆕 Started new chat')
+            trackButtonClick('keyboard_shortcut', 'App', { shortcut: 'Cmd+N' })
+            break
+          case 'h':
+            // Cmd+H: Toggle history (prevent default hide window)
+            e.preventDefault()
+            setShowHistory(prev => !prev)
+            trackButtonClick('keyboard_shortcut', 'App', { shortcut: 'Cmd+H' })
+            break
+          case '/':
+            // Cmd+/: Focus input
+            e.preventDefault()
+            inputRef.current?.focus()
+            break
+        }
+      }
+      
+      // Escape key handlers
+      if (e.key === 'Escape') {
+        if (showSettings) {
+          setShowSettings(false)
+        } else if (showHistory) {
+          setShowHistory(false)
+        } else if (showModelSelector) {
+          setShowModelSelector(false)
+        } else if (showKnowledgeBase) {
+          setShowKnowledgeBase(false)
+        }
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showSettings, showHistory, showModelSelector, showKnowledgeBase])
 
   // Validate API key and get credits (non-blocking, background operation)
   const validateApiKey = async (key: string, showToast = true) => {
@@ -716,7 +884,65 @@ function App() {
     setTerminalOutput([])
   }
   
-  // Image handling functions
+  // Image handling functions - using Electron native dialog
+  const handleImageSelectWithElectron = async () => {
+    try {
+      // Use Electron's native dialog to select images (fixes macOS sandbox issue)
+      const filePath = await window.electronAPI.dialog.openFile([
+        { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }
+      ])
+      
+      if (!filePath) return // User cancelled
+      
+      // Read the file using Electron's fs API
+      const fileBuffer = await window.electronAPI.fs.readFile(filePath) as Buffer
+      const base64 = Buffer.from(fileBuffer).toString('base64')
+      
+      // Determine MIME type from extension
+      const extension = filePath.split('.').pop()?.toLowerCase() || 'png'
+      const mimeTypes: Record<string, ImageAttachment['mimeType']> = {
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'webp': 'image/webp'
+      }
+      const mimeType = mimeTypes[extension] || 'image/png'
+      
+      // Get file name from path
+      const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'image'
+      
+      // Get file size
+      const stat = await window.electronAPI.fs.stat(filePath)
+      const fileSize = stat.size
+      
+      // Check file size (max 10MB)
+      if (fileSize > 10 * 1024 * 1024) {
+        toast.error(`${fileName} is too large (max 10MB)`)
+        return
+      }
+      
+      setAttachedImages(prev => [...prev, {
+        id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        base64,
+        mimeType,
+        name: fileName,
+        size: fileSize
+      }])
+      
+      toast.success(`📷 Added: ${fileName}`)
+      addBreadcrumb('Image attached via dialog', 'chat.image', { 
+        name: fileName, 
+        size: fileSize,
+        type: mimeType 
+      })
+    } catch (error) {
+      console.error('Failed to select image:', error)
+      toast.error('Failed to select image. Please try again.')
+    }
+  }
+  
+  // Legacy HTML file input handler (fallback)
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
@@ -830,7 +1056,11 @@ function App() {
     let addedCount = 0
     for (const file of Array.from(files)) {
       // Only accept images
-      if (!file.type.startsWith('image/')) {
+      const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp']
+      const extension = file.name.split('.').pop()?.toLowerCase() || ''
+      const isImage = file.type.startsWith('image/') || imageExtensions.includes(extension)
+      
+      if (!isImage) {
         toast.error(`${file.name} is not an image`)
         continue
       }
@@ -841,28 +1071,66 @@ function App() {
         continue
       }
       
-      // Convert to base64
-      const reader = new FileReader()
-      reader.onload = () => {
-        const base64 = (reader.result as string).split(',')[1]
-        const mimeType = file.type as ImageAttachment['mimeType']
+      try {
+        // In Electron, dropped files have a 'path' property
+        const filePath = (file as File & { path?: string }).path
         
-        setAttachedImages(prev => [...prev, {
-          id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          base64,
-          mimeType,
-          name: file.name,
-          size: file.size
-        }])
-        
-        addBreadcrumb('Image dropped', 'chat.image', { 
-          name: file.name, 
-          size: file.size,
-          type: mimeType 
-        })
+        if (filePath && window.electronAPI?.fs) {
+          // Use Electron's native FS API for better compatibility
+          const fileBuffer = await window.electronAPI.fs.readFile(filePath) as Buffer
+          const base64 = Buffer.from(fileBuffer).toString('base64')
+          
+          const mimeTypes: Record<string, ImageAttachment['mimeType']> = {
+            'png': 'image/png',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'gif': 'image/gif',
+            'webp': 'image/webp'
+          }
+          const mimeType = mimeTypes[extension] || 'image/png'
+          
+          setAttachedImages(prev => [...prev, {
+            id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            base64,
+            mimeType,
+            name: file.name,
+            size: file.size
+          }])
+          
+          addBreadcrumb('Image dropped (Electron)', 'chat.image', { 
+            name: file.name, 
+            size: file.size,
+            type: mimeType 
+          })
+          addedCount++
+        } else {
+          // Fallback to FileReader API
+          const reader = new FileReader()
+          reader.onload = () => {
+            const base64 = (reader.result as string).split(',')[1]
+            const mimeType = file.type as ImageAttachment['mimeType']
+            
+            setAttachedImages(prev => [...prev, {
+              id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              base64,
+              mimeType,
+              name: file.name,
+              size: file.size
+            }])
+            
+            addBreadcrumb('Image dropped (FileReader)', 'chat.image', { 
+              name: file.name, 
+              size: file.size,
+              type: mimeType 
+            })
+          }
+          reader.readAsDataURL(file)
+          addedCount++
+        }
+      } catch (error) {
+        console.error('Failed to process dropped file:', error)
+        toast.error(`Failed to process ${file.name}`)
       }
-      reader.readAsDataURL(file)
-      addedCount++
     }
     
     if (addedCount > 0) {
@@ -870,27 +1138,39 @@ function App() {
     }
   }
   
-  // Call AI with model routing - DeepSeek first, Opus 4.5 as fallback
+  // Call AI with model routing - respects user selection or uses smart routing
   const callAIWithRouting = async (
     messages: { role: string; content: string }[],
     systemPrompt: string,
     purpose: 'execution' | 'analysis' = 'execution',
     retryCount = 0
   ): Promise<{ response: string; model: string; cost: number; credits: number }> => {
-    // Use DeepSeek for execution tasks, Opus for analysis
-    // After 2 DeepSeek failures, escalate to Opus
-    const useOpus = purpose === 'analysis' || retryCount >= MODEL_CONFIG.maxDeepSeekRetries
-    const model = useOpus ? MODEL_CONFIG.analysis : MODEL_CONFIG.execution
+    let model: string
     
-    addBreadcrumb('AI call with routing', 'api.routing', {
-      purpose,
-      model,
-      retryCount,
-      escalatedToOpus: useOpus && purpose === 'execution'
-    })
-    
-    if (useOpus && purpose === 'execution' && retryCount >= MODEL_CONFIG.maxDeepSeekRetries) {
-      toast.info('🧠 Escalating to Opus 4.5 for complex analysis...')
+    // If user selected a specific model (not 'auto'), use that
+    if (selectedModel !== 'auto') {
+      model = selectedModel
+      addBreadcrumb('AI call with user-selected model', 'api.routing', {
+        purpose,
+        model,
+        userSelected: true
+      })
+    } else {
+      // Auto mode: Use DeepSeek for execution tasks, Opus for analysis
+      // After 2 DeepSeek failures, escalate to Opus
+      const useOpus = purpose === 'analysis' || retryCount >= MODEL_CONFIG.maxDeepSeekRetries
+      model = useOpus ? MODEL_CONFIG.analysis : MODEL_CONFIG.execution
+      
+      addBreadcrumb('AI call with auto routing', 'api.routing', {
+        purpose,
+        model,
+        retryCount,
+        escalatedToOpus: useOpus && purpose === 'execution'
+      })
+      
+      if (useOpus && purpose === 'execution' && retryCount >= MODEL_CONFIG.maxDeepSeekRetries) {
+        toast.info('🧠 Escalating to Opus 4.5 for complex analysis...')
+      }
     }
     
     const response = await fetch(AIBUDDY_API_INFERENCE_URL, {
@@ -1516,6 +1796,8 @@ Be concise and actionable. Focus on fixing the immediate problem.`
         content: (responseText || "I'm here to help! What would you like me to do? 🤖") + executionOutput,
         cost: data.api_cost,
         model: data.model,
+        tokensIn: data.usage?.input_tokens,
+        tokensOut: data.usage?.output_tokens,
         executionResults
       }
 
@@ -1573,13 +1855,25 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       
       setStatus('error')
       
+      // Determine error type and if retry is possible
+      const errorMsg = (err as Error).message
+      const isNetworkError = errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError') || errorMsg.includes('timeout')
+      const isAuthError = errorMsg.includes('401') || errorMsg.includes('API key')
+      
+      setLastError({
+        message: errorMsg,
+        canRetry: !isAuthError // Can retry network errors, not auth errors
+      })
+      
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `😅 **Oops!** Something went wrong.\n\n**Error:** ${(err as Error).message}\n\n**Try:**\n1. Check your internet connection\n2. Make sure your AIBuddy API key is correct\n3. Get your API key at https://aibuddy.life\n4. Try again in a moment`
+        content: isNetworkError 
+          ? `🌐 **Network Error**\n\nCouldn't reach the server. This could be:\n- Your internet connection\n- A temporary server issue\n\n**Click "Retry" below to try again.**`
+          : `😅 **Oops!** Something went wrong.\n\n**Error:** ${errorMsg}\n\n**Try:**\n1. Check your internet connection\n2. Make sure your AIBuddy API key is correct\n3. Get your API key at https://aibuddy.life\n4. Try again in a moment`
       }
       setMessages(prev => [...prev, errorMessage])
-      toast.error('Failed to get response')
+      toast.error(isNetworkError ? 'Network error - click Retry to try again' : 'Failed to get response')
       
       setTimeout(() => setStatus('idle'), 3000)
     } finally {
@@ -1592,6 +1886,64 @@ Be concise and actionable. Focus on fixing the immediate problem.`
     setCopiedId(id)
     toast.success('Copied!')
     setTimeout(() => setCopiedId(null), 2000)
+  }
+  
+  // Copy entire response to clipboard
+  const copyResponse = async (content: string, messageId: string) => {
+    await navigator.clipboard.writeText(content)
+    setCopiedId(messageId + '-response')
+    toast.success('📋 Response copied!')
+    addBreadcrumb('Response copied', 'chat.action', { messageId })
+    setTimeout(() => setCopiedId(null), 2000)
+  }
+  
+  // Handle message feedback (thumbs up/down)
+  const handleFeedback = (messageId: string, feedback: 'up' | 'down') => {
+    const currentFeedback = messageFeedback[messageId]
+    const newFeedback = currentFeedback === feedback ? null : feedback
+    
+    setMessageFeedback(prev => ({ ...prev, [messageId]: newFeedback }))
+    
+    if (newFeedback) {
+      toast.success(newFeedback === 'up' ? '👍 Thanks for the feedback!' : '👎 Thanks for letting us know!')
+      addBreadcrumb('Message feedback', 'chat.feedback', { messageId, feedback: newFeedback })
+    }
+  }
+  
+  // Regenerate the last response
+  const handleRegenerate = async () => {
+    if (isLoading) return
+    
+    // Find the last user message
+    const lastUserIdx = [...messages].reverse().findIndex(m => m.role === 'user')
+    if (lastUserIdx === -1) {
+      toast.error('No message to regenerate')
+      return
+    }
+    
+    const actualIdx = messages.length - 1 - lastUserIdx
+    const lastUser = messages[actualIdx]
+    
+    // Remove the assistant response after the last user message (if any)
+    const newMessages = messages.slice(0, actualIdx + 1)
+    setMessages(newMessages)
+    
+    // Re-trigger the submission with the last user message content
+    setInput(lastUser.content === '📷 [Image attached - please analyze]' ? '' : lastUser.content)
+    if (lastUser.images) {
+      setAttachedImages(lastUser.images)
+    }
+    
+    toast.info('🔄 Regenerating response...')
+    addBreadcrumb('Regenerating response', 'chat.action', { messageId: lastUser.id })
+    
+    // Trigger submit after state updates
+    setTimeout(() => {
+      const form = document.querySelector('form')
+      if (form) {
+        form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
+      }
+    }, 100)
   }
 
   const currentStatus = statusConfig[status]
@@ -1851,84 +2203,180 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       <main className="flex-1 overflow-y-auto p-6">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-4">
-            {/* Big Friendly Robot */}
-            <div 
-              className="w-32 h-32 rounded-full flex items-center justify-center mb-6 animate-bounce"
-              style={{ 
-                background: 'linear-gradient(135deg, #ec4899, #f97316)',
-                boxShadow: '0 12px 48px rgba(236, 72, 153, 0.5)',
-                animationDuration: '2s'
-              }}
-            >
-              <Sparkles className="w-16 h-16 text-white" />
-            </div>
-            
-            {/* Big Welcome Text */}
-            <h2 className="text-5xl font-black text-white mb-4">
-              Hi there! 👋
-            </h2>
-            <p className="text-2xl text-slate-300 mb-8 max-w-lg font-semibold">
-              I'm <span style={{ color: '#ec4899' }}>AIBuddy</span>, your coding friend!
-              <br />
-              Tell me what you want to build! 🚀
-            </p>
+            {hasUsedBefore ? (
+              /* Returning User - Adaptive Welcome */
+              <>
+                {/* Smaller greeting for returning users */}
+                <div 
+                  className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #ec4899, #f97316)',
+                    boxShadow: '0 8px 32px rgba(236, 72, 153, 0.4)'
+                  }}
+                >
+                  <Sparkles className="w-10 h-10 text-white" />
+                </div>
+                
+                <h2 className="text-3xl font-bold text-white mb-2">
+                  Welcome back! 👋
+                </h2>
+                <p className="text-lg text-slate-400 mb-6">
+                  What would you like to work on today?
+                </p>
+                
+                {/* Recent Chats - Quick Access */}
+                {recentThreads.length > 0 && (
+                  <div className="w-full max-w-md mb-6">
+                    <p className="text-sm font-semibold text-slate-500 mb-2 text-left">Recent Chats</p>
+                    <div className="space-y-2">
+                      {recentThreads.slice(0, 3).map(thread => (
+                        <button
+                          key={thread.id}
+                          onClick={() => {
+                            setMessages(thread.messages.map((m, i) => ({
+                              id: m.id || i.toString(),
+                              role: m.role,
+                              content: m.content,
+                              images: m.images?.map(img => ({
+                                id: img.id,
+                                base64: img.base64,
+                                mimeType: img.mimeType as ImageAttachment['mimeType'],
+                                name: img.name,
+                                size: 0
+                              }))
+                            })))
+                            setActiveThreadId(thread.id)
+                            trackButtonClick('Recent Chat', 'WelcomeScreen', { threadId: thread.id })
+                          }}
+                          className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all hover:scale-[1.02]"
+                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #334155' }}
+                        >
+                          <MessageSquare className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-white font-medium truncate">{thread.title}</p>
+                            <p className="text-xs text-slate-500">{thread.messages.length} messages</p>
+                          </div>
+                          <span className="text-xs text-slate-600">
+                            {new Date(thread.updatedAt).toLocaleDateString()}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setShowHistory(true)}
+                      className="mt-2 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                    >
+                      View all history →
+                    </button>
+                  </div>
+                )}
+                
+                {/* Quick Actions for power users */}
+                <div className="flex flex-wrap justify-center gap-2 mb-6">
+                  {[
+                    { icon: "🐛", text: "Debug code", prompt: "Help me debug this code:" },
+                    { icon: "⚡", text: "Quick fix", prompt: "Fix this error:" },
+                    { icon: "📝", text: "Explain", prompt: "Explain this code:" },
+                    { icon: "🔧", text: "Refactor", prompt: "Refactor this code to be cleaner:" }
+                  ].map((action, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setInput(action.prompt)
+                        inputRef.current?.focus()
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
+                      style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.3)', color: '#a78bfa' }}
+                    >
+                      <span>{action.icon}</span>
+                      <span>{action.text}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              /* New User - Full Welcome Experience */
+              <>
+                {/* Big Friendly Robot */}
+                <div 
+                  className="w-32 h-32 rounded-full flex items-center justify-center mb-6 animate-bounce"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #ec4899, #f97316)',
+                    boxShadow: '0 12px 48px rgba(236, 72, 153, 0.5)',
+                    animationDuration: '2s'
+                  }}
+                >
+                  <Sparkles className="w-16 h-16 text-white" />
+                </div>
+                
+                {/* Big Welcome Text */}
+                <h2 className="text-5xl font-black text-white mb-4">
+                  Hi there! 👋
+                </h2>
+                <p className="text-2xl text-slate-300 mb-8 max-w-lg font-semibold">
+                  I'm <span style={{ color: '#ec4899' }}>AIBuddy</span>, your coding friend!
+                  <br />
+                  Tell me what you want to build! 🚀
+                </p>
 
-            {/* Big Helpful Cards */}
-            <div className="flex flex-wrap justify-center gap-4 mb-8">
-              <Tooltip text="Just type what you want me to do in the box below!">
-                <div 
-                  className="px-6 py-4 rounded-2xl text-lg font-bold cursor-help transition-transform hover:scale-105"
-                  style={{ background: 'rgba(236, 72, 153, 0.15)', color: '#f472b6', border: '2px solid #f472b6' }}
-                >
-                  💬 Type what you want
+                {/* Big Helpful Cards */}
+                <div className="flex flex-wrap justify-center gap-4 mb-8">
+                  <Tooltip text="Just type what you want me to do in the box below!">
+                    <div 
+                      className="px-6 py-4 rounded-2xl text-lg font-bold cursor-help transition-transform hover:scale-105"
+                      style={{ background: 'rgba(236, 72, 153, 0.15)', color: '#f472b6', border: '2px solid #f472b6' }}
+                    >
+                      💬 Type what you want
+                    </div>
+                  </Tooltip>
+                  <Tooltip text="I'll write the code and do all the hard work for you!">
+                    <div 
+                      className="px-6 py-4 rounded-2xl text-lg font-bold cursor-help transition-transform hover:scale-105"
+                      style={{ background: 'rgba(6, 182, 212, 0.15)', color: '#22d3ee', border: '2px solid #22d3ee' }}
+                    >
+                      🚀 I'll do the work
+                    </div>
+                  </Tooltip>
+                  <Tooltip text="Each question uses some credits - check the green number at the top!">
+                    <div 
+                      className="px-6 py-4 rounded-2xl text-lg font-bold cursor-help transition-transform hover:scale-105"
+                      style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '2px solid #4ade80' }}
+                    >
+                      💰 Watch your credits
+                    </div>
+                  </Tooltip>
                 </div>
-              </Tooltip>
-              <Tooltip text="I'll write the code and do all the hard work for you!">
-                <div 
-                  className="px-6 py-4 rounded-2xl text-lg font-bold cursor-help transition-transform hover:scale-105"
-                  style={{ background: 'rgba(6, 182, 212, 0.15)', color: '#22d3ee', border: '2px solid #22d3ee' }}
-                >
-                  🚀 I'll do the work
-                </div>
-              </Tooltip>
-              <Tooltip text="Each question uses some credits - check the green number at the top!">
-                <div 
-                  className="px-6 py-4 rounded-2xl text-lg font-bold cursor-help transition-transform hover:scale-105"
-                  style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '2px solid #4ade80' }}
-                >
-                  💰 Watch your credits
-                </div>
-              </Tooltip>
-            </div>
 
-            {/* Example prompts */}
-            <div className="text-slate-400 text-base">
-              <p className="mb-3 font-semibold">Try saying:</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {[
-                  "Make a simple website",
-                  "Create a todo list app",
-                  "Help me fix this bug",
-                  "Explain this code"
-                ].map((example, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      trackButtonClick('Example Prompt', 'WelcomeScreen', { prompt: example })
-                      addBreadcrumb('User clicked example prompt', 'ui.click', { 
-                        prompt: example,
-                        index: i 
-                      })
-                      setInput(example)
-                    }}
-                    className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105"
-                    style={{ background: 'rgba(255,255,255,0.1)', color: '#94a3b8' }}
-                  >
-                    "{example}"
-                  </button>
-                ))}
-              </div>
-            </div>
+                {/* Example prompts */}
+                <div className="text-slate-400 text-base">
+                  <p className="mb-3 font-semibold">Try saying:</p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {[
+                      "Make a simple website",
+                      "Create a todo list app",
+                      "Help me fix this bug",
+                      "Explain this code"
+                    ].map((example, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          trackButtonClick('Example Prompt', 'WelcomeScreen', { prompt: example })
+                          addBreadcrumb('User clicked example prompt', 'ui.click', { 
+                            prompt: example,
+                            index: i 
+                          })
+                          setInput(example)
+                        }}
+                        className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105"
+                        style={{ background: 'rgba(255,255,255,0.1)', color: '#94a3b8' }}
+                      >
+                        "{example}"
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="max-w-4xl mx-auto space-y-6">
@@ -2048,17 +2496,107 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                     </div>
                   )}
                   
-                  {/* Cost indicator for assistant messages */}
-                  {message.role === 'assistant' && message.cost && (
-                    <div className="mt-2 pt-2 border-t border-slate-700 flex items-center gap-2 text-xs text-slate-500">
-                      <Coins className="w-3 h-3" />
-                      <span>Cost: {message.cost.toFixed(4)} credits</span>
-                      {message.model && (
-                        <>
-                          <span>•</span>
-                          <span>AIBuddy</span>
-                        </>
+                  {/* Token Usage & Cost Display for assistant messages */}
+                  {message.role === 'assistant' && (message.cost || message.tokensIn || message.tokensOut) && (
+                    <div className="mt-3 pt-2 border-t border-slate-700">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        {/* Cost */}
+                        {message.cost && (
+                          <div className="flex items-center gap-1 text-green-400/80">
+                            <Coins className="w-3 h-3" />
+                            <span className="font-medium">${message.cost.toFixed(4)}</span>
+                          </div>
+                        )}
+                        
+                        {/* Token Usage */}
+                        {(message.tokensIn || message.tokensOut) && (
+                          <div className="flex items-center gap-2 text-slate-500">
+                            {message.tokensIn && (
+                              <span className="flex items-center gap-1">
+                                <span className="text-blue-400">↑</span>
+                                <span>{message.tokensIn.toLocaleString()} in</span>
+                              </span>
+                            )}
+                            {message.tokensOut && (
+                              <span className="flex items-center gap-1">
+                                <span className="text-purple-400">↓</span>
+                                <span>{message.tokensOut.toLocaleString()} out</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Model */}
+                        {message.model && (
+                          <span className="text-slate-600 text-[10px] bg-slate-800 px-1.5 py-0.5 rounded">
+                            {message.model.includes('deepseek') ? 'DeepSeek' : 
+                             message.model.includes('opus') ? 'Claude Opus' :
+                             message.model.includes('sonnet') ? 'Claude Sonnet' : 'AIBuddy'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Message Controls for assistant messages */}
+                  {message.role === 'assistant' && (
+                    <div className="mt-3 pt-2 border-t border-slate-700/50 flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
+                      {/* Copy Response */}
+                      <Tooltip text="Copy response">
+                        <button
+                          onClick={() => copyResponse(message.content, message.id)}
+                          className="p-1.5 rounded-lg hover:bg-slate-700/50 transition-colors"
+                        >
+                          {copiedId === message.id + '-response' ? (
+                            <Check className="w-4 h-4 text-green-400" />
+                          ) : (
+                            <Copy className="w-4 h-4 text-slate-400" />
+                          )}
+                        </button>
+                      </Tooltip>
+                      
+                      {/* Regenerate (only show on last assistant message) */}
+                      {messages[messages.length - 1]?.id === message.id && (
+                        <Tooltip text="Regenerate response">
+                          <button
+                            onClick={handleRegenerate}
+                            disabled={isLoading}
+                            className="p-1.5 rounded-lg hover:bg-slate-700/50 transition-colors disabled:opacity-50"
+                          >
+                            <RefreshCw className={`w-4 h-4 text-slate-400 ${isLoading ? 'animate-spin' : ''}`} />
+                          </button>
+                        </Tooltip>
                       )}
+                      
+                      <div className="w-px h-4 bg-slate-700 mx-1" />
+                      
+                      {/* Thumbs Up */}
+                      <Tooltip text="Good response">
+                        <button
+                          onClick={() => handleFeedback(message.id, 'up')}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            messageFeedback[message.id] === 'up' 
+                              ? 'bg-green-500/20 text-green-400' 
+                              : 'hover:bg-slate-700/50 text-slate-400'
+                          }`}
+                        >
+                          <ThumbsUp className="w-4 h-4" />
+                        </button>
+                      </Tooltip>
+                      
+                      {/* Thumbs Down */}
+                      <Tooltip text="Poor response">
+                        <button
+                          onClick={() => handleFeedback(message.id, 'down')}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            messageFeedback[message.id] === 'down' 
+                              ? 'bg-red-500/20 text-red-400' 
+                              : 'hover:bg-slate-700/50 text-slate-400'
+                          }`}
+                        >
+                          <ThumbsDown className="w-4 h-4" />
+                        </button>
+                      </Tooltip>
                     </div>
                   )}
                 </div>
@@ -2075,23 +2613,29 @@ Be concise and actionable. Focus on fixing the immediate problem.`
             ))}
 
             {/* Loading */}
+            {/* Enhanced Loading/Streaming Indicator */}
             {isLoading && (
               <div className="flex gap-3">
                 <div 
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'linear-gradient(135deg, #ec4899, #f97316)' }}
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 animate-pulse"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #ec4899, #f97316)',
+                    boxShadow: '0 4px 16px rgba(236, 72, 153, 0.4)'
+                  }}
                 >
-                  <Bot className="w-5 h-5 text-white" />
+                  <Bot className="w-7 h-7 text-white" />
                 </div>
                 <div 
-                  className="rounded-xl p-3"
-                  style={{ background: '#1e293b', border: '1px solid #334155' }}
+                  className="rounded-2xl p-4 max-w-md"
+                  style={{ background: '#1e293b', border: '2px solid #334155' }}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <div style={{ color: currentStatus.color }}>{currentStatus.icon}</div>
                     <span className="text-sm text-white font-semibold">{currentStatus.text}</span>
                   </div>
-                  <div className="mt-2 h-1 bg-slate-700 rounded-full overflow-hidden w-40">
+                  
+                  {/* Progress bar */}
+                  <div className="mt-3 h-1.5 bg-slate-700 rounded-full overflow-hidden w-48">
                     <div 
                       className="h-full rounded-full transition-all duration-500"
                       style={{ 
@@ -2100,10 +2644,22 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                                status === 'sending' ? '50%' : 
                                status === 'thinking' ? '70%' : 
                                status === 'generating' ? '90%' : '100%',
-                        background: currentStatus.color
+                        background: `linear-gradient(90deg, ${currentStatus.color}, ${currentStatus.color}88)`
                       }}
                     />
                   </div>
+                  
+                  {/* Animated typing dots for thinking/generating states */}
+                  {(status === 'thinking' || status === 'generating') && (
+                    <div className="mt-3 flex items-center gap-1">
+                      <span className="text-xs text-slate-500">AIBuddy is typing</span>
+                      <span className="flex gap-0.5">
+                        <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -2112,6 +2668,41 @@ Be concise and actionable. Focus on fixing the immediate problem.`
           </div>
         )}
       </main>
+
+      {/* Offline Banner */}
+      {isOffline && (
+        <div 
+          className="mx-4 mb-2 p-3 rounded-xl flex items-center justify-between"
+          style={{ background: 'rgba(239, 68, 68, 0.15)', border: '2px solid #ef4444' }}
+        >
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-red-400" />
+            <span className="text-red-300 font-medium">You're offline. Check your internet connection.</span>
+          </div>
+        </div>
+      )}
+      
+      {/* Retry Button after error */}
+      {lastError?.canRetry && !isLoading && status !== 'idle' && (
+        <div className="mx-4 mb-2 flex justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              setLastError(null)
+              setStatus('idle')
+              handleRegenerate()
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:scale-105"
+            style={{ 
+              background: 'linear-gradient(135deg, #f97316, #ec4899)',
+              boxShadow: '0 4px 16px rgba(249, 115, 22, 0.3)'
+            }}
+          >
+            <RefreshCw className="w-4 h-4 text-white" />
+            <span className="text-white font-medium">Retry Request</span>
+          </button>
+        </div>
+      )}
 
       {/* Input */}
       <footer className="p-4" style={{ borderTop: '2px solid #334155' }}>
@@ -2159,9 +2750,9 @@ Be concise and actionable. Focus on fixing the immediate problem.`
             </div>
           )}
           
-          {/* Big Input Box - with drag and drop support */}
+          {/* Input Container - with drag and drop support */}
           <div 
-            className={`relative flex items-end gap-4 p-4 rounded-3xl transition-all ${isDraggingOver ? 'scale-[1.02]' : ''}`}
+            className={`relative rounded-3xl transition-all ${isDraggingOver ? 'scale-[1.02]' : ''}`}
             style={{ 
               background: isDraggingOver 
                 ? 'linear-gradient(135deg, #4c1d95, #7c3aed)' 
@@ -2187,7 +2778,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
               </div>
             )}
             
-            {/* Hidden file input */}
+            {/* Hidden file input (fallback for paste) */}
             <input
               ref={fileInputRef}
               type="file"
@@ -2197,82 +2788,162 @@ Be concise and actionable. Focus on fixing the immediate problem.`
               className="hidden"
             />
             
-            {/* Image Upload Button */}
-            <Tooltip text="📷 Attach an image (screenshot, error, UI) for analysis">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading}
-                className="flex items-center justify-center w-12 h-12 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-                style={{ 
-                  background: attachedImages.length > 0 
-                    ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' 
-                    : 'rgba(139, 92, 246, 0.2)',
-                  border: '2px solid #8b5cf6'
-                }}
-              >
-                <ImageIcon className="w-6 h-6 text-purple-300" />
-              </button>
-            </Tooltip>
+            {/* Main input row - properly aligned */}
+            <div className="flex items-center gap-3 p-4">
+              {/* Image Upload Button - Uses Electron native dialog */}
+              <Tooltip text="📷 Attach an image (screenshot, error, UI) for analysis">
+                <button
+                  type="button"
+                  onClick={handleImageSelectWithElectron}
+                  disabled={isLoading}
+                  className="flex items-center justify-center w-11 h-11 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex-shrink-0"
+                  style={{ 
+                    background: attachedImages.length > 0 
+                      ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' 
+                      : 'rgba(139, 92, 246, 0.2)',
+                    border: '2px solid #8b5cf6'
+                  }}
+                >
+                  <ImageIcon className="w-5 h-5 text-purple-300" />
+                </button>
+              </Tooltip>
+              
+              {/* Model Selector */}
+              <div className="relative">
+                <Tooltip text="Select AI model">
+                  <button
+                    type="button"
+                    onClick={() => setShowModelSelector(!showModelSelector)}
+                    disabled={isLoading}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all hover:bg-slate-700/50 disabled:opacity-50 flex-shrink-0"
+                    style={{ 
+                      background: 'rgba(59, 130, 246, 0.15)',
+                      border: '1px solid rgba(59, 130, 246, 0.3)'
+                    }}
+                  >
+                    <Zap className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="text-xs text-blue-300 font-medium">
+                      {MODEL_OPTIONS.find(m => m.id === selectedModel)?.name.split(' ')[0] || 'Auto'}
+                    </span>
+                  </button>
+                </Tooltip>
+                
+                {/* Model Dropdown */}
+                {showModelSelector && (
+                  <div 
+                    className="absolute bottom-full left-0 mb-2 w-64 rounded-xl overflow-hidden z-50"
+                    style={{ 
+                      background: '#1e293b',
+                      border: '2px solid #334155',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
+                    }}
+                  >
+                    <div className="p-2 border-b border-slate-700">
+                      <p className="text-xs font-semibold text-slate-400">Select AI Model</p>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {MODEL_OPTIONS.map(model => (
+                        <button
+                          key={model.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedModel(model.id)
+                            setShowModelSelector(false)
+                            addBreadcrumb('Model changed', 'settings', { model: model.id })
+                          }}
+                          className={`w-full text-left px-3 py-2.5 transition-colors ${
+                            selectedModel === model.id 
+                              ? 'bg-blue-500/20' 
+                              : 'hover:bg-slate-700/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-white">{model.name}</span>
+                            <div className="flex items-center gap-1">
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                model.speed === 'fast' ? 'bg-green-500/20 text-green-400' :
+                                model.speed === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                                'bg-red-500/20 text-red-400'
+                              }`}>
+                                {model.speed}
+                              </span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                model.cost === 'low' ? 'bg-green-500/20 text-green-400' :
+                                model.cost === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                                'bg-red-500/20 text-red-400'
+                              }`}>
+                                ${model.cost}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">{model.description}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             
-            {/* Input Area */}
-            <div className="flex-1 relative">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    handleSubmit()
+              {/* Input Area - flex-1 to take remaining space */}
+              <div className="flex-1 min-w-0">
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      handleSubmit()
+                    }
+                  }}
+                  onPaste={handlePasteImage}
+                  placeholder={attachedImages.length > 0 
+                    ? "📷 Describe what you need help with..."
+                    : "🤔 What do you want to build today?"
                   }
-                }}
-                onPaste={handlePasteImage}
-                placeholder={attachedImages.length > 0 
-                  ? "📷 Describe what you need help with, or just send the image..."
-                  : "🤔 What do you want to build today? Type here or paste an image..."
-                }
-                className="w-full bg-transparent text-white text-lg resize-none outline-none placeholder-slate-400 font-semibold"
-                style={{ minHeight: '60px', maxHeight: '150px' }}
-                rows={2}
-                disabled={isLoading}
-              />
-              {/* Helper text */}
-              <p className="text-xs text-slate-500 mt-1">
-                💡 Tip: Press Enter to send • Drag & drop or paste images • Click 📷 to attach
-              </p>
+                  className="w-full bg-transparent text-white text-base resize-none outline-none placeholder-slate-400 font-medium"
+                  style={{ minHeight: '44px', maxHeight: '120px' }}
+                  rows={1}
+                  disabled={isLoading}
+                />
+              </div>
+              
+              {/* Send Button - aligned with input */}
+              <Tooltip text="🚀 Send message">
+                <button
+                  type="submit"
+                  disabled={(!input.trim() && attachedImages.length === 0) || isLoading}
+                  className="flex items-center justify-center w-11 h-11 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex-shrink-0"
+                  style={{ 
+                    background: (input.trim() || attachedImages.length > 0) && !isLoading 
+                      ? 'linear-gradient(135deg, #ec4899, #f97316)'
+                      : 'rgba(100,100,100,0.3)',
+                    boxShadow: (input.trim() || attachedImages.length > 0) && !isLoading 
+                      ? '0 4px 16px rgba(236, 72, 153, 0.4)'
+                      : 'none'
+                  }}
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5 text-white" />
+                  )}
+                </button>
+              </Tooltip>
             </div>
             
-            {/* Big Send Button */}
-            <Tooltip text="🚀 Click here to send your message to me!">
-              <button
-                type="submit"
-                disabled={(!input.trim() && attachedImages.length === 0) || isLoading}
-                className="flex items-center gap-3 px-6 py-4 rounded-2xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-                style={{ 
-                  background: (input.trim() || attachedImages.length > 0) && !isLoading 
-                    ? 'linear-gradient(135deg, #ec4899, #f97316)'
-                    : 'rgba(100,100,100,0.3)',
-                  boxShadow: (input.trim() || attachedImages.length > 0) && !isLoading 
-                    ? '0 8px 24px rgba(236, 72, 153, 0.5)'
-                    : 'none'
-                }}
-              >
-                {isLoading ? (
-                  <Loader2 className="w-7 h-7 text-white animate-spin" />
-                ) : (
-                  <Send className="w-7 h-7 text-white" />
-                )}
-                <span className="text-white font-bold text-lg hidden sm:block">
-                  {isLoading ? 'Thinking...' : (attachedImages.length > 0 ? 'Analyze' : 'Send')}
-                </span>
-              </button>
-            </Tooltip>
+            {/* Helper text - outside the main row */}
+            <div className="px-4 pb-3 pt-1">
+              <p className="text-xs text-slate-500">
+                ↵ Enter to send • ⇧↵ New line • Drag/paste images • <span className="text-purple-400">Supports PNG, JPG, GIF, WebP</span>
+              </p>
+            </div>
           </div>
           
-          {/* Helpful Footer */}
-          <p className="text-center text-slate-400 text-sm mt-3 font-semibold">
-            Press Enter to send • Paste or attach images for analysis • Powered by AIBuddy ✨
+          {/* Keyboard shortcuts hint */}
+          <p className="text-center text-slate-500 text-xs mt-2">
+            <Keyboard className="w-3 h-3 inline mr-1" />
+            <span className="text-slate-600">⌘K</span> Settings • <span className="text-slate-600">⌘N</span> New Chat • <span className="text-slate-600">⌘H</span> History
           </p>
         </form>
       </footer>
@@ -2396,6 +3067,73 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                 </p>
               </div>
             )}
+            
+            {/* Divider */}
+            <div className="my-6 border-t border-slate-700" />
+            
+            {/* Appearance Settings */}
+            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <Settings className="w-5 h-5 text-purple-400" />
+              Appearance
+            </h3>
+            
+            {/* Theme Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-bold text-slate-400 mb-2">Theme</label>
+              <div className="flex gap-2">
+                {(['dark', 'darker', 'system'] as Theme[]).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setTheme(t)}
+                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      theme === t 
+                        ? 'bg-purple-500/30 border-purple-500 text-purple-300' 
+                        : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'
+                    }`}
+                    style={{ border: '2px solid' }}
+                  >
+                    {t === 'dark' ? '🌙 Dark' : t === 'darker' ? '🌑 Darker' : '💻 System'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Font Size */}
+            <div className="mb-4">
+              <label className="block text-sm font-bold text-slate-400 mb-2">Font Size</label>
+              <div className="flex gap-2">
+                {(['small', 'medium', 'large'] as FontSize[]).map(size => (
+                  <button
+                    key={size}
+                    onClick={() => setFontSize(size)}
+                    className={`flex-1 px-3 py-2 rounded-lg font-medium transition-all ${
+                      fontSize === size 
+                        ? 'bg-blue-500/30 border-blue-500 text-blue-300' 
+                        : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'
+                    }`}
+                    style={{ 
+                      border: '2px solid',
+                      fontSize: size === 'small' ? '12px' : size === 'large' ? '16px' : '14px'
+                    }}
+                  >
+                    {size === 'small' ? 'A Small' : size === 'large' ? 'A Large' : 'A Medium'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Keyboard Shortcuts Reference */}
+            <div className="mt-4 p-3 rounded-xl" style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid #8b5cf6' }}>
+              <p className="text-sm font-bold text-purple-300 mb-2">⌨️ Keyboard Shortcuts</p>
+              <div className="grid grid-cols-2 gap-2 text-xs text-slate-400">
+                <div><kbd className="mr-1">⌘K</kbd> Settings</div>
+                <div><kbd className="mr-1">⌘N</kbd> New Chat</div>
+                <div><kbd className="mr-1">⌘H</kbd> History</div>
+                <div><kbd className="mr-1">⌘/</kbd> Focus Input</div>
+                <div><kbd className="mr-1">↵</kbd> Send Message</div>
+                <div><kbd className="mr-1">Esc</kbd> Close Panel</div>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -355,10 +355,57 @@
   border: 2px dashed #ec4899 !important;
 }
 
-/* Focus styles */
+/* Focus styles - WCAG compliant */
 *:focus-visible {
   outline: 2px solid #ec4899;
   outline-offset: 2px;
+}
+
+/* Enhanced focus for buttons */
+button:focus-visible {
+  outline: 2px solid #ec4899;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.2);
+}
+
+/* Focus for interactive elements */
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex="0"]:focus-visible {
+  outline: 2px solid #ec4899;
+  outline-offset: 2px;
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  background: #ec4899;
+  color: white;
+  padding: 8px 16px;
+  z-index: 9999;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Keyboard shortcut hints */
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  padding: 2px 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #94a3b8;
 }
 
 /* Selection */

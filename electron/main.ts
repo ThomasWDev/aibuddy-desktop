@@ -155,7 +155,10 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      // Disable web security in dev mode to allow direct API calls without CORS issues
+      // This is safe because it's only for development - production builds don't have this
+      webSecurity: !isDev
     }
   })
 
@@ -184,10 +187,10 @@ function createWindow(): void {
   })
 
   // Set CSP headers to allow API calls
-  // IMPORTANT: We allow HTTP to the ALB (3.136.220.194) because:
+  // IMPORTANT: We allow HTTP to the ALB DNS name because:
   // - ALB has NO timeout limit (can wait for Lambda's full 5-minute timeout)
   // - API Gateway has 29-second hard limit (not enough for Claude Opus 4.5)
-  // - This is the same endpoint the VS Code extension uses successfully
+  // - ALB IPs can change, so we use wildcard for *.elb.amazonaws.com
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -200,7 +203,7 @@ function createWindow(): void {
           "img-src 'self' data: https:; " +
           "font-src 'self' data: https://fonts.gstatic.com; " +
           // Allow HTTPS everywhere + HTTP to ALB (no timeout limit for Claude Opus 4.5)
-          "connect-src 'self' https: wss: http://3.136.220.194;"
+          "connect-src 'self' https: wss: http://*.us-east-2.elb.amazonaws.com http://*.elb.amazonaws.com;"
         ]
       }
     })

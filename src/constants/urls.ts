@@ -25,7 +25,8 @@ export const AIBUDDY_BUY_CREDITS_URL = 'https://aibuddy.life/pricing'
 // API endpoints
 // AWS Application Load Balancer - PRIMARY (HTTP, NO timeout limit)
 // Same endpoint the VS Code extension uses - supports Claude Opus 4.5 long responses
-export const AIBUDDY_ALB_URL = 'http://3.136.220.194'
+// IMPORTANT: Use DNS name, not IP - ALB IPs can change!
+export const AIBUDDY_ALB_URL = 'http://aibuddy-api-alb-90164252.us-east-2.elb.amazonaws.com'
 // API Gateway - BACKUP (HTTPS, 29-second timeout - only for quick validation)
 export const AIBUDDY_API_GATEWAY_URL = 'https://i6f81wuqo0.execute-api.us-east-2.amazonaws.com/dev'
 // Lambda Function URL - DISABLED (403 Forbidden issue - AWS IAM auth required)
@@ -33,6 +34,7 @@ export const AIBUDDY_LAMBDA_URL = 'https://x6s3kwugl426vmsnv4evh6p2se0kbmke.lamb
 
 // Use ALB for inference (NO timeout limit - same as VS Code extension)
 // This is the fix for Claude Opus 4.5 timeout issues
+// Note: Dev mode uses webSecurity: false in Electron to bypass CORS
 export const AIBUDDY_API_BASE_URL = AIBUDDY_ALB_URL
 export const AIBUDDY_API_INFERENCE_URL = `${AIBUDDY_ALB_URL}/`
 // Use ALB for validation too (consistent with inference)

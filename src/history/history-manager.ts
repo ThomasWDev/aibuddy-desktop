@@ -15,8 +15,13 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
+import * as crypto from 'crypto'
 import { ChatThread, ChatMessage, ChatHistoryState, HISTORY_VERSION } from './types'
-import { nanoid } from 'nanoid'
+
+// Simple ID generator (replaces nanoid which is ESM-only)
+const generateId = (): string => {
+  return crypto.randomBytes(12).toString('base64url')
+}
 
 const HISTORY_DIR = path.join(os.homedir(), '.aibuddy', 'history')
 const HISTORY_FILE = path.join(HISTORY_DIR, 'threads.json')
@@ -129,7 +134,7 @@ export class ChatHistoryManager {
    */
   createThread(firstMessage?: string, workspacePath?: string): ChatThread {
     const thread: ChatThread = {
-      id: nanoid(),
+      id: generateId(),
       title: firstMessage 
         ? firstMessage.slice(0, 50) + (firstMessage.length > 50 ? '...' : '')
         : 'New Chat',
@@ -187,7 +192,7 @@ export class ChatHistoryManager {
 
     const fullMessage: ChatMessage = {
       ...message,
-      id: nanoid(),
+      id: generateId(),
       timestamp: Date.now()
     }
 

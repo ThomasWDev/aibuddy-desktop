@@ -40,6 +40,8 @@ export interface ChatThread {
   model?: string
   /** Is this thread completed/archived */
   isCompleted?: boolean
+  /** Is this thread pinned/favorited */
+  isPinned?: boolean
 }
 
 export interface ChatHistoryState {

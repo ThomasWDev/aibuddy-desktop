@@ -21,7 +21,8 @@ import {
   X,
   Clock,
   ChevronLeft,
-  MoreVertical
+  MoreVertical,
+  Star
 } from 'lucide-react'
 import { ChatThread } from '../../../src/history/types'
 
@@ -73,9 +74,10 @@ export function HistorySidebar({
     )
   }, [threads, searchQuery])
 
-  // Group threads by date
+  // Group threads by date (pinned threads shown separately at top)
   const groupedThreads = useMemo(() => {
     const groups: { [key: string]: ChatThread[] } = {
+      'Pinned': [],
       'Today': [],
       'Yesterday': [],
       'This Week': [],
@@ -90,6 +92,12 @@ export function HistorySidebar({
     const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
 
     filteredThreads.forEach(thread => {
+      // Pinned threads go to top section
+      if (thread.isPinned) {
+        groups['Pinned'].push(thread)
+        return
+      }
+      
       const threadDate = new Date(thread.updatedAt)
       if (threadDate >= today) {
         groups['Today'].push(thread)
@@ -122,6 +130,16 @@ export function HistorySidebar({
     }
     setEditingId(null)
     setEditTitle('')
+  }
+
+  const handleTogglePin = async (threadId: string, isPinned: boolean, e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      await window.electronAPI.history.updateMetadata(threadId, { isPinned: !isPinned })
+      loadThreads()
+    } catch (error) {
+      console.error('[HistorySidebar] Failed to toggle pin:', error)
+    }
   }
 
   const startEditing = (thread: ChatThread, e: React.MouseEvent) => {
@@ -195,7 +213,12 @@ export function HistorySidebar({
             if (groupThreads.length === 0) return null
             return (
               <div key={group}>
-                <div className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider bg-[#0d0d1a]/50">
+                <div className={`px-4 py-2 text-xs font-medium uppercase tracking-wider ${
+                  group === 'Pinned' 
+                    ? 'bg-yellow-500/10 text-yellow-400 flex items-center gap-1.5' 
+                    : 'bg-[#0d0d1a]/50 text-gray-500'
+                }`}>
+                  {group === 'Pinned' && <Star className="w-3 h-3 fill-current" />}
                   {group}
                 </div>
                 {groupThreads.map(thread => (
@@ -240,7 +263,11 @@ export function HistorySidebar({
                         <>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <MessageSquare className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                              {thread.isPinned ? (
+                                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 flex-shrink-0" />
+                              ) : (
+                                <MessageSquare className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                              )}
                               <span className="text-sm font-medium text-white truncate">
                                 {thread.title}
                               </span>
@@ -259,14 +286,27 @@ export function HistorySidebar({
                           </div>
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
+                              onClick={(e) => handleTogglePin(thread.id, !!thread.isPinned, e)}
+                              className={`p-1 rounded transition-colors ${
+                                thread.isPinned 
+                                  ? 'text-yellow-400 hover:text-yellow-300' 
+                                  : 'text-gray-400 hover:text-yellow-400'
+                              }`}
+                              title={thread.isPinned ? 'Unpin chat' : 'Pin chat'}
+                            >
+                              <Star className={`w-3.5 h-3.5 ${thread.isPinned ? 'fill-current' : ''}`} />
+                            </button>
+                            <button
                               onClick={(e) => startEditing(thread, e)}
                               className="p-1 text-gray-400 hover:text-white rounded"
+                              title="Rename chat"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={(e) => handleDelete(thread.id, e)}
                               className="p-1 text-gray-400 hover:text-red-400 rounded"
+                              title="Delete chat"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
