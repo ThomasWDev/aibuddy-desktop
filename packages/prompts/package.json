@@ -1,0 +1,51 @@
+{
+  "name": "@aibuddy/prompts",
+  "version": "1.0.0",
+  "description": "Shared system prompts for AIBuddy across all platforms (Desktop, Extension, Web)",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./languages/*": {
+      "types": "./dist/languages/*.d.ts",
+      "import": "./dist/languages/*.mjs",
+      "require": "./dist/languages/*.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dedent": "^1.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  },
+  "keywords": [
+    "aibuddy",
+    "prompts",
+    "system-prompt",
+    "ai",
+    "coding-assistant"
+  ],
+  "author": "AIBuddy",
+  "license": "MIT"
+}
+
