@@ -2707,46 +2707,91 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       {/* Input */}
       <footer className="p-4" style={{ borderTop: '2px solid #334155' }}>
         <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
-          {/* Image Attachments Preview */}
+          {/* Image Attachments Preview - Chip-style like ChatGPT */}
           {attachedImages.length > 0 && (
-            <div 
-              className="flex flex-wrap gap-2 mb-3 p-3 rounded-2xl"
-              style={{ background: 'rgba(139, 92, 246, 0.1)', border: '2px solid #8b5cf6' }}
-            >
-              <div className="w-full flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-purple-300">
-                  📷 {attachedImages.length} image{attachedImages.length > 1 ? 's' : ''} attached
-                </span>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {attachedImages.map(img => {
+                // Get file type badge color
+                const fileTypeColor = {
+                  'image/png': { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'PNG' },
+                  'image/jpeg': { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'JPG' },
+                  'image/gif': { bg: 'bg-purple-500/20', text: 'text-purple-400', label: 'GIF' },
+                  'image/webp': { bg: 'bg-green-500/20', text: 'text-green-400', label: 'WebP' }
+                }[img.mimeType] || { bg: 'bg-slate-500/20', text: 'text-slate-400', label: 'IMG' }
+                
+                // Format file size
+                const formatSize = (bytes: number) => {
+                  if (bytes < 1024) return `${bytes} B`
+                  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+                  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+                }
+                
+                return (
+                  <div 
+                    key={img.id}
+                    className="group relative flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl transition-all hover:scale-[1.02]"
+                    style={{ 
+                      background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+                      border: '2px solid #334155'
+                    }}
+                  >
+                    {/* Thumbnail */}
+                    <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                      <img 
+                        src={`data:${img.mimeType};base64,${img.base64}`}
+                        alt={img.name}
+                        className="w-full h-full object-cover"
+                      />
+                      {/* File type badge */}
+                      <span className={`absolute bottom-0 left-0 right-0 text-[9px] font-bold text-center py-0.5 ${fileTypeColor.bg} ${fileTypeColor.text}`}>
+                        {fileTypeColor.label}
+                      </span>
+                    </div>
+                    
+                    {/* File info */}
+                    <div className="flex flex-col min-w-0 max-w-[120px]">
+                      <span className="text-xs font-medium text-white truncate" title={img.name}>
+                        {img.name}
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        {formatSize(img.size)}
+                      </span>
+                    </div>
+                    
+                    {/* Remove button */}
+                    <button
+                      type="button"
+                      onClick={() => removeImage(img.id)}
+                      className="p-1 rounded-full hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all ml-1"
+                      aria-label={`Remove ${img.name}`}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )
+              })}
+              
+              {/* Clear all button (when multiple) */}
+              {attachedImages.length > 1 && (
                 <button
                   type="button"
                   onClick={clearAllImages}
-                  className="text-xs text-slate-400 hover:text-red-400 transition-colors"
+                  className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                  style={{ border: '2px dashed #334155' }}
                 >
+                  <Trash2 className="w-3.5 h-3.5" />
                   Clear all
                 </button>
-              </div>
-              {attachedImages.map(img => (
-                <div 
-                  key={img.id}
-                  className="relative group"
-                >
-                  <img 
-                    src={`data:${img.mimeType};base64,${img.base64}`}
-                    alt={img.name}
-                    className="w-20 h-20 object-cover rounded-lg border-2 border-purple-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(img.id)}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-4 h-4 text-white" />
-                  </button>
-                  <span className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1 truncate rounded-b-lg">
-                    {img.name.substring(0, 15)}...
-                  </span>
-                </div>
-              ))}
+              )}
+            </div>
+          )}
+          
+          {/* Supported file types hint (shown when no attachments) */}
+          {attachedImages.length === 0 && isDraggingOver && (
+            <div className="mb-3 px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30">
+              <p className="text-xs text-purple-300 text-center">
+                <span className="font-semibold">Supported formats:</span> PNG, JPG, GIF, WebP • Max 10MB per file
+              </p>
             </div>
           )}
           
