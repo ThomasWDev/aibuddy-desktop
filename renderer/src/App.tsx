@@ -2788,38 +2788,40 @@ Be concise and actionable. Focus on fixing the immediate problem.`
               className="hidden"
             />
             
-            {/* Main input row - properly aligned */}
-            <div className="flex items-center gap-3 p-4">
+            {/* Main input row - properly aligned with items-center for vertical centering */}
+            <div className="flex items-center gap-3 p-3 sm:p-4">
               {/* Image Upload Button - Uses Electron native dialog */}
               <Tooltip text="📷 Attach an image (screenshot, error, UI) for analysis">
                 <button
                   type="button"
                   onClick={handleImageSelectWithElectron}
                   disabled={isLoading}
-                  className="flex items-center justify-center w-11 h-11 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex-shrink-0"
+                  className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex-shrink-0 self-center"
                   style={{ 
                     background: attachedImages.length > 0 
                       ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' 
                       : 'rgba(139, 92, 246, 0.2)',
                     border: '2px solid #8b5cf6'
                   }}
+                  aria-label="Attach image"
                 >
                   <ImageIcon className="w-5 h-5 text-purple-300" />
                 </button>
               </Tooltip>
               
               {/* Model Selector */}
-              <div className="relative">
+              <div className="relative self-center">
                 <Tooltip text="Select AI model">
                   <button
                     type="button"
                     onClick={() => setShowModelSelector(!showModelSelector)}
                     disabled={isLoading}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all hover:bg-slate-700/50 disabled:opacity-50 flex-shrink-0"
+                    className="flex items-center gap-1.5 px-2.5 h-10 sm:h-11 rounded-lg transition-all hover:bg-slate-700/50 disabled:opacity-50 flex-shrink-0"
                     style={{ 
                       background: 'rgba(59, 130, 246, 0.15)',
                       border: '1px solid rgba(59, 130, 246, 0.3)'
                     }}
+                    aria-label="Select AI model"
                   >
                     <Zap className="w-3.5 h-3.5 text-blue-400" />
                     <span className="text-xs text-blue-300 font-medium">
@@ -2884,8 +2886,8 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                 )}
               </div>
             
-              {/* Input Area - flex-1 to take remaining space */}
-              <div className="flex-1 min-w-0">
+              {/* Input Area - flex-1 to take remaining space, vertically centered */}
+              <div className="flex-1 min-w-0 flex items-center self-center">
                 <textarea
                   ref={inputRef}
                   value={input}
@@ -2901,10 +2903,11 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                     ? "📷 Describe what you need help with..."
                     : "🤔 What do you want to build today?"
                   }
-                  className="w-full bg-transparent text-white text-base resize-none outline-none placeholder-slate-400 font-medium"
-                  style={{ minHeight: '44px', maxHeight: '120px' }}
+                  className="w-full bg-transparent text-white text-base resize-none outline-none placeholder-slate-400 font-medium leading-normal py-2"
+                  style={{ minHeight: '40px', maxHeight: '120px' }}
                   rows={1}
                   disabled={isLoading}
+                  aria-label="Message input"
                 />
               </div>
               
@@ -2913,7 +2916,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                 <button
                   type="submit"
                   disabled={(!input.trim() && attachedImages.length === 0) || isLoading}
-                  className="flex items-center justify-center w-11 h-11 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex-shrink-0"
+                  className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex-shrink-0 self-center"
                   style={{ 
                     background: (input.trim() || attachedImages.length > 0) && !isLoading 
                       ? 'linear-gradient(135deg, #ec4899, #f97316)'
@@ -2922,6 +2925,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                       ? '0 4px 16px rgba(236, 72, 153, 0.4)'
                       : 'none'
                   }}
+                  aria-label="Send message"
                 >
                   {isLoading ? (
                     <Loader2 className="w-5 h-5 text-white animate-spin" />
