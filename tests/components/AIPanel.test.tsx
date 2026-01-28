@@ -51,7 +51,9 @@ describe('AIPanel', () => {
 
   it('should render send button', () => {
     render(<AIPanel workspacePath={workspacePath} onClose={mockOnClose} />)
-    const sendButton = screen.getByRole('button', { name: '' }) // Send button has no text, just icon
+    // Send button is inside form, find by submit type
+    const form = screen.getByPlaceholderText(/Ask AIBuddy anything/i).closest('form')
+    const sendButton = form?.querySelector('button[type="submit"]')
     expect(sendButton).toBeInTheDocument()
   })
 
@@ -64,21 +66,29 @@ describe('AIPanel', () => {
     const user = userEvent.setup()
     render(<AIPanel workspacePath={workspacePath} onClose={mockOnClose} />)
     
-    // Find the close button (X icon)
-    const closeButton = screen.getByTitle(/Close/i)
-    await user.click(closeButton)
+    // Find the close button (X icon) - it's the last button in the header button group
+    const headerButtons = screen.getAllByRole('button')
+    const closeButton = headerButtons.find(btn => btn.querySelector('svg.lucide-x'))
+    expect(closeButton).toBeTruthy()
+    await user.click(closeButton!)
     
     expect(mockOnClose).toHaveBeenCalled()
   })
 
   it('should render new chat button', () => {
     render(<AIPanel workspacePath={workspacePath} onClose={mockOnClose} />)
-    expect(screen.getByTitle(/New Chat/i)).toBeInTheDocument()
+    // Find the Plus icon button for new chat
+    const headerButtons = screen.getAllByRole('button')
+    const newChatButton = headerButtons.find(btn => btn.querySelector('svg.lucide-plus'))
+    expect(newChatButton).toBeInTheDocument()
   })
 
   it('should render settings button', () => {
     render(<AIPanel workspacePath={workspacePath} onClose={mockOnClose} />)
-    expect(screen.getByTitle(/Settings/i)).toBeInTheDocument()
+    // Find the Settings icon button
+    const headerButtons = screen.getAllByRole('button')
+    const settingsButton = headerButtons.find(btn => btn.querySelector('svg.lucide-settings'))
+    expect(settingsButton).toBeInTheDocument()
   })
 
   it('should allow typing in the input', async () => {
