@@ -1,5 +1,58 @@
 # AIBuddy Desktop - Code Signing Guide
 
+## Quick Status (January 29, 2026)
+
+| Platform | v1.4.33 | Signing Status | User Experience |
+|----------|---------|----------------|-----------------|
+| **macOS** | ✅ Built | ✅ **Code Signed** (Developer ID) | No warnings |
+| **Windows** | ✅ Built | ❌ Not Signed | SmartScreen warning |
+| **Linux** | ✅ Built | ✅ N/A (not required) | No warnings |
+
+---
+
+## Windows EV Code Signing - TODO
+
+### Why Needed
+Without signing, Windows users see "Windows protected your PC" SmartScreen warning.
+
+### Recommended Providers
+
+| Provider | Price/Year | URL |
+|----------|------------|-----|
+| **SSL.com** (Recommended) | $239 | https://www.ssl.com/certificates/ev-code-signing/ |
+| **Certum** (Budget) | $189 | https://shop.certum.eu/ev-code-signing-certificate.html |
+| **Sectigo** | $299 | https://sectigo.com/ssl-certificates-tls/code-signing/ |
+| **DigiCert** (Premium) | $499 | https://www.digicert.com/signing/code-signing-certificates |
+
+### Requirements to Apply
+1. **Business verification**: Registration docs, EIN/Tax ID
+2. **Identity verification**: Government ID, phone call
+3. **Hardware token**: USB key (usually included) or cloud signing
+
+### Timeline
+- Application: 10 minutes
+- Verification: 1-5 business days
+- Token delivery: 2-3 days
+- **Total: ~1-2 weeks**
+
+### Integration with Electron Builder
+```javascript
+// package.json
+{
+  "build": {
+    "win": {
+      "certificateSubjectName": "AI Buddy Inc",
+      "signingHashAlgorithms": ["sha256"]
+    }
+  }
+}
+```
+
+### AWS Cannot Help
+AWS Signer only supports Lambda and IoT code signing, NOT desktop applications (Windows EXE, macOS DMG).
+
+---
+
 **Last Updated:** January 29, 2026  
 **Current Version:** 1.4.33
 
