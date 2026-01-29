@@ -123,6 +123,14 @@ export interface ElectronAPI {
     getArch: () => string
   }
 
+  // Version checker
+  version: {
+    check: () => Promise<unknown>
+    get: () => Promise<{ currentVersion: string; lastVersionInfo: unknown }>
+    dismissUpdate: (version: string) => Promise<boolean>
+    onUpdateAvailable: (callback: (versionInfo: unknown) => void) => () => void
+  }
+
   // Event listeners for menu commands
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void
   off: (channel: string, callback: (...args: unknown[]) => void) => void
@@ -288,6 +296,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getVersion: () => ipcRenderer.invoke('app:getVersion'),
     getPlatform: () => process.platform,
     getArch: () => process.arch
+  },
+
+  // Version checker
+  version: {
+    check: () => ipcRenderer.invoke('version:check'),
+    get: () => ipcRenderer.invoke('version:get'),
+    dismissUpdate: (version: string) => ipcRenderer.invoke('version:dismissUpdate', version),
+    onUpdateAvailable: (callback: (versionInfo: unknown) => void) => {
+      const handler = (_event: IpcRendererEvent, versionInfo: unknown) => callback(versionInfo)
+      ipcRenderer.on('update-available', handler)
+      return () => ipcRenderer.removeListener('update-available', handler)
+    }
   },
 
   // Generic event listeners for menu commands

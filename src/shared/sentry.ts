@@ -669,3 +669,166 @@ export function getAppVersion(): string {
   return appVersion
 }
 
+// ============================================================
+// VERSION & API TRACKING BREADCRUMBS
+// ============================================================
+
+/**
+ * Track version check events
+ */
+export function trackVersionCheck(
+  currentVersion: string,
+  latestVersion: string | null,
+  updateAvailable: boolean,
+  isUrgent: boolean
+): void {
+  addBreadcrumb(
+    `Version Check: ${currentVersion} → ${latestVersion || 'unknown'}${updateAvailable ? ' (update available)' : ''}`,
+    'version.check',
+    { currentVersion, latestVersion, updateAvailable, isUrgent },
+    updateAvailable && isUrgent ? 'warning' : 'info'
+  )
+}
+
+/**
+ * Track version notification response
+ */
+export function trackVersionNotificationResponse(
+  selection: string | null,
+  currentVersion: string,
+  latestVersion: string | null,
+  isUrgent: boolean
+): void {
+  addBreadcrumb(
+    `Update notification response: ${selection || 'dismissed'}`,
+    'version.notification_response',
+    { selection, currentVersion, latestVersion, isUrgent }
+  )
+}
+
+/**
+ * Track API endpoint selection
+ */
+export function trackApiEndpoint(
+  endpoint: string,
+  isPrimary: boolean,
+  reason?: string
+): void {
+  addBreadcrumb(
+    `API Endpoint: ${isPrimary ? 'Primary' : 'Fallback'} - ${endpoint.substring(0, 50)}`,
+    'api.endpoint',
+    { endpoint, isPrimary, reason }
+  )
+}
+
+/**
+ * Track indexing events
+ */
+export function trackIndexingEvent(
+  event: 'start' | 'progress' | 'complete' | 'error' | 'skip',
+  details: {
+    workspacePath?: string
+    filesFound?: number
+    filesIndexed?: number
+    totalFiles?: number
+    durationMs?: number
+    error?: string
+    reason?: string
+  }
+): void {
+  const level: ErrorSeverity = event === 'error' ? 'error' : 'info'
+  
+  addBreadcrumb(
+    `Indexing ${event}: ${details.filesIndexed || 0}/${details.totalFiles || 0} files`,
+    'indexing.event',
+    { event, ...details },
+    level
+  )
+}
+
+/**
+ * Track extension/app lifecycle events
+ */
+export function trackAppLifecycle(
+  event: 'activate' | 'deactivate' | 'reload' | 'error' | 'update_check',
+  details?: {
+    version?: string
+    activationTime?: number
+    error?: string
+  }
+): void {
+  const level: ErrorSeverity = event === 'error' ? 'error' : 'info'
+  
+  addBreadcrumb(
+    `App ${event}${details?.version ? ` v${details.version}` : ''}`,
+    'app.lifecycle',
+    { event, ...details },
+    level
+  )
+}
+
+/**
+ * Track user credits
+ */
+export function trackCredits(
+  event: 'fetch' | 'update' | 'low' | 'exhausted',
+  credits: number,
+  details?: {
+    previousCredits?: number
+    threshold?: number
+    userId?: string
+  }
+): void {
+  const level: ErrorSeverity = event === 'exhausted' ? 'error' : event === 'low' ? 'warning' : 'info'
+  
+  addBreadcrumb(
+    `Credits ${event}: ${credits.toFixed(2)}`,
+    'credits.event',
+    { event, credits, ...details },
+    level
+  )
+}
+
+/**
+ * Track workspace detection
+ */
+export function trackWorkspaceDetection(
+  isProjectFolder: boolean,
+  projectType: string | null,
+  indicators: string[],
+  details?: {
+    workspacePath?: string
+    filesCount?: number
+  }
+): void {
+  addBreadcrumb(
+    `Workspace: ${isProjectFolder ? projectType || 'Unknown project' : 'Not a project folder'}`,
+    'workspace.detection',
+    { isProjectFolder, projectType, indicators, ...details }
+  )
+}
+
+/**
+ * Track provider connection status
+ */
+export function trackProviderConnection(
+  provider: string,
+  status: 'connecting' | 'connected' | 'disconnected' | 'error' | 'timeout',
+  details?: {
+    endpoint?: string
+    durationMs?: number
+    error?: string
+    retryCount?: number
+  }
+): void {
+  const level: ErrorSeverity = status === 'error' || status === 'timeout' ? 'error' : 
+    status === 'disconnected' ? 'warning' : 'info'
+  
+  addBreadcrumb(
+    `Provider ${provider}: ${status}`,
+    'provider.connection',
+    { provider, status, ...details },
+    level
+  )
+}
+

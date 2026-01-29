@@ -26,10 +26,17 @@ mac:
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
-  # Use Apple Development certificate for signing
-  identity: "Apple Development: Thomas Woodfin (U6363SX679)"
-  # For notarization (requires Apple ID credentials in env vars):
-  # APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID
+  
+  # Code Signing - AI Buddy Inc Developer ID Certificate
+  identity: "Developer ID Application: AI Buddy Inc (Apps) (S2237D23CB)"
+  
+  # Notarization - Required for clean macOS install without "damaged" error
+  # Set these environment variables before building:
+  #   APPLE_ID=your@email.com
+  #   APPLE_APP_SPECIFIC_PASSWORD=xxxx-xxxx-xxxx-xxxx  
+  #   APPLE_TEAM_ID=S2237D23CB
+  #
+  # To enable notarization, change to: notarize: true
   notarize: false
   target:
     - target: dmg

@@ -94,8 +94,18 @@ import {
   trackMenuAction, 
   trackSessionStart,
   trackSessionMetrics,
-  setUserContext 
+  setUserContext,
+  trackVersionCheck,
+  trackVersionNotificationResponse,
+  trackAppLifecycle
 } from '../src/shared/sentry'
+import {
+  checkForUpdates,
+  getUpdateMessage,
+  isVersionOutdated,
+  DOWNLOAD_PAGE_URL,
+  type VersionInfo
+} from '../src/services/version-checker'
 
 // Check if running in development
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
@@ -344,6 +354,13 @@ function createMenu(): void {
       label: 'Help',
       submenu: [
         {
+          label: 'Check for Updates...',
+          click: async () => {
+            await checkAndNotifyUpdates(true)
+          }
+        },
+        { type: 'separator' },
+        {
           label: 'Documentation',
           click: () => {
             shell.openExternal('https://aibuddy.life/docs')
@@ -395,6 +412,110 @@ function createMenu(): void {
   Menu.setApplicationMenu(menu)
 }
 
+// Version checker state
+let lastVersionInfo: VersionInfo | null = null
+let dismissedVersion: string | null = null
+
+// Check for updates and notify
+async function checkAndNotifyUpdates(force: boolean = false): Promise<void> {
+  try {
+    trackAppLifecycle('update_check', { version: appVersion })
+    
+    const versionInfo = await checkForUpdates(appVersion)
+    lastVersionInfo = versionInfo
+    
+    // Track the version check result
+    trackVersionCheck(
+      appVersion,
+      versionInfo.latestVersion,
+      versionInfo.updateAvailable,
+      versionInfo.isUrgent
+    )
+    
+    if (!versionInfo.updateAvailable) {
+      if (force) {
+        const icon = getAppIcon()
+        dialog.showMessageBox({
+          type: 'info',
+          title: 'AIBuddy is Up to Date',
+          message: `You're running the latest version (${appVersion}).`,
+          icon
+        })
+      }
+      return
+    }
+    
+    // Don't show notification if user dismissed this version
+    if (!force && dismissedVersion === versionInfo.latestVersion) {
+      return
+    }
+    
+    // Send update info to renderer
+    mainWindow?.webContents.send('update-available', versionInfo)
+    
+    // Show native dialog for updates
+    const { title, message, type } = getUpdateMessage(versionInfo)
+    const icon = getAppIcon()
+    
+    const buttons = ['Download Update', 'View Release Notes', 'Remind Later']
+    if (!versionInfo.isUrgent) {
+      buttons.push("Don't Show for This Version")
+    }
+    
+    const result = await dialog.showMessageBox({
+      type: type === 'warning' ? 'warning' : 'info',
+      title,
+      message,
+      detail: versionInfo.releaseNotes?.slice(0, 500) || 'New features and improvements available.',
+      buttons,
+      defaultId: 0,
+      icon
+    })
+    
+    // Track user response
+    const responses = ['Download Update', 'View Release Notes', 'Remind Later', "Don't Show for This Version"]
+    trackVersionNotificationResponse(
+      responses[result.response] || 'dismissed',
+      appVersion,
+      versionInfo.latestVersion,
+      versionInfo.isUrgent
+    )
+    
+    switch (result.response) {
+      case 0: // Download Update
+        // Open download page or direct download URL based on platform
+        let downloadUrl = DOWNLOAD_PAGE_URL
+        if (process.platform === 'darwin') {
+          downloadUrl = versionInfo.downloadUrls.macArm64 || versionInfo.downloadUrls.mac || downloadUrl
+        } else if (process.platform === 'win32') {
+          downloadUrl = versionInfo.downloadUrls.windows || downloadUrl
+        } else {
+          downloadUrl = versionInfo.downloadUrls.linux || downloadUrl
+        }
+        shell.openExternal(downloadUrl)
+        break
+        
+      case 1: // View Release Notes
+        if (versionInfo.releaseUrl) {
+          shell.openExternal(versionInfo.releaseUrl)
+        }
+        break
+        
+      case 3: // Don't Show for This Version
+        dismissedVersion = versionInfo.latestVersion
+        store.set('dismissedVersion' as any, dismissedVersion)
+        break
+        
+      case 2: // Remind Later
+      default:
+        // Do nothing, will check again later
+        break
+    }
+  } catch (error) {
+    console.error('[VersionChecker] Error:', error)
+  }
+}
+
 // App lifecycle
 app.whenReady().then(() => {
   // Set app user model id for windows
@@ -410,6 +531,34 @@ app.whenReady().then(() => {
 
   createMenu()
   createWindow()
+  
+  // Load dismissed version from store
+  dismissedVersion = store.get('dismissedVersion' as any) || null
+  
+  // Check for updates after window is ready (5 second delay)
+  setTimeout(() => checkAndNotifyUpdates(), 5000)
+  
+  // Check for updates periodically (every 24 hours)
+  setInterval(() => checkAndNotifyUpdates(), 24 * 60 * 60 * 1000)
+  
+  // Show urgent update warning if version is too old
+  if (isVersionOutdated(appVersion)) {
+    setTimeout(() => {
+      const icon = getAppIcon()
+      dialog.showMessageBox({
+        type: 'warning',
+        title: 'Update Required',
+        message: 'Your version of AIBuddy is outdated',
+        detail: `Version ${appVersion} may have compatibility issues. Please update to the latest version for the best experience.`,
+        buttons: ['Download Update', 'Later'],
+        icon
+      }).then((result) => {
+        if (result.response === 0) {
+          shell.openExternal(DOWNLOAD_PAGE_URL)
+        }
+      })
+    }, 2000)
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -530,6 +679,25 @@ ipcMain.handle('metrics:get', () => {
 // IPC Handlers - User context (for Sentry)
 ipcMain.handle('sentry:setUser', (_event, userId: string, email?: string) => {
   setUserContext(userId, email)
+  return true
+})
+
+// IPC Handlers - Version checker
+ipcMain.handle('version:check', async () => {
+  await checkAndNotifyUpdates(true)
+  return lastVersionInfo
+})
+
+ipcMain.handle('version:get', () => {
+  return {
+    currentVersion: appVersion,
+    lastVersionInfo
+  }
+})
+
+ipcMain.handle('version:dismissUpdate', (_event, version: string) => {
+  dismissedVersion = version
+  store.set('dismissedVersion' as any, version)
   return true
 })
 

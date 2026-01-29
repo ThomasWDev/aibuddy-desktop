@@ -76,12 +76,12 @@
                     <h3 class="text-xl font-bold text-white mb-1">Windows</h3>
                     <p class="text-slate-400 text-sm mb-6">Windows 10/11 (64-bit)</p>
                     
-                    <a href="https://denvermobileappdeveloper.com/downloads/aibuddy-desktop/v1.4.32/AIBuddy-1.4.32-Setup.exe" 
+                    <a href="https://denvermobileappdeveloper.com/downloads/aibuddy-desktop/v1.4.32/AIBuddy-Setup-1.4.32.exe" 
                        class="block w-full py-3 px-6 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-blue-500/25 mb-3">
                         ⬇️ Download EXE
                     </a>
                     
-                    <p class="text-slate-500 text-xs">~130 MB • Windows 10+</p>
+                    <p class="text-slate-500 text-xs">~93 MB • Windows 10+</p>
                 </div>
             </div>
 
@@ -102,7 +102,7 @@
                         ⬇️ Download AppImage
                     </a>
                     
-                    <p class="text-slate-500 text-xs">~140 MB • glibc 2.17+</p>
+                    <p class="text-slate-500 text-xs">~129 MB • glibc 2.17+</p>
                 </div>
             </div>
         </div>
@@ -142,6 +142,55 @@
             </div>
         </div>
 
+        <!-- Installation Notes -->
+        <div class="max-w-3xl mx-auto mb-8 space-y-4">
+            <!-- Mac Installation Note -->
+            <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6">
+                <h3 class="text-lg font-bold text-amber-400 mb-3">🍎 Mac Installation</h3>
+                <p class="text-slate-300 text-sm mb-3">
+                    If you see <strong class="text-red-400">"AIBuddy is damaged and can't be opened"</strong>:
+                </p>
+                <div class="bg-slate-900/50 rounded-lg p-4 mb-3">
+                    <p class="text-slate-400 text-xs mb-2">Run this command in Terminal:</p>
+                    <code class="text-green-400 text-sm font-mono">xattr -cr /Applications/AIBuddy.app</code>
+                </div>
+                <p class="text-slate-400 text-sm mb-2"><strong class="text-white">Alternative method:</strong></p>
+                <ol class="text-slate-400 text-sm space-y-1 ml-4 list-decimal">
+                    <li><strong class="text-white">Right-click</strong> on AIBuddy.app → select <strong class="text-white">"Open"</strong></li>
+                    <li>Click "Open" in the security dialog</li>
+                    <li>App will work normally after first open</li>
+                </ol>
+                <p class="text-slate-500 text-xs mt-3">
+                    Or: System Settings → Privacy & Security → click "Open Anyway"
+                </p>
+            </div>
+
+            <!-- Windows Installation Note -->
+            <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6">
+                <h3 class="text-lg font-bold text-blue-400 mb-3">🪟 Windows Installation</h3>
+                <p class="text-slate-300 text-sm mb-3">
+                    If you see <strong class="text-blue-400">"Windows protected your PC"</strong> (SmartScreen):
+                </p>
+                <ol class="text-slate-400 text-sm space-y-1 ml-4 list-decimal">
+                    <li>Click <strong class="text-white">"More info"</strong> link</li>
+                    <li>Click <strong class="text-white">"Run anyway"</strong> button</li>
+                    <li>Follow the installation wizard</li>
+                </ol>
+                <p class="text-slate-500 text-xs mt-3">
+                    This warning appears because the app is new. It's safe to install.
+                </p>
+            </div>
+
+            <!-- Linux Installation Note -->
+            <div class="bg-orange-500/10 border border-orange-500/30 rounded-xl p-6">
+                <h3 class="text-lg font-bold text-orange-400 mb-3">🐧 Linux Installation</h3>
+                <p class="text-slate-300 text-sm mb-3">For AppImage:</p>
+                <div class="bg-slate-900/50 rounded-lg p-4 mb-3">
+                    <code class="text-green-400 text-sm font-mono">chmod +x AIBuddy-*.AppImage && ./AIBuddy-*.AppImage</code>
+                </div>
+            </div>
+        </div>
+
         <!-- Getting Started Section -->
         <div class="max-w-3xl mx-auto mb-16">
             <h2 class="text-3xl font-bold text-white text-center mb-8">🚀 Getting Started</h2>
@@ -150,7 +199,7 @@
                     <div class="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center font-bold text-white">1</div>
                     <div>
                         <h4 class="font-semibold text-white">Download for your platform</h4>
-                        <p class="text-sm text-slate-400">Choose macOS, Windows, or Linux above</p>
+                        <p class="text-sm text-slate-400">Currently available for macOS (Apple Silicon)</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-4 p-4 bg-slate-800/50 rounded-xl border border-slate-700">
