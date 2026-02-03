@@ -150,17 +150,21 @@ describe('Code Signing Status', () => {
       builderConfig = fs.existsSync(configPath) ? fs.readFileSync(configPath, 'utf-8') : ''
     })
 
-    it('should document notarization status', () => {
-      // Currently notarization is disabled - document this fact
-      const notarizeDisabled = packageJson.build.mac?.notarize === false ||
-                               builderConfig.includes('notarize: false')
+    it('should have notarization enabled with team ID', () => {
+      // Notarization is now enabled - verify it's configured correctly
+      const notarizeConfig = packageJson.build.mac?.notarize
+      const hasNotarizeEnabled = notarizeConfig && notarizeConfig !== false
       
-      expect(notarizeDisabled).toBe(true)
+      expect(hasNotarizeEnabled).toBe(true)
       
-      // When notarization is enabled, this test should be updated
-      console.log('⚠️ macOS notarization is DISABLED')
-      console.log('   Users will see "damaged" message and need to run:')
-      console.log('   xattr -cr /Applications/AIBuddy.app')
+      // Verify team ID is configured
+      if (typeof notarizeConfig === 'object') {
+        expect(notarizeConfig.teamId).toBe('S2237D23CB')
+      }
+      
+      console.log('✅ macOS notarization is ENABLED')
+      console.log('   Team ID: S2237D23CB')
+      console.log('   Credentials stored in keychain as "AC_PASSWORD"')
     })
 
     it('should have identity configured (even if not used)', () => {

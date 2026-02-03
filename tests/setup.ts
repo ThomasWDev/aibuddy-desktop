@@ -89,6 +89,7 @@ const mockElectronAPI = {
     setActiveThread: vi.fn().mockResolvedValue(true),
     addMessage: vi.fn().mockResolvedValue({}),
     updateMetadata: vi.fn().mockResolvedValue(true),
+    updateMessageFeedback: vi.fn().mockResolvedValue(true),
     renameThread: vi.fn().mockResolvedValue(true),
     deleteThread: vi.fn().mockResolvedValue(true),
     clearAll: vi.fn().mockResolvedValue(true),
