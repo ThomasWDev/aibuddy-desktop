@@ -352,6 +352,178 @@ const statusConfig: Record<StatusStep, { text: string; icon: React.ReactNode; co
   error: { text: '❌ Something went wrong', icon: <AlertTriangle className="w-5 h-5" />, color: '#ef4444' },
 }
 
+// ============================================================================
+// API ERROR HANDLING - KAN-31 Fix
+// ============================================================================
+
+/**
+ * API Error codes returned by the AIBuddy API
+ */
+type ApiErrorCode = 
+  | 'INVALID_API_KEY'
+  | 'MISSING_API_KEY'
+  | 'INSUFFICIENT_CREDITS'
+  | 'RATE_LIMITED'
+  | 'MODEL_ERROR'
+  | 'SERVER_ERROR'
+  | 'UNKNOWN_ERROR'
+
+/**
+ * API Error response structure from the backend
+ */
+interface ApiErrorResponse {
+  error: ApiErrorCode
+  message: string
+  details?: Record<string, unknown>
+}
+
+/**
+ * User-friendly error message configuration
+ */
+interface UserFriendlyError {
+  title: string
+  message: string
+  action?: string
+  actionUrl?: string
+  canRetry: boolean
+}
+
+/**
+ * Parse API error response and return structured error
+ */
+function parseApiErrorResponse(responseBody: string | null): ApiErrorResponse | null {
+  if (!responseBody) return null
+  
+  try {
+    const parsed = JSON.parse(responseBody)
+    
+    // Handle standard API error format
+    if (parsed.error && typeof parsed.error === 'string') {
+      return {
+        error: parsed.error as ApiErrorCode,
+        message: parsed.message || 'An error occurred',
+        details: parsed.details
+      }
+    }
+    
+    // Handle alternative error formats
+    if (parsed.errorCode) {
+      return {
+        error: parsed.errorCode as ApiErrorCode,
+        message: parsed.errorMessage || parsed.message || 'An error occurred'
+      }
+    }
+    
+    return null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Map API error code to user-friendly message
+ */
+function mapErrorToUserMessage(error: ApiErrorResponse): UserFriendlyError {
+  const errorMappings: Record<ApiErrorCode, UserFriendlyError> = {
+    INVALID_API_KEY: {
+      title: '🔑 Invalid API Key',
+      message: 'Your API key is invalid or has expired.',
+      action: 'Check Settings',
+      canRetry: false
+    },
+    MISSING_API_KEY: {
+      title: '🔑 API Key Required',
+      message: 'Please add your AIBuddy API key to use the app.',
+      action: 'Open Settings',
+      canRetry: false
+    },
+    INSUFFICIENT_CREDITS: {
+      title: '💳 Out of Credits',
+      message: 'You\'ve run out of AIBuddy credits.',
+      action: 'Buy More Credits',
+      actionUrl: AIBUDDY_BUY_CREDITS_URL,
+      canRetry: false
+    },
+    RATE_LIMITED: {
+      title: '⏳ Too Many Requests',
+      message: 'Please wait a moment before trying again.',
+      canRetry: true
+    },
+    MODEL_ERROR: {
+      title: '🤖 AI Model Error',
+      message: 'The AI model encountered an issue. Please try again.',
+      canRetry: true
+    },
+    SERVER_ERROR: {
+      title: '🔧 Server Error',
+      message: 'AIBuddy is having temporary issues. Please try again in a moment.',
+      canRetry: true
+    },
+    UNKNOWN_ERROR: {
+      title: '❌ Unexpected Error',
+      message: 'Something unexpected happened.',
+      canRetry: true
+    }
+  }
+  
+  return errorMappings[error.error] || {
+    title: '❌ Error',
+    message: error.message || 'An unknown error occurred',
+    canRetry: true
+  }
+}
+
+/**
+ * Format error message for display in chat
+ */
+function formatErrorForChat(userError: UserFriendlyError): string {
+  let content = `**${userError.title}**\n\n${userError.message}`
+  
+  if (userError.action) {
+    if (userError.actionUrl) {
+      content += `\n\n👉 [${userError.action}](${userError.actionUrl})`
+    } else {
+      content += `\n\n👉 **${userError.action}**`
+    }
+  }
+  
+  if (userError.canRetry) {
+    content += '\n\n*Click Retry to try again*'
+  }
+  
+  return content
+}
+
+/**
+ * Determine if an error is retryable
+ */
+function isRetryableError(error: ApiErrorResponse | null, httpStatus?: number): boolean {
+  // Non-API errors (network issues) are generally retryable
+  if (!error && httpStatus) {
+    // 5xx errors are retryable
+    if (httpStatus >= 500 && httpStatus < 600) return true
+    // 429 rate limit is retryable
+    if (httpStatus === 429) return true
+    // 4xx client errors (except rate limit) are not retryable
+    if (httpStatus >= 400 && httpStatus < 500) return false
+  }
+  
+  if (!error) return true // Network errors are retryable
+  
+  // API-level errors
+  const nonRetryableErrors: ApiErrorCode[] = [
+    'INVALID_API_KEY',
+    'MISSING_API_KEY',
+    'INSUFFICIENT_CREDITS'
+  ]
+  
+  return !nonRetryableErrors.includes(error.error)
+}
+
+// ============================================================================
+// APP COMPONENT
+// ============================================================================
+
 function App() {
   // Theme and font settings
   const { theme, setTheme, fontSize, setFontSize } = useTheme()
@@ -684,6 +856,40 @@ function App() {
       const responseTime = Date.now() - startTime
       const data = await response.json()
       console.log('[App] API validation response:', data)
+      
+      // KAN-31 FIX: Check for API errors in the response
+      if (data.error) {
+        console.log('[App] API validation error:', data.error, data.message)
+        
+        // Parse the error using our new error handling functions
+        const apiError = parseApiErrorResponse(JSON.stringify(data))
+        
+        if (apiError) {
+          addBreadcrumb('API key validation failed', 'api.validation', {
+            errorCode: apiError.error,
+            errorMessage: apiError.message,
+            responseTime
+          }, 'error')
+          
+          // Show specific error messages based on error type
+          if (showToast) {
+            if (apiError.error === 'INVALID_API_KEY') {
+              toast.error('🔑 Your API key is invalid. Please check Settings.')
+              // Open settings so user can fix the key
+              setTimeout(() => setShowSettings(true), 1000)
+            } else if (apiError.error === 'MISSING_API_KEY') {
+              toast.error('🔑 API key is missing. Please add it in Settings.')
+              setTimeout(() => setShowSettings(true), 1000)
+            } else if (apiError.error === 'INSUFFICIENT_CREDITS') {
+              toast.error(`💳 You're out of credits. Buy more at aibuddy.life`)
+              setCredits(0)
+            } else {
+              toast.warning(`⚠️ API validation issue: ${apiError.message}`)
+            }
+          }
+          return // Don't continue with success flow
+        }
+      }
       
       if (data.remaining_credits !== undefined) {
         setCredits(data.remaining_credits)
@@ -1661,6 +1867,56 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       const data = await response.json()
       console.log('[App] API response data:', data)
 
+      // KAN-31 FIX: Check for API-level errors in response body
+      if (data.error) {
+        console.log('[App] API returned error:', data.error, data.message)
+        
+        // Parse the error using our new error handling functions
+        const apiError = parseApiErrorResponse(JSON.stringify(data))
+        
+        if (apiError) {
+          const userMessage = mapErrorToUserMessage(apiError)
+          const chatContent = formatErrorForChat(userMessage)
+          const canRetry = isRetryableError(apiError, response.status)
+          
+          // Track error details for debugging
+          addBreadcrumb('API error response', 'api.error', {
+            errorCode: apiError.error,
+            errorMessage: apiError.message,
+            httpStatus: response.status,
+            canRetry,
+            responseTime
+          }, 'error')
+          
+          setStatus('error')
+          setLastError({
+            message: apiError.message,
+            canRetry
+          })
+          
+          const errorMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: chatContent
+          }
+          setMessages(prev => [...prev, errorMessage])
+          
+          // Show appropriate toast
+          if (apiError.error === 'INVALID_API_KEY' || apiError.error === 'MISSING_API_KEY') {
+            toast.error('🔑 API key issue - check Settings')
+          } else if (apiError.error === 'INSUFFICIENT_CREDITS') {
+            toast.error('💳 Out of credits - buy more at aibuddy.life')
+          } else if (apiError.error === 'RATE_LIMITED') {
+            toast.warning('⏳ Rate limited - please wait')
+          } else {
+            toast.error('❌ ' + userMessage.title)
+          }
+          
+          setTimeout(() => setStatus('idle'), 3000)
+          return
+        }
+      }
+
       // Track AI response with full details
       trackAIResponse({
         model: data.model || 'unknown',
@@ -1882,25 +2138,57 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       
       setStatus('error')
       
-      // Determine error type and if retry is possible
+      // KAN-31 FIX: Improved error classification and messaging
       const errorMsg = (err as Error).message
-      const isNetworkError = errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError') || errorMsg.includes('timeout')
-      const isAuthError = errorMsg.includes('401') || errorMsg.includes('API key')
+      const isNetworkError = errorMsg.includes('Failed to fetch') || 
+                            errorMsg.includes('NetworkError') || 
+                            errorMsg.includes('timeout') ||
+                            errorMsg.includes('net::') ||
+                            errorMsg.includes('ECONNREFUSED')
+      const isAbortError = errorMsg.includes('aborted') || (err as Error).name === 'AbortError'
+      const isAuthError = errorMsg.includes('401') || 
+                         errorMsg.includes('Invalid API key') ||
+                         errorMsg.includes('INVALID_API_KEY')
+      const isCreditsError = errorMsg.includes('credits') || 
+                            errorMsg.includes('INSUFFICIENT_CREDITS')
+      
+      // Determine if error is retryable
+      const canRetry = isNetworkError || isAbortError // Only network/timeout errors are retryable
       
       setLastError({
         message: errorMsg,
-        canRetry: !isAuthError // Can retry network errors, not auth errors
+        canRetry
       })
+      
+      // Build user-friendly error message
+      let errorContent: string
+      let toastMessage: string
+      
+      if (isNetworkError) {
+        errorContent = `🌐 **Network Error**\n\nCouldn't reach the server. This could be:\n- Your internet connection\n- A temporary server issue\n\n**Click "Retry" below to try again.**`
+        toastMessage = 'Network error - click Retry to try again'
+      } else if (isAbortError) {
+        errorContent = `⏱️ **Request Timed Out**\n\nThe AI is taking too long to respond.\n\n**Try:**\n- Simplify your question\n- Click "Retry" to try again`
+        toastMessage = 'Request timed out - click Retry'
+      } else if (isAuthError) {
+        errorContent = `🔑 **Invalid API Key**\n\nYour API key is invalid or has expired.\n\n👉 **Check Settings** to update your API key.\n\nGet a new key at [aibuddy.life](https://aibuddy.life)`
+        toastMessage = '🔑 Invalid API key - check Settings'
+      } else if (isCreditsError) {
+        errorContent = `💳 **Out of Credits**\n\nYou've run out of AIBuddy credits.\n\n👉 [Buy More Credits](${AIBUDDY_BUY_CREDITS_URL})`
+        toastMessage = '💳 Out of credits - buy more at aibuddy.life'
+      } else {
+        // Generic error with more helpful guidance
+        errorContent = `❌ **Request Failed**\n\n**Error:** ${errorMsg}\n\n**Common fixes:**\n1. Check your internet connection\n2. Verify your API key in Settings\n3. Try again in a moment\n\nIf this keeps happening, contact support@aibuddy.life`
+        toastMessage = 'Request failed - see error details'
+      }
       
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: isNetworkError 
-          ? `🌐 **Network Error**\n\nCouldn't reach the server. This could be:\n- Your internet connection\n- A temporary server issue\n\n**Click "Retry" below to try again.**`
-          : `😅 **Oops!** Something went wrong.\n\n**Error:** ${errorMsg}\n\n**Try:**\n1. Check your internet connection\n2. Make sure your AIBuddy API key is correct\n3. Get your API key at https://aibuddy.life\n4. Try again in a moment`
+        content: errorContent
       }
       setMessages(prev => [...prev, errorMessage])
-      toast.error(isNetworkError ? 'Network error - click Retry to try again' : 'Failed to get response')
+      toast.error(toastMessage)
       
       setTimeout(() => setStatus('idle'), 3000)
     } finally {

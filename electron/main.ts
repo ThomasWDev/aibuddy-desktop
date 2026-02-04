@@ -369,7 +369,7 @@ function createMenu(): void {
         {
           label: 'Report Issue',
           click: () => {
-            shell.openExternal('https://github.com/AIBuddyStudio/aibuddy-desktop/issues')
+            shell.openExternal('https://github.com/ThomasWDev/aibuddy-desktop/issues')
           }
         },
         { type: 'separator' },

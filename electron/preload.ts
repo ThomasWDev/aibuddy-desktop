@@ -106,6 +106,7 @@ export interface ElectronAPI {
     setActiveThread: (threadId: string | null) => Promise<boolean>
     addMessage: (threadId: string, message: { role: 'user' | 'assistant', content: string, images?: unknown[] }) => Promise<unknown>
     updateMetadata: (threadId: string, metadata: unknown) => Promise<boolean>
+    updateMessageFeedback: (threadId: string, messageId: string, feedback: 'up' | 'down' | null) => Promise<boolean>
     renameThread: (threadId: string, newTitle: string) => Promise<boolean>
     deleteThread: (threadId: string) => Promise<boolean>
     clearAll: () => Promise<boolean>
@@ -280,6 +281,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('history:addMessage', threadId, message),
     updateMetadata: (threadId: string, metadata: unknown) => 
       ipcRenderer.invoke('history:updateMetadata', threadId, metadata),
+    updateMessageFeedback: (threadId: string, messageId: string, feedback: 'up' | 'down' | null) =>
+      ipcRenderer.invoke('history:updateMessageFeedback', threadId, messageId, feedback),
     renameThread: (threadId: string, newTitle: string) => 
       ipcRenderer.invoke('history:renameThread', threadId, newTitle),
     deleteThread: (threadId: string) => ipcRenderer.invoke('history:deleteThread', threadId),

@@ -36,8 +36,9 @@ mac:
   #   APPLE_APP_SPECIFIC_PASSWORD=xxxx-xxxx-xxxx-xxxx  
   #   APPLE_TEAM_ID=S2237D23CB
   #
-  # To enable notarization, change to: notarize: true
-  notarize: false
+  # Notarization enabled for Mac App Store verification
+  notarize:
+    teamId: "S2237D23CB"
   target:
     - target: dmg
       arch:

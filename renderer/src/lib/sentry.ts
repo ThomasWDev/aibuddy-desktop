@@ -520,3 +520,294 @@ export function trackFeatureDiscovery(
     { feature, source }
   )
 }
+
+// ============================================================
+// MODEL ROUTING & CACHE BREADCRUMBS
+// ============================================================
+
+/**
+ * Track model routing decisions from API
+ * Records which model was selected and why for analytics
+ */
+export function trackModelRouting(context: {
+  provider: string
+  model: string
+  reason: string
+  taskHints: string[]
+  forcedClaude: boolean
+}): void {
+  addBreadcrumb(
+    `Routed to ${context.provider}: ${context.reason}`,
+    'ai.routing',
+    {
+      provider: context.provider,
+      model: context.model,
+      reason: context.reason,
+      taskHints: context.taskHints.join(', ') || 'none',
+      forcedClaude: context.forcedClaude,
+    }
+  )
+}
+
+/**
+ * Track cache metrics from API response
+ * Records response cache hits and prompt cache usage for cost analytics
+ */
+export function trackCacheMetrics(context: {
+  responseHit: boolean
+  promptCacheCreated: number
+  promptCacheRead: number
+  savingsPercent?: number
+}): void {
+  const message = context.responseHit
+    ? 'Response Cache HIT (100% saved)'
+    : context.promptCacheRead > 0
+      ? `Prompt Cache: ${context.promptCacheRead} tokens (90% saved)`
+      : context.promptCacheCreated > 0
+        ? `Prompt Cache Created: ${context.promptCacheCreated} tokens`
+        : 'No cache'
+  
+  addBreadcrumb(
+    message,
+    'ai.cache',
+    {
+      responseHit: context.responseHit,
+      promptCacheCreated: context.promptCacheCreated,
+      promptCacheRead: context.promptCacheRead,
+      savingsPercent: context.savingsPercent,
+    }
+  )
+}
+
+// ============================================================
+// RECOVERY & RESILIENCE BREADCRUMBS
+// ============================================================
+
+/**
+ * Track command execution errors and recovery
+ * Records when commands fail and recovery is attempted
+ */
+export function trackCommandRecovery(context: {
+  command: string
+  exitCode: number
+  errorType: string
+  recoveryAttempt: number
+  maxAttempts: number
+  willRetry: boolean
+}): void {
+  const level: ErrorSeverity = context.willRetry ? 'warning' : 'error'
+  
+  addBreadcrumb(
+    `Command Recovery: ${context.command.substring(0, 30)}... (${context.recoveryAttempt}/${context.maxAttempts})`,
+    'command.recovery',
+    {
+      command: context.command.substring(0, 100),
+      exitCode: context.exitCode,
+      errorType: context.errorType,
+      recoveryAttempt: context.recoveryAttempt,
+      maxAttempts: context.maxAttempts,
+      willRetry: context.willRetry,
+    },
+    level
+  )
+}
+
+/**
+ * Track error recovery loop iteration (AI-assisted fix)
+ * Records each iteration when AI analyzes errors and suggests fixes
+ */
+export function trackErrorRecoveryLoop(context: {
+  iteration: number
+  maxIterations: number
+  errorSummary: string
+  commandsFailed: number
+  fixAttempted: boolean
+  fixSucceeded?: boolean
+  model?: string
+}): void {
+  const level: ErrorSeverity = context.fixSucceeded === false ? 'warning' : 'info'
+  
+  addBreadcrumb(
+    `Error Recovery Loop: ${context.iteration}/${context.maxIterations} (${context.commandsFailed} failed)`,
+    'recovery.loop',
+    {
+      iteration: context.iteration,
+      maxIterations: context.maxIterations,
+      errorSummary: context.errorSummary.substring(0, 200),
+      commandsFailed: context.commandsFailed,
+      fixAttempted: context.fixAttempted,
+      fixSucceeded: context.fixSucceeded,
+      model: context.model,
+    },
+    level
+  )
+}
+
+/**
+ * Track network/API retry attempts
+ * Records when API calls fail and are retried
+ */
+export function trackNetworkRetry(context: {
+  endpoint: string
+  attemptNumber: number
+  maxAttempts: number
+  errorType: string
+  errorMessage: string
+  willRetry: boolean
+  delayMs?: number
+}): void {
+  const level: ErrorSeverity = context.willRetry ? 'warning' : 'error'
+  
+  addBreadcrumb(
+    `Network Retry: ${context.attemptNumber}/${context.maxAttempts} - ${context.errorType}`,
+    'network.retry',
+    {
+      endpoint: context.endpoint.substring(0, 50),
+      attemptNumber: context.attemptNumber,
+      maxAttempts: context.maxAttempts,
+      errorType: context.errorType,
+      errorMessage: context.errorMessage.substring(0, 100),
+      willRetry: context.willRetry,
+      delayMs: context.delayMs,
+    },
+    level
+  )
+}
+
+/**
+ * Track DeepSeek retry with Opus fallback
+ * Records when DeepSeek fails and falls back to Claude Opus
+ */
+export function trackModelFallback(context: {
+  fromModel: string
+  toModel: string
+  reason: string
+  retryCount: number
+  maxRetries: number
+}): void {
+  addBreadcrumb(
+    `Model Fallback: ${context.fromModel} → ${context.toModel}`,
+    'model.fallback',
+    {
+      fromModel: context.fromModel,
+      toModel: context.toModel,
+      reason: context.reason,
+      retryCount: context.retryCount,
+      maxRetries: context.maxRetries,
+    },
+    'warning'
+  )
+}
+
+// ============================================================
+// API ERROR TRACKING - KAN-31 FIX
+// ============================================================
+
+/**
+ * Track API key validation result
+ * Records success/failure of API key validation for debugging
+ */
+export function trackApiKeyValidation(context: {
+  success: boolean
+  errorCode?: string
+  errorMessage?: string
+  credits?: number
+  responseTime: number
+}): void {
+  const level: ErrorSeverity = context.success ? 'info' : 'warning'
+  
+  addBreadcrumb(
+    context.success 
+      ? `API Key Valid: ${context.credits?.toFixed(2)} credits`
+      : `API Key Invalid: ${context.errorCode || 'unknown error'}`,
+    'api.validation',
+    {
+      success: context.success,
+      errorCode: context.errorCode,
+      errorMessage: context.errorMessage,
+      credits: context.credits,
+      responseTime: context.responseTime,
+    },
+    level
+  )
+}
+
+/**
+ * Track detailed API error response
+ * Records full API error details for debugging "something went wrong" issues
+ */
+export function trackApiErrorResponse(context: {
+  errorCode: string
+  errorMessage: string
+  httpStatus: number
+  canRetry: boolean
+  endpoint: string
+  responseTime: number
+  details?: Record<string, unknown>
+}): void {
+  addBreadcrumb(
+    `API Error: ${context.errorCode} (HTTP ${context.httpStatus})`,
+    'api.error_detail',
+    {
+      errorCode: context.errorCode,
+      errorMessage: context.errorMessage,
+      httpStatus: context.httpStatus,
+      canRetry: context.canRetry,
+      endpoint: context.endpoint.replace(/api_key=[^&]+/, 'api_key=***'),
+      responseTime: context.responseTime,
+      ...context.details,
+    },
+    'error'
+  )
+}
+
+/**
+ * Track API request attempt
+ * Records when an API request is made for debugging
+ */
+export function trackApiRequest(context: {
+  endpoint: string
+  method: string
+  model: string
+  hasApiKey: boolean
+  messageCount: number
+}): void {
+  addBreadcrumb(
+    `API Request: ${context.method} ${context.model}`,
+    'api.request_detail',
+    {
+      endpoint: context.endpoint.substring(0, 50),
+      method: context.method,
+      model: context.model,
+      hasApiKey: context.hasApiKey,
+      messageCount: context.messageCount,
+    }
+  )
+}
+
+/**
+ * Track credits-related events
+ * Records credit balance changes and low credit warnings
+ */
+export function trackCreditsEvent(context: {
+  event: 'checked' | 'deducted' | 'low_balance' | 'exhausted'
+  credits: number
+  cost?: number
+  model?: string
+}): void {
+  const level: ErrorSeverity = 
+    context.event === 'exhausted' ? 'error' :
+    context.event === 'low_balance' ? 'warning' : 'info'
+  
+  addBreadcrumb(
+    `Credits ${context.event}: ${context.credits.toFixed(2)}${context.cost ? ` (-${context.cost.toFixed(4)})` : ''}`,
+    'billing.credits',
+    {
+      event: context.event,
+      credits: context.credits,
+      cost: context.cost,
+      model: context.model,
+    },
+    level
+  )
+}

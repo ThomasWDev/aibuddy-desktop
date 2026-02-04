@@ -832,3 +832,106 @@ export function trackProviderConnection(
   )
 }
 
+/**
+ * Track model routing decisions from API
+ * Records which model was selected and why for analytics
+ */
+export function trackModelRouting(context: {
+  provider: string
+  model: string
+  reason: string
+  taskHints: string[]
+  forcedClaude: boolean
+}): void {
+  addBreadcrumb(
+    `Routed to ${context.provider}: ${context.reason}`,
+    'ai.routing',
+    {
+      provider: context.provider,
+      model: context.model,
+      reason: context.reason,
+      taskHints: context.taskHints.join(', ') || 'none',
+      forcedClaude: context.forcedClaude,
+    }
+  )
+}
+
+/**
+ * Track cache metrics from API response
+ * Records response cache hits and prompt cache usage for cost analytics
+ */
+export function trackCacheMetrics(context: {
+  responseHit: boolean
+  promptCacheCreated: number
+  promptCacheRead: number
+  savingsPercent?: number
+}): void {
+  const message = context.responseHit
+    ? 'Response Cache HIT (100% saved)'
+    : context.promptCacheRead > 0
+      ? `Prompt Cache: ${context.promptCacheRead} tokens (90% saved)`
+      : context.promptCacheCreated > 0
+        ? `Prompt Cache Created: ${context.promptCacheCreated} tokens`
+        : 'No cache'
+  
+  addBreadcrumb(
+    message,
+    'ai.cache',
+    {
+      responseHit: context.responseHit,
+      promptCacheCreated: context.promptCacheCreated,
+      promptCacheRead: context.promptCacheRead,
+      savingsPercent: context.savingsPercent,
+    }
+  )
+}
+
+// ============================================================================
+// RECOVERY & RESILIENCE BREADCRUMBS (Main Process)
+// ============================================================================
+
+/**
+ * Track IPC communication errors and recovery
+ */
+export function trackIpcRecovery(context: {
+  channel: string
+  errorType: string
+  recoveryAttempt: number
+  success: boolean
+}): void {
+  const level: ErrorSeverity = context.success ? 'info' : 'warning'
+  
+  addBreadcrumb(
+    `IPC Recovery: ${context.channel} (attempt ${context.recoveryAttempt})`,
+    'ipc.recovery',
+    context,
+    level
+  )
+}
+
+/**
+ * Track file system operation recovery
+ */
+export function trackFsRecovery(context: {
+  operation: string
+  path: string
+  errorType: string
+  retryAttempt: number
+  success: boolean
+}): void {
+  const level: ErrorSeverity = context.success ? 'info' : 'warning'
+  
+  addBreadcrumb(
+    `FS Recovery: ${context.operation} (attempt ${context.retryAttempt})`,
+    'fs.recovery',
+    {
+      operation: context.operation,
+      path: context.path.substring(0, 50),
+      errorType: context.errorType,
+      retryAttempt: context.retryAttempt,
+      success: context.success,
+    },
+    level
+  )
+}
+

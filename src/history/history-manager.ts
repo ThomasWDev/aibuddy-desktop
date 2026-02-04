@@ -209,7 +209,7 @@ export class ChatHistoryManager {
   }
 
   /**
-   * Update thread metadata (tokens, cost, model)
+   * Update thread metadata (tokens, cost, model, pin status)
    */
   updateThreadMetadata(threadId: string, metadata: {
     totalTokensIn?: number
@@ -217,6 +217,7 @@ export class ChatHistoryManager {
     totalCost?: number
     model?: string
     isCompleted?: boolean
+    isPinned?: boolean
   }): void {
     const thread = this.getThread(threadId)
     if (!thread) return
@@ -236,6 +237,11 @@ export class ChatHistoryManager {
     if (metadata.isCompleted !== undefined) {
       thread.isCompleted = metadata.isCompleted
     }
+    // Handle pin/favorite status
+    if (metadata.isPinned !== undefined) {
+      thread.isPinned = metadata.isPinned
+      console.log('[ChatHistoryManager] Thread pin status updated:', { threadId, isPinned: metadata.isPinned })
+    }
 
     thread.updatedAt = Date.now()
     this.save()
@@ -251,6 +257,31 @@ export class ChatHistoryManager {
     thread.title = newTitle
     thread.updatedAt = Date.now()
     this.save()
+  }
+
+  /**
+   * Update feedback (thumbs up/down) for a specific message
+   */
+  updateMessageFeedback(threadId: string, messageId: string, feedback: 'up' | 'down' | null): boolean {
+    const thread = this.getThread(threadId)
+    if (!thread) {
+      console.warn('[ChatHistoryManager] Thread not found for feedback update:', threadId)
+      return false
+    }
+
+    const message = thread.messages.find(m => m.id === messageId)
+    if (!message) {
+      console.warn('[ChatHistoryManager] Message not found for feedback update:', messageId)
+      return false
+    }
+
+    // Store feedback on the message
+    ;(message as any).feedback = feedback
+    thread.updatedAt = Date.now()
+    this.save()
+    
+    console.log('[ChatHistoryManager] Updated message feedback:', { threadId, messageId, feedback })
+    return true
   }
 
   /**

@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { X, Lock, Globe, Copy, Check, Loader2, Link as LinkIcon } from 'lucide-react'
+import { X, Lock, Globe, Copy, Check, Loader2, Link as LinkIcon, FileText, MessageSquare } from 'lucide-react'
 
 /**
  * Share Conversation Modal - Issue #18
  * 
- * Provides a shareable link for conversations, similar to Claude.ai's share feature.
- * Users can choose between private and shared visibility.
+ * Provides options to share/export conversations:
+ * - Copy conversation as text to clipboard
+ * - Export as Markdown file
+ * 
+ * Note: Web sharing requires backend integration (future feature)
  */
 
 export type ShareVisibility = 'private' | 'shared'
@@ -20,12 +23,18 @@ export interface ShareLink {
   viewCount: number
 }
 
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 interface ShareModalProps {
   isOpen: boolean
   onClose: () => void
   threadId: string
   threadTitle?: string
   messageCount: number
+  messages?: Message[]  // Optional messages array for clipboard copy
 }
 
 const VISIBILITY_OPTIONS: { value: ShareVisibility; label: string; description: string; icon: React.ReactNode }[] = [
@@ -53,11 +62,12 @@ function generateShareId(): string {
   return result
 }
 
-export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCount }: ShareModalProps) {
+export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCount, messages }: ShareModalProps) {
   const [visibility, setVisibility] = useState<ShareVisibility>('private')
   const [shareLink, setShareLink] = useState<ShareLink | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
+  const [isTextCopied, setIsTextCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Reset state when modal opens
@@ -139,6 +149,31 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
     }
   }, [shareLink])
 
+  // Copy conversation as text
+  const handleCopyConversation = useCallback(async () => {
+    if (!messages || messages.length === 0) {
+      setError('No conversation to copy')
+      return
+    }
+
+    try {
+      // Format messages as readable text
+      const conversationText = messages.map((msg, idx) => {
+        const role = msg.role === 'user' ? '👤 You' : '🤖 AIBuddy'
+        return `${role}:\n${msg.content}`
+      }).join('\n\n---\n\n')
+
+      const fullText = `# ${threadTitle || 'AIBuddy Conversation'}\n\n${conversationText}`
+      
+      await navigator.clipboard.writeText(fullText)
+      setIsTextCopied(true)
+      setTimeout(() => setIsTextCopied(false), 2000)
+    } catch (err) {
+      console.error('Copy failed:', err)
+      setError('Failed to copy conversation')
+    }
+  }, [messages, threadTitle])
+
   // Update visibility
   const handleVisibilityChange = useCallback((newVisibility: ShareVisibility) => {
     setVisibility(newVisibility)
@@ -196,11 +231,6 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Notice */}
-          <p className="text-sm text-slate-400">
-            Future messages aren't included
-          </p>
-
           {/* Conversation info */}
           {threadTitle && (
             <div className="p-3 bg-slate-800/50 rounded-lg">
@@ -209,8 +239,43 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
             </div>
           )}
 
-          {/* Visibility options */}
+          {/* Quick Actions - Copy as Text */}
           <div className="space-y-3">
+            <p className="text-xs text-slate-500 uppercase font-semibold">Quick Share</p>
+            
+            <button
+              onClick={handleCopyConversation}
+              disabled={!messages || messages.length === 0}
+              className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                isTextCopied
+                  ? 'border-green-500 bg-green-500/10'
+                  : 'border-slate-700 hover:border-purple-500 bg-slate-800/30'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              <div className={`${isTextCopied ? 'text-green-400' : 'text-purple-400'}`}>
+                {isTextCopied ? <Check className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+              </div>
+              <div className="flex-1 text-left">
+                <p className={`font-medium ${isTextCopied ? 'text-green-400' : 'text-white'}`}>
+                  {isTextCopied ? 'Copied!' : 'Copy as Text'}
+                </p>
+                <p className="text-sm text-slate-500">Copy entire conversation to clipboard</p>
+              </div>
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-slate-700" />
+            <span className="text-xs text-slate-500">or</span>
+            <div className="flex-1 h-px bg-slate-700" />
+          </div>
+
+          {/* Web Link Options - Coming Soon */}
+          <div className="space-y-3">
+            <p className="text-xs text-slate-500 uppercase font-semibold">Web Link (Coming Soon)</p>
+            
+            {/* Visibility options */}
             {VISIBILITY_OPTIONS.map((option) => (
               <button
                 key={option.value}

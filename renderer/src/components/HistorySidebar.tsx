@@ -32,6 +32,8 @@ interface HistorySidebarProps {
   onSelectThread: (thread: ChatThread) => void
   onNewThread: () => void
   activeThreadId: string | null
+  /** When this value changes, the sidebar will refresh threads */
+  refreshTrigger?: number
 }
 
 export function HistorySidebar({ 
@@ -39,7 +41,8 @@ export function HistorySidebar({
   onClose, 
   onSelectThread, 
   onNewThread,
-  activeThreadId 
+  activeThreadId,
+  refreshTrigger = 0
 }: HistorySidebarProps) {
   const [threads, setThreads] = useState<ChatThread[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -47,10 +50,10 @@ export function HistorySidebar({
   const [editTitle, setEditTitle] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
-  // Load threads on mount
+  // Load threads on mount AND when refreshTrigger changes
   useEffect(() => {
     loadThreads()
-  }, [])
+  }, [refreshTrigger])
 
   const loadThreads = async () => {
     try {

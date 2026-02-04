@@ -58,6 +58,11 @@ export function initHistoryHandlers(): void {
     return true
   })
 
+  // Update message feedback (thumbs up/down)
+  ipcMain.handle('history:updateMessageFeedback', async (_event, threadId: string, messageId: string, feedback: 'up' | 'down' | null) => {
+    return historyManager!.updateMessageFeedback(threadId, messageId, feedback)
+  })
+
   // Delete thread
   ipcMain.handle('history:deleteThread', async (_event, threadId: string) => {
     historyManager!.deleteThread(threadId)
@@ -95,6 +100,7 @@ export function cleanupHistoryHandlers(): void {
   ipcMain.removeHandler('history:addMessage')
   ipcMain.removeHandler('history:updateMetadata')
   ipcMain.removeHandler('history:renameThread')
+  ipcMain.removeHandler('history:updateMessageFeedback')
   ipcMain.removeHandler('history:deleteThread')
   ipcMain.removeHandler('history:clearAll')
   ipcMain.removeHandler('history:search')
