@@ -34,7 +34,8 @@ import {
   MessageSquare,
   Mic,
   MicOff,
-  Share2
+  Share2,
+  FileCode // KAN-6 FIX
 } from 'lucide-react'
 import { CloudKnowledgePanel } from './components/knowledge'
 import { HistorySidebar } from './components/HistorySidebar'
@@ -192,6 +193,28 @@ interface ImageAttachment {
   mimeType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
   name: string
   size: number
+}
+
+// KAN-6 FIX: Add code file attachment support
+interface CodeFileAttachment {
+  id: string
+  content: string
+  name: string
+  size: number
+  language: string
+}
+
+// Code file extensions and their languages
+const CODE_FILE_EXTENSIONS: Record<string, string> = {
+  'ts': 'typescript', 'tsx': 'typescript', 'js': 'javascript', 'jsx': 'javascript',
+  'py': 'python', 'java': 'java', 'cpp': 'cpp', 'c': 'c', 'h': 'c',
+  'cs': 'csharp', 'go': 'go', 'rs': 'rust', 'rb': 'ruby', 'php': 'php',
+  'swift': 'swift', 'kt': 'kotlin', 'scala': 'scala', 'r': 'r',
+  'sql': 'sql', 'sh': 'bash', 'bash': 'bash', 'zsh': 'bash',
+  'html': 'html', 'css': 'css', 'scss': 'scss', 'sass': 'sass', 'less': 'less',
+  'json': 'json', 'yaml': 'yaml', 'yml': 'yaml', 'xml': 'xml',
+  'md': 'markdown', 'txt': 'text', 'env': 'env', 'conf': 'config',
+  'dockerfile': 'dockerfile', 'makefile': 'makefile', 'cmake': 'cmake'
 }
 
 interface Message {
@@ -583,8 +606,10 @@ function App() {
   
   // Image attachments
   const [attachedImages, setAttachedImages] = useState<ImageAttachment[]>([])
+  const [attachedFiles, setAttachedFiles] = useState<CodeFileAttachment[]>([]) // KAN-6 FIX
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const codeFileInputRef = useRef<HTMLInputElement>(null) // KAN-6 FIX
   
   // Chat history
   const [showHistory, setShowHistory] = useState(false)
@@ -1175,6 +1200,64 @@ function App() {
     }
   }
   
+  // KAN-6 FIX: Code file selection using Electron native dialog
+  const handleCodeFileSelectWithElectron = async () => {
+    try {
+      // All supported code file extensions
+      const codeExtensions = Object.keys(CODE_FILE_EXTENSIONS)
+      
+      const filePath = await window.electronAPI.dialog.openFile([
+        { name: 'Code Files', extensions: codeExtensions },
+        { name: 'All Files', extensions: ['*'] }
+      ])
+      
+      if (!filePath) return // User cancelled
+      
+      // Read the file content as text
+      const fileBuffer = await window.electronAPI.fs.readFile(filePath) as Buffer
+      const content = Buffer.from(fileBuffer).toString('utf-8')
+      
+      // Get file name and extension
+      const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'file'
+      const extension = fileName.split('.').pop()?.toLowerCase() || 'txt'
+      const language = CODE_FILE_EXTENSIONS[extension] || 'text'
+      
+      // Get file size
+      const stat = await window.electronAPI.fs.stat(filePath)
+      const fileSize = stat.size
+      
+      // Check file size (max 1MB for code files to avoid context overflow)
+      if (fileSize > 1 * 1024 * 1024) {
+        toast.error(`${fileName} is too large (max 1MB for code files)`)
+        return
+      }
+      
+      setAttachedFiles(prev => [...prev, {
+        id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        content,
+        name: fileName,
+        size: fileSize,
+        language
+      }])
+      
+      toast.success(`📄 Added: ${fileName}`)
+      addBreadcrumb('Code file attached via dialog', 'chat.file', { 
+        name: fileName, 
+        size: fileSize,
+        language 
+      })
+    } catch (error) {
+      console.error('Failed to select code file:', error)
+      toast.error('Failed to select file. Please try again.')
+    }
+  }
+  
+  // KAN-6 FIX: Remove attached code file
+  const removeAttachedFile = (fileId: string) => {
+    setAttachedFiles(prev => prev.filter(f => f.id !== fileId))
+    toast.info('📄 File removed')
+  }
+  
   // Legacy HTML file input handler (fallback)
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -1578,12 +1661,14 @@ Be concise and actionable. Focus on fixing the immediate problem.`
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
-    if ((!input.trim() && attachedImages.length === 0) || isLoading) return
+    // KAN-6 FIX: Also check for attached code files
+    if ((!input.trim() && attachedImages.length === 0 && attachedFiles.length === 0) || isLoading) return
 
     // Track user action
     trackButtonClick('send_message', 'App', { 
       messageLength: input.trim().length,
-      imageCount: attachedImages.length 
+      imageCount: attachedImages.length,
+      fileCount: attachedFiles.length // KAN-6 FIX
     })
 
     if (!apiKey) {
@@ -1595,11 +1680,23 @@ Be concise and actionable. Focus on fixing the immediate problem.`
 
     const trimmedInput = input.trim()
     const currentImages = [...attachedImages] // Copy images before clearing
+    const currentFiles = [...attachedFiles] // KAN-6 FIX: Copy files before clearing
+    
+    // KAN-6 FIX: Build message content with code files
+    let messageContent = trimmedInput
+    if (currentFiles.length > 0) {
+      const fileContext = currentFiles.map(f => 
+        `\n\n📄 **File: ${f.name}** (${f.language})\n\`\`\`${f.language}\n${f.content}\n\`\`\``
+      ).join('')
+      messageContent = trimmedInput 
+        ? `${trimmedInput}\n\n---\n**Attached Code Files:**${fileContext}`
+        : `Please analyze these code files:${fileContext}`
+    }
     
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: trimmedInput || (currentImages.length > 0 ? '📷 [Image attached - please analyze]' : ''),
+      content: messageContent || (currentImages.length > 0 ? '📷 [Image attached - please analyze]' : ''),
       images: currentImages.length > 0 ? currentImages : undefined
     }
 
@@ -1642,6 +1739,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
     setMessages(prev => [...prev, userMessage])
     setInput('')
     setAttachedImages([]) // Clear attached images after sending
+    setAttachedFiles([]) // KAN-6 FIX: Clear attached code files after sending
     setIsLoading(true)
     setLastCost(null)
     setLastModel(null)
@@ -3127,6 +3225,81 @@ Be concise and actionable. Focus on fixing the immediate problem.`
             </div>
           )}
           
+          {/* KAN-6 FIX: Code File Attachments Preview */}
+          {attachedFiles.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {attachedFiles.map(file => {
+                // Language colors
+                const langColors: Record<string, { bg: string, text: string }> = {
+                  'typescript': { bg: 'bg-blue-500/20', text: 'text-blue-400' },
+                  'javascript': { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
+                  'python': { bg: 'bg-green-500/20', text: 'text-green-400' },
+                  'java': { bg: 'bg-orange-500/20', text: 'text-orange-400' },
+                  'rust': { bg: 'bg-red-500/20', text: 'text-red-400' },
+                  'go': { bg: 'bg-cyan-500/20', text: 'text-cyan-400' },
+                  'html': { bg: 'bg-pink-500/20', text: 'text-pink-400' },
+                  'css': { bg: 'bg-purple-500/20', text: 'text-purple-400' },
+                }
+                const langColor = langColors[file.language] || { bg: 'bg-slate-500/20', text: 'text-slate-400' }
+                
+                const formatSize = (bytes: number) => {
+                  if (bytes < 1024) return `${bytes} B`
+                  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+                  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+                }
+                
+                return (
+                  <div 
+                    key={file.id}
+                    className="group relative flex items-center gap-2 pl-2 pr-2 py-1.5 rounded-xl transition-all hover:scale-[1.02]"
+                    style={{ 
+                      background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+                      border: '2px solid #334155'
+                    }}
+                  >
+                    {/* File icon */}
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${langColor.bg}`}>
+                      <FileCode className={`w-4 h-4 ${langColor.text}`} />
+                    </div>
+                    
+                    {/* File info */}
+                    <div className="flex flex-col min-w-0 max-w-[140px]">
+                      <span className="text-xs font-medium text-white truncate" title={file.name}>
+                        {file.name}
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        {formatSize(file.size)} • {file.language}
+                      </span>
+                    </div>
+                    
+                    {/* Remove button */}
+                    <button
+                      type="button"
+                      onClick={() => removeAttachedFile(file.id)}
+                      className="p-1 rounded-full hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all ml-1"
+                      aria-label={`Remove ${file.name}`}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )
+              })}
+              
+              {/* Clear all code files */}
+              {attachedFiles.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setAttachedFiles([])}
+                  className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                  style={{ border: '2px dashed #334155' }}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Clear files
+                </button>
+              )}
+            </div>
+          )}
+          
           {/* Supported file types hint (shown when no attachments) */}
           {attachedImages.length === 0 && isDraggingOver && (
             <div className="mb-3 px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30">
@@ -3192,6 +3365,25 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                   aria-label="Attach image"
                 >
                   <ImageIcon className="w-5 h-5 text-purple-300" />
+                </button>
+              </Tooltip>
+              
+              {/* KAN-6 FIX: Code File Upload Button */}
+              <Tooltip text="📄 Attach code file (.ts, .js, .py, .java, etc.)">
+                <button
+                  type="button"
+                  onClick={handleCodeFileSelectWithElectron}
+                  disabled={isLoading}
+                  className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex-shrink-0 self-center"
+                  style={{ 
+                    background: attachedFiles.length > 0 
+                      ? 'linear-gradient(135deg, #10b981, #059669)' 
+                      : 'rgba(16, 185, 129, 0.2)',
+                    border: '2px solid #10b981'
+                  }}
+                  aria-label="Attach code file"
+                >
+                  <FileCode className="w-5 h-5 text-emerald-300" />
                 </button>
               </Tooltip>
               
