@@ -44,3 +44,8 @@ out/
 *.tsbuildinfo
 
 .github-releases/
+
+# E2E test artifacts
+playwright-report/
+test-results/
+blob-report/

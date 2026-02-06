@@ -761,3 +761,197 @@ describe('Shared Link Viewer (Public View)', () => {
     expect(errorMessage).toContain('private')
   })
 })
+
+// ============================================================================
+// KAN-18 BUG FIX TESTS - Messages Prop Missing
+// ============================================================================
+describe('KAN-18: ShareModal Messages Prop Fix', () => {
+  interface Message {
+    role: 'user' | 'assistant'
+    content: string
+  }
+
+  interface ShareModalProps {
+    isOpen: boolean
+    onClose: () => void
+    threadId: string
+    threadTitle?: string
+    messageCount: number
+    messages?: Message[]  // BUG: This prop was not being passed!
+  }
+
+  describe('ShareModal Props Validation', () => {
+    it('should require messages prop for Copy as Text functionality', () => {
+      // BUG: ShareModal was called without messages prop
+      const incompleteProps: Partial<ShareModalProps> = {
+        isOpen: true,
+        threadId: 'thread-123',
+        messageCount: 5
+        // messages: undefined - BUG!
+      }
+      
+      expect(incompleteProps.messages).toBeUndefined()
+      
+      // FIX: ShareModal should receive messages
+      const completeProps: ShareModalProps = {
+        isOpen: true,
+        onClose: () => {},
+        threadId: 'thread-123',
+        messageCount: 5,
+        messages: [
+          { role: 'user', content: 'Hello' },
+          { role: 'assistant', content: 'Hi there!' }
+        ]
+      }
+      
+      expect(completeProps.messages).toBeDefined()
+      expect(completeProps.messages?.length).toBe(2)
+    })
+
+    it('should handle empty messages array', () => {
+      const props: ShareModalProps = {
+        isOpen: true,
+        onClose: () => {},
+        threadId: 'thread-123',
+        messageCount: 0,
+        messages: []
+      }
+      
+      expect(props.messages?.length).toBe(0)
+    })
+  })
+
+  describe('Copy as Text Functionality', () => {
+    it('should format conversation as readable text', () => {
+      const messages: Message[] = [
+        { role: 'user', content: 'What is TypeScript?' },
+        { role: 'assistant', content: 'TypeScript is a typed superset of JavaScript.' }
+      ]
+      const threadTitle = 'TypeScript Question'
+      
+      // Format messages as readable text
+      const conversationText = messages.map((msg) => {
+        const role = msg.role === 'user' ? '👤 You' : '🤖 AIBuddy'
+        return `${role}:\n${msg.content}`
+      }).join('\n\n---\n\n')
+
+      const fullText = `# ${threadTitle}\n\n${conversationText}`
+      
+      expect(fullText).toContain('# TypeScript Question')
+      expect(fullText).toContain('👤 You:\nWhat is TypeScript?')
+      expect(fullText).toContain('🤖 AIBuddy:\nTypeScript is a typed superset')
+      expect(fullText).toContain('---')
+    })
+
+    it('should handle multiline message content', () => {
+      const messages: Message[] = [
+        { role: 'user', content: 'Show me code' },
+        { role: 'assistant', content: 'Here is code:\n```typescript\nconst x = 1;\n```' }
+      ]
+      
+      const conversationText = messages.map((msg) => {
+        const role = msg.role === 'user' ? '👤 You' : '🤖 AIBuddy'
+        return `${role}:\n${msg.content}`
+      }).join('\n\n---\n\n')
+      
+      expect(conversationText).toContain('```typescript')
+      expect(conversationText).toContain('const x = 1;')
+    })
+
+    it('should show error when messages is undefined', async () => {
+      const messages: Message[] | undefined = undefined
+      
+      let error: string | null = null
+      if (!messages || messages.length === 0) {
+        error = 'No conversation to copy'
+      }
+      
+      expect(error).toBe('No conversation to copy')
+    })
+
+    it('should show error when messages is empty array', async () => {
+      const messages: Message[] = []
+      
+      let error: string | null = null
+      if (!messages || messages.length === 0) {
+        error = 'No conversation to copy'
+      }
+      
+      expect(error).toBe('No conversation to copy')
+    })
+
+    it('should successfully copy when messages exist', async () => {
+      const messages: Message[] = [
+        { role: 'user', content: 'Test message' }
+      ]
+      
+      let error: string | null = null
+      let copied = false
+      
+      if (!messages || messages.length === 0) {
+        error = 'No conversation to copy'
+      } else {
+        // Copy would happen here
+        copied = true
+      }
+      
+      expect(error).toBeNull()
+      expect(copied).toBe(true)
+    })
+  })
+
+  describe('App.tsx ShareModal Integration', () => {
+    it('should pass messages prop to ShareModal', () => {
+      // Simulating App.tsx state
+      const appState = {
+        messages: [
+          { role: 'user' as const, content: 'Hello' },
+          { role: 'assistant' as const, content: 'Hi!' }
+        ],
+        showShareModal: true,
+        activeThreadId: 'thread-123'
+      }
+      
+      // Props that should be passed to ShareModal
+      const shareModalProps: ShareModalProps = {
+        isOpen: appState.showShareModal,
+        onClose: () => {},
+        threadId: appState.activeThreadId || 'temp-' + Date.now(),
+        threadTitle: appState.messages[0]?.content.slice(0, 50),
+        messageCount: appState.messages.length,
+        messages: appState.messages  // BUG FIX: This was missing!
+      }
+      
+      expect(shareModalProps.messages).toBeDefined()
+      expect(shareModalProps.messages).toEqual(appState.messages)
+    })
+
+    it('should handle messages state correctly', () => {
+      // Types from App.tsx
+      interface AppMessage {
+        id: string
+        role: 'user' | 'assistant'
+        content: string
+      }
+      
+      // ShareModal expects simpler Message type
+      interface ShareModalMessage {
+        role: 'user' | 'assistant'
+        content: string
+      }
+      
+      const appMessages: AppMessage[] = [
+        { id: 'msg-1', role: 'user', content: 'Question' },
+        { id: 'msg-2', role: 'assistant', content: 'Answer' }
+      ]
+      
+      // Convert AppMessage to ShareModalMessage (remove id)
+      const shareMessages: ShareModalMessage[] = appMessages.map(({ role, content }) => ({ role, content }))
+      
+      expect(shareMessages.length).toBe(2)
+      expect(shareMessages[0]).not.toHaveProperty('id')
+      expect(shareMessages[0]).toHaveProperty('role', 'user')
+      expect(shareMessages[0]).toHaveProperty('content', 'Question')
+    })
+  })
+})

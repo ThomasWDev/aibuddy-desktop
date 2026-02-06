@@ -23,6 +23,10 @@ const mockElectronAPI = {
   },
   fs: {
     readFile: vi.fn().mockResolvedValue(Buffer.from('test image data')),
+    // KAN-6/KAN-7/KAN-12 FIX: New IPC methods that return plain strings (no Buffer in renderer)
+    readFileAsBase64: vi.fn().mockResolvedValue(Buffer.from('test image data').toString('base64')),
+    readFileAsText: vi.fn().mockResolvedValue('test file content'),
+    getFileSize: vi.fn().mockResolvedValue(1024),
     writeFile: vi.fn().mockResolvedValue(undefined),
     readDir: vi.fn().mockResolvedValue([]),
     stat: vi.fn().mockResolvedValue({ isDirectory: false, isFile: true, size: 1024, mtime: Date.now() }),

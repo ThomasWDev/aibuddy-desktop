@@ -24,8 +24,13 @@ export interface ElectronAPI {
   }
 
   // File system operations
+  // KAN-7: readFile returns Buffer when no encoding, string when encoding is specified
   fs: {
-    readFile: (path: string, encoding?: string) => Promise<string | Buffer>
+    readFile: (path: string, encoding?: string | null) => Promise<string | Buffer>
+    // KAN-6/KAN-7/KAN-12 FIX: Return plain strings instead of Buffer to avoid "Buffer is not defined"
+    readFileAsBase64: (path: string) => Promise<string>
+    readFileAsText: (path: string, encoding?: string) => Promise<string>
+    getFileSize: (path: string) => Promise<number>
     writeFile: (path: string, data: string | Buffer) => Promise<void>
     readDir: (path: string) => Promise<{ name: string; isDirectory: boolean; isFile: boolean }[]>
     stat: (path: string) => Promise<{ isDirectory: boolean; isFile: boolean; size: number; mtime: number }>
@@ -114,6 +119,27 @@ export interface ElectronAPI {
     export: (threadId: string) => Promise<string>
   }
 
+  // Workspace-specific storage for rules, patterns, and context
+  // Stores data in ~/.aibuddy/workspaces/{workspace-hash}/
+  workspace: {
+    // Get workspace data path
+    getPath: (workspacePath: string) => Promise<string>
+    // Rules management - project-specific rules to prevent regressions
+    getRules: (workspacePath: string) => Promise<string>
+    setRules: (workspacePath: string, rules: string) => Promise<boolean>
+    appendRule: (workspacePath: string, rule: string) => Promise<boolean>
+    // Test patterns - learned test patterns for this project
+    getTestPatterns: (workspacePath: string) => Promise<string>
+    setTestPatterns: (workspacePath: string, patterns: string) => Promise<boolean>
+    appendTestPattern: (workspacePath: string, pattern: string) => Promise<boolean>
+    // Fixes log - record of bugs fixed (don't repeat!)
+    getFixesLog: (workspacePath: string) => Promise<string>
+    appendFix: (workspacePath: string, fix: string) => Promise<boolean>
+    // Generic workspace data
+    getData: (workspacePath: string, key: string) => Promise<unknown>
+    setData: (workspacePath: string, key: string, value: unknown) => Promise<boolean>
+  }
+
   // Generic invoke for backwards compatibility
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
 
@@ -164,6 +190,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // File system operations
   fs: {
     readFile: (path: string, encoding?: string) => ipcRenderer.invoke('fs:readFile', path, encoding),
+    // KAN-6/KAN-7/KAN-12 FIX: Return base64 string directly (avoids Buffer in renderer)
+    readFileAsBase64: (path: string) => ipcRenderer.invoke('fs:readFileAsBase64', path),
+    // KAN-6/KAN-12 FIX: Return text string directly (avoids Buffer in renderer)
+    readFileAsText: (path: string, encoding?: string) => ipcRenderer.invoke('fs:readFileAsText', path, encoding),
+    // KAN-6 FIX: Get file size without Buffer
+    getFileSize: (path: string) => ipcRenderer.invoke('fs:getFileSize', path),
     writeFile: (path: string, data: string | Buffer) => ipcRenderer.invoke('fs:writeFile', path, data),
     readDir: (path: string) => ipcRenderer.invoke('fs:readDir', path),
     stat: (path: string) => ipcRenderer.invoke('fs:stat', path),
@@ -289,6 +321,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     clearAll: () => ipcRenderer.invoke('history:clearAll'),
     search: (query: string) => ipcRenderer.invoke('history:search', query),
     export: (threadId: string) => ipcRenderer.invoke('history:export', threadId),
+  },
+
+  // Workspace-specific storage for rules, patterns, and context
+  workspace: {
+    getPath: (workspacePath: string) => ipcRenderer.invoke('workspace:getPath', workspacePath),
+    getRules: (workspacePath: string) => ipcRenderer.invoke('workspace:getRules', workspacePath),
+    setRules: (workspacePath: string, rules: string) => ipcRenderer.invoke('workspace:setRules', workspacePath, rules),
+    appendRule: (workspacePath: string, rule: string) => ipcRenderer.invoke('workspace:appendRule', workspacePath, rule),
+    getTestPatterns: (workspacePath: string) => ipcRenderer.invoke('workspace:getTestPatterns', workspacePath),
+    setTestPatterns: (workspacePath: string, patterns: string) => ipcRenderer.invoke('workspace:setTestPatterns', workspacePath, patterns),
+    appendTestPattern: (workspacePath: string, pattern: string) => ipcRenderer.invoke('workspace:appendTestPattern', workspacePath, pattern),
+    getFixesLog: (workspacePath: string) => ipcRenderer.invoke('workspace:getFixesLog', workspacePath),
+    appendFix: (workspacePath: string, fix: string) => ipcRenderer.invoke('workspace:appendFix', workspacePath, fix),
+    getData: (workspacePath: string, key: string) => ipcRenderer.invoke('workspace:getData', workspacePath, key),
+    setData: (workspacePath: string, key: string, value: unknown) => ipcRenderer.invoke('workspace:setData', workspacePath, key, value),
   },
 
   // Generic invoke for backwards compatibility

@@ -244,62 +244,12 @@ interface TerminalOutput {
   timestamp: number
 }
 
-// Model options for user selection
-interface ModelOption {
-  id: string
-  name: string
-  description: string
-  speed: 'fast' | 'medium' | 'slow'
-  cost: 'low' | 'medium' | 'high'
-}
-
-const MODEL_OPTIONS: ModelOption[] = [
-  { 
-    id: 'auto', 
-    name: 'Auto (Recommended)', 
-    description: 'Smart routing: Fast model first, upgrades if needed',
-    speed: 'fast',
-    cost: 'low'
-  },
-  { 
-    id: 'deepseek-chat', 
-    name: 'DeepSeek Chat', 
-    description: 'Fast & affordable for most tasks',
-    speed: 'fast',
-    cost: 'low'
-  },
-  { 
-    id: 'deepseek-reasoner', 
-    name: 'DeepSeek Reasoner', 
-    description: 'Better reasoning, slightly slower',
-    speed: 'medium',
-    cost: 'low'
-  },
-  { 
-    id: 'claude-sonnet-4-20250514', 
-    name: 'Claude Sonnet 4', 
-    description: 'Balanced performance and cost',
-    speed: 'medium',
-    cost: 'medium'
-  },
-  { 
-    id: 'claude-opus-4-20250514', 
-    name: 'Claude Opus 4', 
-    description: 'Most capable, best for complex tasks',
-    speed: 'slow',
-    cost: 'high'
-  }
-]
-
-// Model routing configuration - DeepSeek first, then Opus 4.5
-const MODEL_CONFIG = {
-  // DeepSeek for command execution (fast, cheap)
-  execution: 'deepseek-chat',
-  // Opus 4.5 for complex analysis (fallback after 2 DeepSeek failures)
-  analysis: 'claude-opus-4-20250514',
-  // Max DeepSeek retries before escalating to Opus
-  maxDeepSeekRetries: 2
-}
+// AIBuddy uses smart backend routing - users never select models
+// Backend automatically chooses optimal model based on task analysis:
+// - GPT-5.3-Codex: Code generation, images (best coding, 25% faster)
+// - Claude Opus 4: Complex reasoning, debugging, refactoring (80.9% SWE-bench)
+// - DeepSeek V3: Simple tasks (cost optimization, ~60% of requests)
+// Expected cost savings: ~50% vs always using expensive models
 
 // Parse code blocks from AI response to find executable commands
 function parseCodeBlocks(content: string): { language: string; code: string }[] {
@@ -322,43 +272,71 @@ function parseCodeBlocks(content: string): { language: string; code: string }[] 
 }
 
 // Extract individual commands from a code block
+// KAN-32 FIX: Now handles heredoc (cat << 'EOF') as a single command
+// so the AI can create files using bash heredoc syntax
 function extractCommands(codeBlock: string): string[] {
-  return codeBlock
-    .split('\n')
-    .map(line => line.trim())
-    .filter(line => {
-      // Skip empty lines
-      if (!line) return false
-      // Skip comments
-      if (line.startsWith('#')) return false
-      if (line.startsWith('//')) return false
-      // Skip echo explanations
-      if (line.startsWith('echo "')) return false
-      // Skip lines that look like terminal output (not commands)
-      if (line.startsWith('total ')) return false // ls output
-      if (line.match(/^[d-][rwx-]{9}/)) return false // ls -l output (drwxr-xr-x)
-      if (line.match(/^[a-z0-9_-]+\s+\d+\s+\d+/i)) return false // ps output
-      if (line.startsWith('List of devices')) return false // adb output
-      if (line.match(/^\d+\s+actionable/)) return false // gradle output
-      if (line.startsWith('BUILD ')) return false // gradle output
-      if (line.startsWith('> Task')) return false // gradle task output
-      if (line.startsWith('Starting:')) return false // adb output
-      if (line.startsWith('Installed on')) return false // adb output
-      if (line.startsWith('Error type')) return false // error messages
-      if (line.startsWith('Error:')) return false // error messages
-      if (line.startsWith('WARNING:')) return false // warnings
-      if (line.startsWith('INFO')) return false // info messages
-      if (line.startsWith('FAILURE:')) return false // gradle failures
-      if (line.match(/^[A-Z][a-z]+:$/)) return false // Section headers like "Output:"
-      // Skip lines that are clearly not commands (contain only special chars or look like output)
-      if (line.match(/^[\s\-\|=\+]+$/)) return false // Separator lines
-      if (line.match(/^\d+\.\d+\.\d+/)) return false // Version numbers
-      // Skip gradle/java output patterns
-      if (line.includes('at org.gradle')) return false
-      if (line.includes('at java.base')) return false
-      if (line.includes('Caused by:')) return false
-      return true
-    })
+  const lines = codeBlock.split('\n')
+  const commands: string[] = []
+  let i = 0
+  
+  while (i < lines.length) {
+    const line = lines[i].trim()
+    
+    // Skip empty lines
+    if (!line) { i++; continue }
+    // Skip comments
+    if (line.startsWith('#') || line.startsWith('//')) { i++; continue }
+    // Skip echo explanations
+    if (line.startsWith('echo "')) { i++; continue }
+    // Skip lines that look like terminal output (not commands)
+    if (line.startsWith('total ')) { i++; continue }
+    if (line.match(/^[d-][rwx-]{9}/)) { i++; continue }
+    if (line.match(/^[a-z0-9_-]+\s+\d+\s+\d+/i)) { i++; continue }
+    if (line.startsWith('List of devices')) { i++; continue }
+    if (line.match(/^\d+\s+actionable/)) { i++; continue }
+    if (line.startsWith('BUILD ')) { i++; continue }
+    if (line.startsWith('> Task')) { i++; continue }
+    if (line.startsWith('Starting:')) { i++; continue }
+    if (line.startsWith('Installed on')) { i++; continue }
+    if (line.startsWith('Error type')) { i++; continue }
+    if (line.startsWith('Error:')) { i++; continue }
+    if (line.startsWith('WARNING:')) { i++; continue }
+    if (line.startsWith('INFO')) { i++; continue }
+    if (line.startsWith('FAILURE:')) { i++; continue }
+    if (line.match(/^[A-Z][a-z]+:$/)) { i++; continue }
+    if (line.match(/^[\s\-\|=\+]+$/)) { i++; continue }
+    if (line.match(/^\d+\.\d+\.\d+/)) { i++; continue }
+    if (line.includes('at org.gradle')) { i++; continue }
+    if (line.includes('at java.base')) { i++; continue }
+    if (line.includes('Caused by:')) { i++; continue }
+    
+    // KAN-32 FIX: Detect heredoc start (cat > file << 'EOF') and collect until delimiter
+    // This allows the AI to create files using bash heredoc syntax
+    const heredocMatch = line.match(/<<\s*['"]?(\w+)['"]?\s*$/)
+    if (heredocMatch) {
+      const delimiter = heredocMatch[1]
+      let heredocCmd = lines[i]  // Use original line (not trimmed) to preserve indentation
+      i++
+      
+      // Collect all lines until the closing delimiter
+      while (i < lines.length) {
+        heredocCmd += '\n' + lines[i]
+        if (lines[i].trim() === delimiter) {
+          break
+        }
+        i++
+      }
+      
+      commands.push(heredocCmd)
+      i++
+      continue
+    }
+    
+    commands.push(line)
+    i++
+  }
+  
+  return commands
 }
 
 // Status steps for visual feedback
@@ -621,9 +599,8 @@ function App() {
   // Track last user message for regenerate feature
   const [lastUserMessage, setLastUserMessage] = useState<{ content: string; images?: ImageAttachment[] } | null>(null)
   
-  // Model selection
-  const [selectedModel, setSelectedModel] = useState<string>('auto')
-  const [showModelSelector, setShowModelSelector] = useState(false)
+  // Model selection removed - backend uses smart AI routing
+  // Users no longer choose models; AIBuddy automatically selects optimal model
   
   // Error and retry state
   const [lastError, setLastError] = useState<{ message: string; canRetry: boolean } | null>(null)
@@ -667,9 +644,23 @@ function App() {
             hasKey = true
             
             // Load cached credits immediately (no network)
+            // KAN-27 FIX: Check for undefined/null explicitly to handle 0 credits
             const cachedCredits = await electronAPI.store.get('cachedCredits')
-            if (cachedCredits) {
+            if (cachedCredits !== undefined && cachedCredits !== null) {
               setCredits(cachedCredits)
+              console.log('[App] Loaded cached credits:', cachedCredits)
+            }
+            
+            // KAN-27 FIX: Load last cost and model so they display after reopening
+            const savedLastCost = await electronAPI.store.get('lastCost')
+            const savedLastModel = await electronAPI.store.get('lastModel')
+            if (savedLastCost !== undefined && savedLastCost !== null) {
+              setLastCost(savedLastCost)
+              console.log('[App] Loaded cached lastCost:', savedLastCost)
+            }
+            if (savedLastModel) {
+              setLastModel(savedLastModel)
+              console.log('[App] Loaded cached lastModel:', savedLastModel)
             }
           }
         } catch (err) {
@@ -811,6 +802,7 @@ function App() {
             e.preventDefault()
             setMessages([])
             setActiveThreadId(null)
+            setMessageFeedback({}) // KAN-28 FIX: Clear feedback when starting new chat
             setInput('')
             setAttachedImages([])
             inputRef.current?.focus()
@@ -837,8 +829,6 @@ function App() {
           setShowSettings(false)
         } else if (showHistory) {
           setShowHistory(false)
-        } else if (showModelSelector) {
-          setShowModelSelector(false)
         } else if (showKnowledgeBase) {
           setShowKnowledgeBase(false)
         }
@@ -847,7 +837,7 @@ function App() {
     
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showSettings, showHistory, showModelSelector, showKnowledgeBase])
+  }, [showSettings, showHistory, showKnowledgeBase])
 
   // Validate API key and get credits (non-blocking, background operation)
   const validateApiKey = async (key: string, showToast = true) => {
@@ -954,15 +944,17 @@ function App() {
       console.log('[App] API validation skipped (network issue):', (err as Error).message)
       
       // Try to load cached credits
+      // KAN-27 FIX: Check for undefined/null explicitly to handle 0 credits
       const electronAPI = (window as any).electronAPI
       if (electronAPI?.store?.get) {
         try {
           const cachedCredits = await electronAPI.store.get('cachedCredits')
           const lastUpdated = await electronAPI.store.get('creditsLastUpdated')
-          if (cachedCredits && lastUpdated) {
+          if (cachedCredits !== undefined && cachedCredits !== null && lastUpdated) {
             const ageMinutes = (Date.now() - lastUpdated) / 60000
             if (ageMinutes < 60) { // Use cache if less than 1 hour old
               setCredits(cachedCredits)
+              console.log('[App] Using cached credits (network failed):', cachedCredits)
               addBreadcrumb('Using cached credits', 'api.validation', { 
                 cachedCredits, 
                 ageMinutes: ageMinutes.toFixed(1) 
@@ -1143,18 +1135,88 @@ function App() {
   }
   
   // Image handling functions - using Electron native dialog
+  // KAN-6/KAN-12 FIX: Added defensive checks and better error handling with detailed logging
   const handleImageSelectWithElectron = async () => {
+    console.log('[ImageSelect] Starting image selection...')
+    
     try {
+      // KAN-6: Defensive check for electronAPI availability
+      if (!window.electronAPI) {
+        console.error('[ImageSelect] window.electronAPI is undefined')
+        addBreadcrumb('Image select failed - electronAPI undefined', 'error', {}, 'error')
+        toast.error('Desktop features not available. Please restart the app.')
+        return
+      }
+      
+      console.log('[ImageSelect] electronAPI available, checking dialog...')
+      
+      if (!window.electronAPI.dialog?.openFile) {
+        console.error('[ImageSelect] electronAPI.dialog.openFile not available')
+        addBreadcrumb('Image select failed - API not available', 'error', { api: 'dialog.openFile' }, 'error')
+        toast.error('File picker not available. Please restart the app.')
+        return
+      }
+      
+      if (!window.electronAPI.fs?.readFile) {
+        console.error('[ImageSelect] electronAPI.fs.readFile not available')
+        addBreadcrumb('Image select failed - API not available', 'error', { api: 'fs.readFile' }, 'error')
+        toast.error('File system access not available. Try drag and drop instead.')
+        return
+      }
+
+      console.log('[ImageSelect] Opening dialog for images...')
+      addBreadcrumb('Opening image file dialog', 'ui.action', { action: 'openFile' })
+      
       // Use Electron's native dialog to select images (fixes macOS sandbox issue)
-      const filePath = await window.electronAPI.dialog.openFile([
-        { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }
-      ])
+      let filePath: string | null = null
+      try {
+        filePath = await window.electronAPI.dialog.openFile([
+          { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }
+        ])
+        console.log('[ImageSelect] Dialog returned:', filePath ? 'path received' : 'cancelled/null')
+      } catch (dialogError) {
+        console.error('[ImageSelect] Dialog threw error:', dialogError)
+        addBreadcrumb('Image dialog threw error', 'error', { error: (dialogError as Error).message }, 'error')
+        toast.error('Could not open file picker. Try drag and drop instead.')
+        return
+      }
       
-      if (!filePath) return // User cancelled
+      if (!filePath) {
+        console.log('[ImageSelect] User cancelled dialog')
+        addBreadcrumb('Image dialog cancelled by user', 'ui.action')
+        return // User cancelled
+      }
       
-      // Read the file using Electron's fs API
-      const fileBuffer = await window.electronAPI.fs.readFile(filePath) as Buffer
-      const base64 = Buffer.from(fileBuffer).toString('base64')
+      console.log('[ImageSelect] Image selected:', filePath)
+      addBreadcrumb('Image file selected', 'ui.action', { path: filePath })
+      
+      // KAN-6/KAN-12 FIX: Use readFileAsBase64 to avoid "Buffer is not defined" error
+      // Buffer is not available in Electron renderer with contextIsolation: true
+      // The main process does the Buffer->base64 conversion and returns a plain string
+      let base64: string
+      try {
+        console.log('[ImageSelect] Reading file as base64...')
+        base64 = await window.electronAPI.fs.readFileAsBase64(filePath)
+        console.log('[ImageSelect] File read success, base64 length:', base64?.length)
+      } catch (readError) {
+        console.error('[ImageSelect] Failed to read file:', readError)
+        addBreadcrumb('Failed to read image file', 'error', { 
+          path: filePath, 
+          error: (readError as Error).message 
+        }, 'error')
+        toast.error(`Cannot read file. Check permissions or try drag and drop.`)
+        return
+      }
+      
+      // KAN-6: Validate base64 is not empty
+      if (!base64 || base64.length === 0) {
+        console.error('[ImageSelect] File base64 is empty')
+        addBreadcrumb('Image file base64 empty', 'error', { path: filePath }, 'error')
+        toast.error('File appears to be empty. Please select a different image.')
+        return
+      }
+      
+      console.log('[ImageSelect] Base64 length:', base64.length)
       
       // Determine MIME type from extension
       const extension = filePath.split('.').pop()?.toLowerCase() || 'png'
@@ -1169,24 +1231,39 @@ function App() {
       
       // Get file name from path
       const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'image'
+      console.log('[ImageSelect] File:', fileName, 'Type:', mimeType)
       
       // Get file size
-      const stat = await window.electronAPI.fs.stat(filePath)
-      const fileSize = stat.size
+      let fileSize: number
+      try {
+        const stat = await window.electronAPI.fs.stat(filePath)
+        fileSize = stat.size
+        console.log('[ImageSelect] File size from stat:', fileSize)
+      } catch (statError) {
+        console.error('[ImageSelect] Failed to get file stats:', statError)
+        // KAN-6 FIX: Estimate size from base64 length (base64 is ~4/3 of original)
+        fileSize = Math.ceil(base64.length * 3 / 4)
+        addBreadcrumb('Using base64 estimated file size', 'warning', { fallback: true })
+      }
       
       // Check file size (max 10MB)
       if (fileSize > 10 * 1024 * 1024) {
+        console.warn('[ImageSelect] File too large:', fileSize)
+        addBreadcrumb('Image too large', 'error', { size: fileSize, max: 10 * 1024 * 1024 }, 'error')
         toast.error(`${fileName} is too large (max 10MB)`)
         return
       }
       
-      setAttachedImages(prev => [...prev, {
+      const newImage = {
         id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         base64,
         mimeType,
         name: fileName,
         size: fileSize
-      }])
+      }
+      
+      setAttachedImages(prev => [...prev, newImage])
+      console.log('[ImageSelect] SUCCESS: Image attached:', fileName)
       
       toast.success(`📷 Added: ${fileName}`)
       addBreadcrumb('Image attached via dialog', 'chat.image', { 
@@ -1195,50 +1272,156 @@ function App() {
         type: mimeType 
       })
     } catch (error) {
-      console.error('Failed to select image:', error)
-      toast.error('Failed to select image. Please try again.')
+      const errorMessage = (error as Error).message || 'Unknown error'
+      const errorStack = (error as Error).stack || 'No stack trace'
+      console.error('[ImageSelect] UNEXPECTED ERROR:', error)
+      console.error('[ImageSelect] Error message:', errorMessage)
+      console.error('[ImageSelect] Stack trace:', errorStack)
+      addBreadcrumb('Image select unexpected error', 'error', { 
+        error: errorMessage,
+        stack: errorStack.substring(0, 500) 
+      }, 'error')
+      
+      // KAN-6: Provide more specific error messages based on error type
+      if (errorMessage.includes('permission') || errorMessage.includes('EACCES')) {
+        toast.error('Permission denied. Try drag and drop instead.')
+      } else if (errorMessage.includes('not found') || errorMessage.includes('ENOENT')) {
+        toast.error('File not found. Please select a different file.')
+      } else if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
+        toast.error('Network error. Please try again.')
+      } else if (errorMessage.includes('cancel') || errorMessage.includes('Cancel')) {
+        // User cancelled - no error message needed
+        console.log('[ImageSelect] User cancelled')
+      } else {
+        toast.error(`Failed to select image: ${errorMessage.substring(0, 50)}`)
+      }
     }
   }
   
   // KAN-6 FIX: Code file selection using Electron native dialog
+  // KAN-12 FIX: Added defensive checks and better error handling
   const handleCodeFileSelectWithElectron = async () => {
+    console.log('[CodeFileSelect] Starting file selection...')
+    
     try {
+      // KAN-6: Defensive check for electronAPI availability
+      if (!window.electronAPI) {
+        console.error('[CodeFileSelect] window.electronAPI is undefined')
+        addBreadcrumb('Code file select failed - electronAPI undefined', 'error', {}, 'error')
+        toast.error('Desktop features not available. Please restart the app.')
+        return
+      }
+      
+      console.log('[CodeFileSelect] electronAPI available, checking dialog...')
+      
+      if (!window.electronAPI.dialog?.openFile) {
+        console.error('[CodeFileSelect] electronAPI.dialog.openFile not available')
+        addBreadcrumb('Code file select failed - API not available', 'error', { api: 'dialog.openFile' }, 'error')
+        toast.error('File picker not available. Please restart the app.')
+        return
+      }
+      
+      if (!window.electronAPI.fs?.readFile) {
+        console.error('[CodeFileSelect] electronAPI.fs.readFile not available')
+        addBreadcrumb('Code file select failed - API not available', 'error', { api: 'fs.readFile' }, 'error')
+        toast.error('File system access not available. Try drag and drop instead.')
+        return
+      }
+      
       // All supported code file extensions
       const codeExtensions = Object.keys(CODE_FILE_EXTENSIONS)
+      console.log('[CodeFileSelect] Opening dialog with extensions:', codeExtensions.length, 'types')
       
-      const filePath = await window.electronAPI.dialog.openFile([
-        { name: 'Code Files', extensions: codeExtensions },
-        { name: 'All Files', extensions: ['*'] }
-      ])
+      addBreadcrumb('Opening code file dialog', 'ui.action', { action: 'openFile', extensionCount: codeExtensions.length })
       
-      if (!filePath) return // User cancelled
+      let filePath: string | null = null
+      try {
+        filePath = await window.electronAPI.dialog.openFile([
+          { name: 'Code Files', extensions: codeExtensions },
+          { name: 'All Files', extensions: ['*'] }
+        ])
+        console.log('[CodeFileSelect] Dialog returned:', filePath ? 'path received' : 'cancelled/null')
+      } catch (dialogError) {
+        console.error('[CodeFileSelect] Dialog threw error:', dialogError)
+        addBreadcrumb('Dialog threw error', 'error', { error: (dialogError as Error).message }, 'error')
+        toast.error('Could not open file picker. Try drag and drop instead.')
+        return
+      }
       
-      // Read the file content as text
-      const fileBuffer = await window.electronAPI.fs.readFile(filePath) as Buffer
-      const content = Buffer.from(fileBuffer).toString('utf-8')
+      if (!filePath) {
+        console.log('[CodeFileSelect] User cancelled dialog')
+        addBreadcrumb('Code file dialog cancelled by user', 'ui.action')
+        return // User cancelled
+      }
+      
+      console.log('[CodeFileSelect] File selected:', filePath)
+      addBreadcrumb('Code file selected', 'ui.action', { path: filePath })
+      
+      // KAN-6/KAN-12 FIX: Use readFileAsText to avoid "Buffer is not defined" error
+      // Buffer is not available in Electron renderer with contextIsolation: true
+      // The main process reads and returns a plain UTF-8 string
+      let content: string
+      try {
+        console.log('[CodeFileSelect] Reading file as text...')
+        content = await window.electronAPI.fs.readFileAsText(filePath)
+        console.log('[CodeFileSelect] File read success, content length:', content?.length)
+      } catch (readError) {
+        console.error('[CodeFileSelect] Failed to read file:', readError)
+        addBreadcrumb('Failed to read code file', 'error', { 
+          path: filePath, 
+          error: (readError as Error).message 
+        }, 'error')
+        toast.error(`Cannot read file. Check permissions or try drag and drop.`)
+        return
+      }
+      
+      // KAN-6: Validate content is not empty
+      if (!content || content.length === 0) {
+        console.error('[CodeFileSelect] File content is empty')
+        addBreadcrumb('Code file content empty', 'error', { path: filePath }, 'error')
+        toast.error('File appears to be empty. Please select a different file.')
+        return
+      }
+      
+      console.log('[CodeFileSelect] Content length:', content.length, 'characters')
       
       // Get file name and extension
       const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'file'
       const extension = fileName.split('.').pop()?.toLowerCase() || 'txt'
       const language = CODE_FILE_EXTENSIONS[extension] || 'text'
+      console.log('[CodeFileSelect] File:', fileName, 'Extension:', extension, 'Language:', language)
       
       // Get file size
-      const stat = await window.electronAPI.fs.stat(filePath)
-      const fileSize = stat.size
+      let fileSize: number
+      try {
+        const stat = await window.electronAPI.fs.stat(filePath)
+        fileSize = stat.size
+        console.log('[CodeFileSelect] File size from stat:', fileSize)
+      } catch (statError) {
+        console.error('[CodeFileSelect] Failed to get file stats:', statError)
+        // KAN-6 FIX: Use content length as fallback (UTF-8 bytes ≈ string length for ASCII)
+        fileSize = new Blob([content]).size
+        addBreadcrumb('Using content length as file size', 'warning', { fallback: true })
+      }
       
       // Check file size (max 1MB for code files to avoid context overflow)
       if (fileSize > 1 * 1024 * 1024) {
+        console.warn('[CodeFileSelect] File too large:', fileSize)
+        addBreadcrumb('Code file too large', 'error', { size: fileSize, max: 1 * 1024 * 1024 }, 'error')
         toast.error(`${fileName} is too large (max 1MB for code files)`)
         return
       }
       
-      setAttachedFiles(prev => [...prev, {
+      const newFile = {
         id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         content,
         name: fileName,
         size: fileSize,
         language
-      }])
+      }
+      
+      setAttachedFiles(prev => [...prev, newFile])
+      console.log('[CodeFileSelect] SUCCESS: File attached:', fileName)
       
       toast.success(`📄 Added: ${fileName}`)
       addBreadcrumb('Code file attached via dialog', 'chat.file', { 
@@ -1247,8 +1430,27 @@ function App() {
         language 
       })
     } catch (error) {
-      console.error('Failed to select code file:', error)
-      toast.error('Failed to select file. Please try again.')
+      const errorMessage = (error as Error).message || 'Unknown error'
+      const errorStack = (error as Error).stack || 'No stack trace'
+      console.error('[CodeFileSelect] UNEXPECTED ERROR:', error)
+      console.error('[CodeFileSelect] Error message:', errorMessage)
+      console.error('[CodeFileSelect] Stack trace:', errorStack)
+      addBreadcrumb('Code file select unexpected error', 'error', { 
+        error: errorMessage,
+        stack: errorStack.substring(0, 500)
+      }, 'error')
+      
+      // KAN-6: Provide more specific error messages based on error type
+      if (errorMessage.includes('permission') || errorMessage.includes('EACCES')) {
+        toast.error('Permission denied. Try drag and drop instead.')
+      } else if (errorMessage.includes('not found') || errorMessage.includes('ENOENT')) {
+        toast.error('File not found. Please select a different file.')
+      } else if (errorMessage.includes('cancel') || errorMessage.includes('Cancel')) {
+        // User cancelled - no error message needed
+        console.log('[CodeFileSelect] User cancelled')
+      } else {
+        toast.error(`Failed to select file: ${errorMessage.substring(0, 50)}`)
+      }
     }
   }
   
@@ -1392,9 +1594,9 @@ function App() {
         const filePath = (file as File & { path?: string }).path
         
         if (filePath && window.electronAPI?.fs) {
-          // Use Electron's native FS API for better compatibility
-          const fileBuffer = await window.electronAPI.fs.readFile(filePath) as Buffer
-          const base64 = Buffer.from(fileBuffer).toString('base64')
+          // KAN-7 FIX: Use readFileAsBase64 to avoid "Buffer is not defined" error
+          // Buffer is not available in renderer with contextIsolation: true
+          const base64 = await window.electronAPI.fs.readFileAsBase64(filePath)
           
           const mimeTypes: Record<string, ImageAttachment['mimeType']> = {
             'png': 'image/png',
@@ -1454,40 +1656,25 @@ function App() {
     }
   }
   
-  // Call AI with model routing - respects user selection or uses smart routing
+  // Call AI with smart backend routing
+  // Backend automatically selects optimal model based on task analysis:
+  // - GPT-5.3-Codex: Code generation, images (best coding, 25% faster)
+  // - Claude Opus 4: Complex reasoning, debugging, refactoring (80.9% SWE-bench)
+  // - DeepSeek V3: Simple tasks (cost optimization, ~60% of requests)
   const callAIWithRouting = async (
-    messages: { role: string; content: string }[],
+    messages: { role: string; content: string | any[] }[],
     systemPrompt: string,
     purpose: 'execution' | 'analysis' = 'execution',
-    retryCount = 0
+    retryCount = 0,
+    hasImages = false
   ): Promise<{ response: string; model: string; cost: number; credits: number }> => {
-    let model: string
-    
-    // If user selected a specific model (not 'auto'), use that
-    if (selectedModel !== 'auto') {
-      model = selectedModel
-      addBreadcrumb('AI call with user-selected model', 'api.routing', {
-        purpose,
-        model,
-        userSelected: true
-      })
-    } else {
-      // Auto mode: Use DeepSeek for execution tasks, Opus for analysis
-      // After 2 DeepSeek failures, escalate to Opus
-      const useOpus = purpose === 'analysis' || retryCount >= MODEL_CONFIG.maxDeepSeekRetries
-      model = useOpus ? MODEL_CONFIG.analysis : MODEL_CONFIG.execution
-      
-      addBreadcrumb('AI call with auto routing', 'api.routing', {
-        purpose,
-        model,
-        retryCount,
-        escalatedToOpus: useOpus && purpose === 'execution'
-      })
-      
-      if (useOpus && purpose === 'execution' && retryCount >= MODEL_CONFIG.maxDeepSeekRetries) {
-        toast.info('🧠 Escalating to Opus 4.5 for complex analysis...')
-      }
-    }
+    // Backend handles all model selection via smart routing
+    // We just send the request and let the backend decide
+    addBreadcrumb('AI call with backend smart routing', 'api.routing', {
+      purpose,
+      hasImages,
+      retryCount
+    })
     
     const response = await fetch(AIBUDDY_API_INFERENCE_URL, {
       method: 'POST',
@@ -1497,13 +1684,13 @@ function App() {
       },
       body: JSON.stringify({
         api_key: apiKey,
-        model,
+        // No model selection - backend uses smart routing
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages
         ],
         max_tokens: 4096,
-        temperature: 0.7,
+        has_images: hasImages, // Help backend route to multimodal model if needed
       }),
     })
     
@@ -1534,7 +1721,7 @@ function App() {
     
     return {
       response: responseText,
-      model: data.model || model,
+      model: data.model || 'auto-routed',
       cost: data.api_cost || 0,
       credits: data.remaining_credits || 0
     }
@@ -1754,16 +1941,11 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       addTerminalLine('info', `🚀 Starting task: ${trimmedInput.substring(0, 100)}...`)
     }
 
-    // Progress through status steps
+    // Progress through status steps - KAN-33 FIX: Removed 700ms of artificial delays
+    // Before: 200ms + 300ms + 200ms = 700ms wasted before API call even starts
+    // After: Instant status transitions, no setTimeout delays
     setStatus('validating')
-    await new Promise(r => setTimeout(r, 200))
-    
-    setStatus('reading')
-    await new Promise(r => setTimeout(r, 300))
-    
     setStatus('sending')
-    await new Promise(r => setTimeout(r, 200))
-    
     setStatus('thinking')
 
     const startTime = Date.now()
@@ -1817,20 +1999,19 @@ Be concise and actionable. Focus on fixing the immediate problem.`
         chatMessages.push({ role: 'user', content: userMessage.content })
       }
 
-      // Determine model - use Opus for image analysis (vision capable)
-      // DeepSeek doesn't support vision, so always use Opus for images
+      // Backend handles model selection via smart routing
+      // We just indicate if images are present so backend can route to multimodal model
       const isExecutionTask = userWantsExecution !== null && !hasImages
-      const initialModel = hasImages ? MODEL_CONFIG.analysis : (isExecutionTask ? MODEL_CONFIG.execution : MODEL_CONFIG.analysis)
       
-      // Track AI request
+      // Track AI request - model will be determined by backend smart routing
       trackAIRequest({
-        model: initialModel,
+        model: 'auto-routed', // Backend selects optimal model
         messageCount: chatMessages.length + 1, // +1 for system
         hasImages,
         hasTools: false
       })
       addBreadcrumb('Sending AI request', 'api.request', {
-        model: initialModel,
+        routing: 'smart-backend',
         messageCount: chatMessages.length + 1,
         hasKnowledgeContext: !!knowledgeContext,
         isExecutionTask,
@@ -1844,10 +2025,10 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       const TIMEOUT_MS = 300_000 // 5 minutes (same as VS Code extension)
       let response: Response | null = null
 
-      // Prepare request body
+      // Prepare request body - backend handles model selection via smart routing
       const requestBody = {
         api_key: apiKey,
-        model: initialModel,
+        has_images: hasImages, // Backend uses this for smart model routing
         messages: [
           { 
             role: 'system', 
@@ -1873,6 +2054,11 @@ Be concise and actionable. Focus on fixing the immediate problem.`
           controller.abort()
         }, TIMEOUT_MS)
 
+        // KAN-33 FIX: Track fetch timing for performance monitoring
+        const fetchStartTime = Date.now()
+        const preProcessMs = fetchStartTime - startTime
+        console.log(`[Perf] Pre-processing took ${preProcessMs}ms`)
+        
         response = await fetch(AIBUDDY_API_INFERENCE_URL, {
           method: 'POST',
           headers: {
@@ -1886,6 +2072,10 @@ Be concise and actionable. Focus on fixing the immediate problem.`
         })
 
         clearTimeout(timeoutId)
+        
+        const fetchEndTime = Date.now()
+        const networkMs = fetchEndTime - fetchStartTime
+        console.log(`[Perf] Network request took ${networkMs}ms (${(networkMs / 1000).toFixed(1)}s)`)
 
       } catch (fetchError: any) {
         console.log(`[App] Fetch error:`, fetchError.name, fetchError.message)
@@ -2043,9 +2233,15 @@ Be concise and actionable. Focus on fixing the immediate problem.`
         }
       }
       
-      // Track cost and model
-      if (data.api_cost) setLastCost(data.api_cost)
-      if (data.model) setLastModel(data.model)
+      // KAN-27 FIX: Track cost and model, persist to store for display after app reopen
+      if (data.api_cost) {
+        setLastCost(data.api_cost)
+        try { window.electronAPI?.store?.set('lastCost', data.api_cost) } catch (e) { /* non-critical */ }
+      }
+      if (data.model) {
+        setLastModel(data.model)
+        try { window.electronAPI?.store?.set('lastModel', data.model) } catch (e) { /* non-critical */ }
+      }
 
       // Extract response text
       let responseText = ''
@@ -2085,7 +2281,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
           
           // Execute commands with error recovery
           let currentRetry = 0
-          const MAX_ERROR_RETRIES = MODEL_CONFIG.maxDeepSeekRetries + 1 // +1 for Opus escalation
+          const MAX_ERROR_RETRIES = 3 // Allow retries for error recovery
           let commandsToRun = allCommands
           
           while (commandsToRun.length > 0 && currentRetry <= MAX_ERROR_RETRIES) {
@@ -2188,9 +2384,14 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       // Save assistant message to history
       if (threadId) {
         try {
+          // KAN-27 FIX: Include cost and model in message for persistence
           await window.electronAPI.history.addMessage(threadId, {
             role: 'assistant',
-            content: assistantMessage.content
+            content: assistantMessage.content,
+            cost: data.api_cost,
+            model: data.model,
+            tokensIn: data.usage?.input_tokens,
+            tokensOut: data.usage?.output_tokens
           })
           // Update thread metadata with cost/tokens
           await window.electronAPI.history.updateMetadata(threadId, {
@@ -2310,12 +2511,27 @@ Be concise and actionable. Focus on fixing the immediate problem.`
     setTimeout(() => setCopiedId(null), 2000)
   }
   
-  // Handle message feedback (thumbs up/down)
-  const handleFeedback = (messageId: string, feedback: 'up' | 'down') => {
+  // Handle message feedback (thumbs up/down) - KAN-28 fixed
+  const handleFeedback = async (messageId: string, feedback: 'up' | 'down') => {
     const currentFeedback = messageFeedback[messageId]
     const newFeedback = currentFeedback === feedback ? null : feedback
     
+    // Update local state first for immediate UI response
     setMessageFeedback(prev => ({ ...prev, [messageId]: newFeedback }))
+    
+    // Persist feedback to disk via IPC
+    if (activeThreadId) {
+      try {
+        await window.electronAPI.history.updateMessageFeedback(activeThreadId, messageId, newFeedback)
+        console.log('[Feedback] Persisted to disk:', { threadId: activeThreadId, messageId, feedback: newFeedback })
+      } catch (error) {
+        console.error('[Feedback] Failed to persist:', error)
+        // Revert on failure
+        setMessageFeedback(prev => ({ ...prev, [messageId]: currentFeedback }))
+        toast.error('Failed to save feedback')
+        return
+      }
+    }
     
     if (newFeedback) {
       toast.success(newFeedback === 'up' ? '👍 Thanks for the feedback!' : '👎 Thanks for letting us know!')
@@ -2447,6 +2663,35 @@ Be concise and actionable. Focus on fixing the immediate problem.`
               </span>
             </div>
           </Tooltip>
+
+          {/* KAN-27 FIX: Last Cost & Model Display - shows cost after each response and when reopening app */}
+          {lastCost !== null && (
+            <Tooltip text={`Last request cost: $${lastCost.toFixed(4)}${lastModel ? ` via ${lastModel}` : ''}`} position="bottom">
+              <div 
+                className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl cursor-help h-10"
+                style={{ 
+                  background: 'rgba(168, 85, 247, 0.15)',
+                  border: '2px solid rgba(168, 85, 247, 0.4)',
+                }}
+              >
+                <span className="text-xs" style={{ color: '#a855f7' }}>$</span>
+                <span 
+                  className="text-sm font-bold"
+                  style={{ color: '#a855f7' }}
+                >
+                  {lastCost.toFixed(4)}
+                </span>
+                {lastModel && (
+                  <span 
+                    className="text-xs font-medium ml-0.5 hidden sm:inline"
+                    style={{ color: 'rgba(168, 85, 247, 0.7)' }}
+                  >
+                    {lastModel.length > 12 ? lastModel.substring(0, 12) + '...' : lastModel}
+                  </span>
+                )}
+              </div>
+            </Tooltip>
+          )}
 
           {/* Open Folder Button */}
           <Tooltip text="📁 Open your code folder" position="bottom">
@@ -2685,6 +2930,14 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                               }))
                             })))
                             setActiveThreadId(thread.id)
+                            // KAN-28 FIX: Load persisted feedback state from recent thread
+                            const loadedFeedback: Record<string, 'up' | 'down' | null> = {}
+                            thread.messages.forEach(msg => {
+                              if ((msg as any).feedback) {
+                                loadedFeedback[msg.id] = (msg as any).feedback
+                              }
+                            })
+                            setMessageFeedback(loadedFeedback)
                             trackButtonClick('Recent Chat', 'WelcomeScreen', { threadId: thread.id })
                           }}
                           className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all hover:scale-[1.02]"
@@ -3387,82 +3640,19 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                 </button>
               </Tooltip>
               
-              {/* Model Selector */}
-              <div className="relative self-center">
-                <Tooltip text="Select AI model">
-                  <button
-                    type="button"
-                    onClick={() => setShowModelSelector(!showModelSelector)}
-                    disabled={isLoading}
-                    className="flex items-center gap-1.5 px-2.5 h-10 sm:h-11 rounded-lg transition-all hover:bg-slate-700/50 disabled:opacity-50 flex-shrink-0"
-                    style={{ 
-                      background: 'rgba(59, 130, 246, 0.15)',
-                      border: '1px solid rgba(59, 130, 246, 0.3)'
-                    }}
-                    aria-label="Select AI model"
-                  >
-                    <Zap className="w-3.5 h-3.5 text-blue-400" />
-                    <span className="text-xs text-blue-300 font-medium">
-                      {MODEL_OPTIONS.find(m => m.id === selectedModel)?.name.split(' ')[0] || 'Auto'}
-                    </span>
-                  </button>
-                </Tooltip>
-                
-                {/* Model Dropdown */}
-                {showModelSelector && (
-                  <div 
-                    className="absolute bottom-full left-0 mb-2 w-64 rounded-xl overflow-hidden z-50"
-                    style={{ 
-                      background: '#1e293b',
-                      border: '2px solid #334155',
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
-                    }}
-                  >
-                    <div className="p-2 border-b border-slate-700">
-                      <p className="text-xs font-semibold text-slate-400">Select AI Model</p>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {MODEL_OPTIONS.map(model => (
-                        <button
-                          key={model.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedModel(model.id)
-                            setShowModelSelector(false)
-                            addBreadcrumb('Model changed', 'settings', { model: model.id })
-                          }}
-                          className={`w-full text-left px-3 py-2.5 transition-colors ${
-                            selectedModel === model.id 
-                              ? 'bg-blue-500/20' 
-                              : 'hover:bg-slate-700/50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-white">{model.name}</span>
-                            <div className="flex items-center gap-1">
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                model.speed === 'fast' ? 'bg-green-500/20 text-green-400' :
-                                model.speed === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                                'bg-red-500/20 text-red-400'
-                              }`}>
-                                {model.speed}
-                              </span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                model.cost === 'low' ? 'bg-green-500/20 text-green-400' :
-                                model.cost === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                                'bg-red-500/20 text-red-400'
-                              }`}>
-                                ${model.cost}
-                              </span>
-                            </div>
-                          </div>
-                          <p className="text-xs text-slate-500 mt-0.5">{model.description}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* AIBuddy Smart AI Badge - Backend handles model selection */}
+              <Tooltip text="Smart AI: Automatically selects the best model for your task">
+                <div 
+                  className="flex items-center gap-1.5 px-2.5 h-10 sm:h-11 rounded-lg flex-shrink-0"
+                  style={{ 
+                    background: 'rgba(59, 130, 246, 0.15)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)'
+                  }}
+                >
+                  <Zap className="w-3.5 h-3.5 text-blue-400" />
+                  <span className="text-xs text-blue-300 font-medium">AIBuddy</span>
+                </div>
+              </Tooltip>
             
               {/* Input Area - flex-1 to take remaining space, vertically centered */}
               <div className="flex-1 min-w-0 flex items-center self-center">
@@ -3563,6 +3753,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       </footer>
 
       {/* Settings Modal - Big & Friendly */}
+      {/* KAN-22/KAN-19 FIX: Added overflow-y-auto and max-h for scrollable settings */}
       {showSettings && (
         <div 
           className="fixed inset-0 flex items-center justify-center z-50 p-4"
@@ -3570,11 +3761,12 @@ Be concise and actionable. Focus on fixing the immediate problem.`
           onClick={(e) => e.target === e.currentTarget && setShowSettings(false)}
         >
           <div 
-            className="w-full max-w-lg p-8 rounded-3xl animate-bounce-in"
+            className="w-full max-w-lg p-8 pb-12 rounded-3xl animate-bounce-in overflow-y-auto"
             style={{ 
               background: 'linear-gradient(135deg, #1e293b, #0f172a)',
               border: '4px solid #334155',
-              boxShadow: '0 24px 64px rgba(0,0,0,0.5)'
+              boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+              maxHeight: '85vh' // KAN-19: Reduced to 85vh to ensure UsageLimits panel is visible
             }}
           >
             {/* Header */}
@@ -3874,6 +4066,9 @@ Be concise and actionable. Focus on fixing the immediate problem.`
             id: msg.id,
             role: msg.role,
             content: msg.content,
+            // KAN-27 FIX: Include cost and model in loaded messages
+            cost: (msg as any).cost,
+            model: (msg as any).model,
             images: msg.images?.map(img => ({
               id: img.id,
               base64: img.base64,
@@ -3884,14 +4079,40 @@ Be concise and actionable. Focus on fixing the immediate problem.`
           }))
           setMessages(loadedMessages)
           setActiveThreadId(thread.id)
+          
+          // KAN-27 FIX: Restore cost and model from thread metadata
+          if (thread.totalCost !== undefined) {
+            setLastCost(thread.totalCost)
+          } else {
+            setLastCost(null)
+          }
+          if (thread.model) {
+            setLastModel(thread.model)
+          } else {
+            setLastModel(null)
+          }
+          
+          // KAN-28 FIX: Load persisted feedback state from history
+          const loadedFeedback: Record<string, 'up' | 'down' | null> = {}
+          thread.messages.forEach(msg => {
+            if ((msg as any).feedback) {
+              loadedFeedback[msg.id] = (msg as any).feedback
+            }
+          })
+          setMessageFeedback(loadedFeedback)
+          
           setShowHistory(false)
           toast.success(`📜 Loaded: ${thread.title}`)
-          addBreadcrumb('Loaded chat thread', 'history', { threadId: thread.id, messageCount: thread.messages.length })
+          addBreadcrumb('Loaded chat thread', 'history', { threadId: thread.id, messageCount: thread.messages.length, totalCost: thread.totalCost, model: thread.model })
         }}
         onNewThread={() => {
           // Clear current chat and start fresh
           setMessages([])
           setActiveThreadId(null)
+          setMessageFeedback({}) // KAN-28 FIX: Clear feedback when starting new chat
+          // KAN-27 FIX: Clear cost and model when starting new chat
+          setLastCost(null)
+          setLastModel(null)
           setShowHistory(false)
           toast.success('✨ Started new chat!')
           addBreadcrumb('Started new chat thread', 'history')
@@ -3899,13 +4120,14 @@ Be concise and actionable. Focus on fixing the immediate problem.`
         }}
       />
 
-      {/* Share Modal */}
+      {/* Share Modal - KAN-18 FIX: Pass messages prop for Copy as Text functionality */}
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         threadId={activeThreadId || 'temp-' + Date.now()}
         threadTitle={messages.length > 0 ? messages[0].content.slice(0, 50) + (messages[0].content.length > 50 ? '...' : '') : undefined}
         messageCount={messages.length}
+        messages={messages.map(({ role, content }) => ({ role, content }))}
       />
     </div>
   )

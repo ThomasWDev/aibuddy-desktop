@@ -15,7 +15,7 @@
  */
 
 import { AIBUDDY_IDENTITY } from './core/identity'
-import { TDD_METHODOLOGY } from './core/tdd-methodology'
+import { TDD_METHODOLOGY, TDD_EXAMPLES } from './core/tdd-methodology'
 import { SENIOR_ENGINEER_APPROACH } from './core/senior-engineer-approach'
 import { CODE_QUALITY_STANDARDS } from './core/code-quality'
 import { COMMUNICATION_PROTOCOL } from './core/communication'
@@ -89,11 +89,7 @@ export function generateSystemPrompt(context?: SystemPromptContext): string {
   
   // Add context section if any context is provided
   if (context && Object.keys(context).length > 0) {
-    prompt += `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📍 CURRENT CONTEXT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-`
+    prompt += `\n\n## 📍 CURRENT CONTEXT\n`
     
     if (context.workspacePath) {
       prompt += `\n**Working Directory:** \`${context.workspacePath}\``
@@ -101,6 +97,24 @@ export function generateSystemPrompt(context?: SystemPromptContext): string {
     
     if (context.projectType) {
       prompt += `\n**Project Type:** ${context.projectType}`
+      
+      // KAN-33 FIX: Inject language-specific TDD examples based on project type
+      // Instead of including ALL language examples (~4000 extra tokens), only include relevant one
+      const projectLower = context.projectType.toLowerCase()
+      let tddLang: string | null = null
+      if (projectLower.includes('python') || projectLower.includes('django') || projectLower.includes('flask')) {
+        tddLang = 'python'
+      } else if (projectLower.includes('flutter') || projectLower.includes('dart')) {
+        tddLang = 'flutter'
+      } else if (projectLower.includes('php') || projectLower.includes('laravel')) {
+        tddLang = 'php'
+      } else if (projectLower.includes('android') || projectLower.includes('kotlin')) {
+        tddLang = 'android'
+      }
+      // JS/TS example is already in the base TDD_METHODOLOGY, no need to add it
+      if (tddLang && TDD_EXAMPLES[tddLang]) {
+        prompt += `\n${TDD_EXAMPLES[tddLang]}`
+      }
     }
     
     if (context.environmentSummary) {
@@ -109,7 +123,7 @@ export function generateSystemPrompt(context?: SystemPromptContext): string {
     
     if (context.knowledgeContext) {
       prompt += `\n\n### Infrastructure Context\n${context.knowledgeContext}`
-      prompt += `\n\n> ⚠️ **Note:** Sensitive credentials are stored locally and NOT sent to the AI.`
+      prompt += `\n\n> ⚠️ Sensitive credentials are stored locally and NOT sent to the AI.`
     }
     
     if (context.languagePrompt) {

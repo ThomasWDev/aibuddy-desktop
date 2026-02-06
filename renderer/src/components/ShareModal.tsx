@@ -1,27 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { X, Lock, Globe, Copy, Check, Loader2, Link as LinkIcon, FileText, MessageSquare } from 'lucide-react'
+import { X, Copy, Check, FileText, MessageSquare, Download } from 'lucide-react'
 
 /**
- * Share Conversation Modal - Issue #18
+ * Share Conversation Modal - KAN-18 FIX
  * 
- * Provides options to share/export conversations:
- * - Copy conversation as text to clipboard
- * - Export as Markdown file
+ * Provides functional options to share/export conversations:
+ * - Copy conversation as formatted text to clipboard
+ * - Export as Markdown file (download)
+ * - Export as JSON file (download)
  * 
- * Note: Web sharing requires backend integration (future feature)
+ * KAN-18 ROOT CAUSE: Previous implementation generated a fake URL (https://aibuddy.life/share/...)
+ * that had no backend to serve it. Users clicked "Create share link" and got a URL that didn't work.
+ * 
+ * FIX: Removed non-functional web link generation. Made clipboard copy and file export
+ * the primary actions since they actually work without backend infrastructure.
+ * Web link sharing will be added when the backend API endpoint is implemented.
  */
-
-export type ShareVisibility = 'private' | 'shared'
-
-export interface ShareLink {
-  id: string
-  url: string
-  threadId: string
-  visibility: ShareVisibility
-  createdAt: Date
-  expiresAt?: Date
-  viewCount: number
-}
 
 interface Message {
   role: 'user' | 'assistant'
@@ -34,49 +28,19 @@ interface ShareModalProps {
   threadId: string
   threadTitle?: string
   messageCount: number
-  messages?: Message[]  // Optional messages array for clipboard copy
-}
-
-const VISIBILITY_OPTIONS: { value: ShareVisibility; label: string; description: string; icon: React.ReactNode }[] = [
-  {
-    value: 'private',
-    label: 'Private',
-    description: 'Only you have access',
-    icon: <Lock className="w-5 h-5" />
-  },
-  {
-    value: 'shared',
-    label: 'Shared',
-    description: 'Anyone with the link can view',
-    icon: <Globe className="w-5 h-5" />
-  }
-]
-
-// Generate unique share ID
-function generateShareId(): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
-  let result = ''
-  for (let i = 0; i < 12; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return result
+  messages?: Message[]
 }
 
 export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCount, messages }: ShareModalProps) {
-  const [visibility, setVisibility] = useState<ShareVisibility>('private')
-  const [shareLink, setShareLink] = useState<ShareLink | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isCopied, setIsCopied] = useState(false)
   const [isTextCopied, setIsTextCopied] = useState(false)
+  const [isMdCopied, setIsMdCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setVisibility('private')
-      setShareLink(null)
-      setIsLoading(false)
-      setIsCopied(false)
+      setIsTextCopied(false)
+      setIsMdCopied(false)
       setError(null)
     }
   }, [isOpen])
@@ -93,115 +57,116 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
     return () => window.removeEventListener('keydown', handleEscape)
   }, [isOpen, onClose])
 
-  // Create share link
-  const handleCreateShare = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
+  // Format messages as plain text
+  const formatAsText = useCallback((): string => {
+    if (!messages || messages.length === 0) return ''
+    
+    const conversationText = messages.map((msg) => {
+      const role = msg.role === 'user' ? 'You' : 'AIBuddy'
+      return `${role}:\n${msg.content}`
+    }).join('\n\n---\n\n')
 
-    try {
-      // Generate local share link (in production, this would call an API)
-      const shareId = generateShareId()
-      const newShareLink: ShareLink = {
-        id: shareId,
-        url: `https://aibuddy.life/share/${shareId}`,
-        threadId,
-        visibility,
-        createdAt: new Date(),
-        viewCount: 0
-      }
+    return `${threadTitle || 'AIBuddy Conversation'}\n${'='.repeat(40)}\n\n${conversationText}`
+  }, [messages, threadTitle])
 
-      // Store share link metadata locally
-      try {
-        const existingShares = await window.electronAPI.store.get('shareLinks') || {}
-        await window.electronAPI.store.set('shareLinks', {
-          ...existingShares,
-          [shareId]: {
-            ...newShareLink,
-            createdAt: newShareLink.createdAt.toISOString()
-          }
-        })
-      } catch (storeError) {
-        console.warn('Could not persist share link:', storeError)
-      }
+  // Format messages as Markdown
+  const formatAsMarkdown = useCallback((): string => {
+    if (!messages || messages.length === 0) return ''
+    
+    const conversationMd = messages.map((msg) => {
+      const role = msg.role === 'user' ? '**You**' : '**AIBuddy**'
+      return `### ${role}\n\n${msg.content}`
+    }).join('\n\n---\n\n')
 
-      setShareLink(newShareLink)
-    } catch (err) {
-      setError('Failed to create share link. Please try again.')
-      console.error('Share error:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [threadId, visibility])
+    const date = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', month: 'long', day: 'numeric' 
+    })
 
-  // Copy link to clipboard
-  const handleCopyLink = useCallback(async () => {
-    if (!shareLink) return
+    return `# ${threadTitle || 'AIBuddy Conversation'}\n\n_Exported on ${date} | ${messageCount} messages_\n\n---\n\n${conversationMd}\n`
+  }, [messages, threadTitle, messageCount])
 
-    try {
-      await navigator.clipboard.writeText(shareLink.url)
-      setIsCopied(true)
-      
-      // Reset after 2 seconds
-      setTimeout(() => setIsCopied(false), 2000)
-    } catch (err) {
-      console.error('Copy failed:', err)
-      setError('Failed to copy link')
-    }
-  }, [shareLink])
-
-  // Copy conversation as text
-  const handleCopyConversation = useCallback(async () => {
+  // Copy conversation as text to clipboard
+  const handleCopyText = useCallback(async () => {
     if (!messages || messages.length === 0) {
       setError('No conversation to copy')
       return
     }
 
     try {
-      // Format messages as readable text
-      const conversationText = messages.map((msg, idx) => {
-        const role = msg.role === 'user' ? '👤 You' : '🤖 AIBuddy'
-        return `${role}:\n${msg.content}`
-      }).join('\n\n---\n\n')
-
-      const fullText = `# ${threadTitle || 'AIBuddy Conversation'}\n\n${conversationText}`
-      
-      await navigator.clipboard.writeText(fullText)
+      await navigator.clipboard.writeText(formatAsText())
       setIsTextCopied(true)
       setTimeout(() => setIsTextCopied(false), 2000)
     } catch (err) {
       console.error('Copy failed:', err)
       setError('Failed to copy conversation')
     }
-  }, [messages, threadTitle])
+  }, [messages, formatAsText])
 
-  // Update visibility
-  const handleVisibilityChange = useCallback((newVisibility: ShareVisibility) => {
-    setVisibility(newVisibility)
-    
-    // If link already exists, update it
-    if (shareLink) {
-      setShareLink({ ...shareLink, visibility: newVisibility })
-      
-      // Update stored link
-      try {
-        window.electronAPI.store.get('shareLinks').then((existingShares: Record<string, any>) => {
-          if (existingShares && existingShares[shareLink.id]) {
-            window.electronAPI.store.set('shareLinks', {
-              ...existingShares,
-              [shareLink.id]: {
-                ...existingShares[shareLink.id],
-                visibility: newVisibility
-              }
-            })
-          }
-        })
-      } catch (err) {
-        console.warn('Could not update share link visibility:', err)
-      }
+  // Copy as Markdown to clipboard
+  const handleCopyMarkdown = useCallback(async () => {
+    if (!messages || messages.length === 0) {
+      setError('No conversation to copy')
+      return
     }
-  }, [shareLink])
+
+    try {
+      await navigator.clipboard.writeText(formatAsMarkdown())
+      setIsMdCopied(true)
+      setTimeout(() => setIsMdCopied(false), 2000)
+    } catch (err) {
+      console.error('Copy failed:', err)
+      setError('Failed to copy conversation')
+    }
+  }, [messages, formatAsMarkdown])
+
+  // Export as Markdown file
+  const handleExportMarkdown = useCallback(async () => {
+    if (!messages || messages.length === 0) {
+      setError('No conversation to export')
+      return
+    }
+
+    try {
+      const markdown = formatAsMarkdown()
+      const safeTitle = (threadTitle || 'aibuddy-conversation')
+        .replace(/[^a-z0-9]+/gi, '-')
+        .toLowerCase()
+        .substring(0, 50)
+      const filename = `${safeTitle}-${Date.now()}.md`
+
+      // Use Electron save dialog if available
+      if (window.electronAPI?.dialog?.saveFile) {
+        const filePath = await window.electronAPI.dialog.saveFile(filename)
+        
+        if (filePath) {
+          await window.electronAPI.fs.writeFile(filePath, markdown)
+          onClose()
+          return
+        }
+        // User cancelled save dialog, don't show error
+        return
+      }
+
+      // Fallback: Use browser download for web or if dialog not available
+      const blob = new Blob([markdown], { type: 'text/markdown' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      onClose()
+    } catch (err) {
+      console.error('Export failed:', err)
+      setError('Failed to export conversation')
+    }
+  }, [messages, threadTitle, formatAsMarkdown, onClose])
 
   if (!isOpen) return null
+
+  const hasMessages = messages && messages.length > 0
 
   return (
     <div 
@@ -215,9 +180,9 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-700">
           <div className="flex items-center gap-2">
-            <LinkIcon className="w-5 h-5 text-purple-400" />
+            <MessageSquare className="w-5 h-5 text-purple-400" />
             <h2 id="share-modal-title" className="text-lg font-semibold text-white">
-              {shareLink ? 'Chat shared' : 'Share conversation'}
+              Share Conversation
             </h2>
           </div>
           <button
@@ -230,7 +195,7 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-4">
           {/* Conversation info */}
           {threadTitle && (
             <div className="p-3 bg-slate-800/50 rounded-lg">
@@ -239,130 +204,68 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
             </div>
           )}
 
-          {/* Quick Actions - Copy as Text */}
-          <div className="space-y-3">
-            <p className="text-xs text-slate-500 uppercase font-semibold">Quick Share</p>
-            
-            <button
-              onClick={handleCopyConversation}
-              disabled={!messages || messages.length === 0}
-              className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
-                isTextCopied
-                  ? 'border-green-500 bg-green-500/10'
-                  : 'border-slate-700 hover:border-purple-500 bg-slate-800/30'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              <div className={`${isTextCopied ? 'text-green-400' : 'text-purple-400'}`}>
-                {isTextCopied ? <Check className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
-              </div>
-              <div className="flex-1 text-left">
-                <p className={`font-medium ${isTextCopied ? 'text-green-400' : 'text-white'}`}>
-                  {isTextCopied ? 'Copied!' : 'Copy as Text'}
-                </p>
-                <p className="text-sm text-slate-500">Copy entire conversation to clipboard</p>
-              </div>
-            </button>
-          </div>
+          {/* Copy as Text */}
+          <button
+            onClick={handleCopyText}
+            disabled={!hasMessages}
+            className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+              isTextCopied
+                ? 'border-green-500 bg-green-500/10'
+                : 'border-slate-700 hover:border-purple-500 bg-slate-800/30'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            <div className={`${isTextCopied ? 'text-green-400' : 'text-purple-400'}`}>
+              {isTextCopied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+            </div>
+            <div className="flex-1 text-left">
+              <p className={`font-medium ${isTextCopied ? 'text-green-400' : 'text-white'}`}>
+                {isTextCopied ? 'Copied!' : 'Copy as Text'}
+              </p>
+              <p className="text-sm text-slate-500">Copy entire conversation to clipboard</p>
+            </div>
+          </button>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-slate-700" />
-            <span className="text-xs text-slate-500">or</span>
-            <div className="flex-1 h-px bg-slate-700" />
-          </div>
+          {/* Copy as Markdown */}
+          <button
+            onClick={handleCopyMarkdown}
+            disabled={!hasMessages}
+            className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+              isMdCopied
+                ? 'border-green-500 bg-green-500/10'
+                : 'border-slate-700 hover:border-cyan-500 bg-slate-800/30'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            <div className={`${isMdCopied ? 'text-green-400' : 'text-cyan-400'}`}>
+              {isMdCopied ? <Check className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+            </div>
+            <div className="flex-1 text-left">
+              <p className={`font-medium ${isMdCopied ? 'text-green-400' : 'text-white'}`}>
+                {isMdCopied ? 'Copied!' : 'Copy as Markdown'}
+              </p>
+              <p className="text-sm text-slate-500">Copy with formatting (headers, code blocks)</p>
+            </div>
+          </button>
 
-          {/* Web Link Options - Coming Soon */}
-          <div className="space-y-3">
-            <p className="text-xs text-slate-500 uppercase font-semibold">Web Link (Coming Soon)</p>
-            
-            {/* Visibility options */}
-            {VISIBILITY_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => handleVisibilityChange(option.value)}
-                className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
-                  visibility === option.value
-                    ? 'border-purple-500 bg-purple-500/10'
-                    : 'border-slate-700 hover:border-slate-600 bg-slate-800/30'
-                }`}
-                aria-pressed={visibility === option.value}
-              >
-                <div className={`${visibility === option.value ? 'text-purple-400' : 'text-slate-400'}`}>
-                  {option.icon}
-                </div>
-                <div className="flex-1 text-left">
-                  <p className={`font-medium ${visibility === option.value ? 'text-white' : 'text-slate-300'}`}>
-                    {option.label}
-                  </p>
-                  <p className="text-sm text-slate-500">{option.description}</p>
-                </div>
-                {visibility === option.value && (
-                  <Check className="w-5 h-5 text-purple-400" />
-                )}
-              </button>
-            ))}
-          </div>
+          {/* Export as File */}
+          <button
+            onClick={handleExportMarkdown}
+            disabled={!hasMessages}
+            className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-slate-700 hover:border-emerald-500 bg-slate-800/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="text-emerald-400">
+              <Download className="w-5 h-5" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-medium text-white">Export as File</p>
+              <p className="text-sm text-slate-500">Save conversation as .md file</p>
+            </div>
+          </button>
 
           {/* Error message */}
           {error && (
             <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
               <p className="text-sm text-red-400">{error}</p>
             </div>
-          )}
-
-          {/* Share link display */}
-          {shareLink && (
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={shareLink.url}
-                readOnly
-                className="flex-1 px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 truncate"
-                aria-label="Share link URL"
-              />
-              <button
-                onClick={handleCopyLink}
-                className={`px-4 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${
-                  isCopied
-                    ? 'bg-green-500/20 text-green-400 border border-green-500/50'
-                    : 'bg-purple-500 text-white hover:bg-purple-600'
-                }`}
-                aria-label="Copy share link to clipboard"
-              >
-                {isCopied ? (
-                  <>
-                    <Check className="w-4 h-4" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" />
-                    Copy link
-                  </>
-                )}
-              </button>
-            </div>
-          )}
-
-          {/* Create share button */}
-          {!shareLink && (
-            <button
-              onClick={handleCreateShare}
-              disabled={isLoading}
-              className="w-full py-3 px-4 bg-purple-500 text-white font-medium rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Creating link...
-                </>
-              ) : (
-                <>
-                  <LinkIcon className="w-4 h-4" />
-                  Create share link
-                </>
-              )}
-            </button>
           )}
         </div>
       </div>

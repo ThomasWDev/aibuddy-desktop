@@ -261,6 +261,7 @@ export class ChatHistoryManager {
 
   /**
    * Update feedback (thumbs up/down) for a specific message
+   * KAN-28: Fixed feedback persistence
    */
   updateMessageFeedback(threadId: string, messageId: string, feedback: 'up' | 'down' | null): boolean {
     const thread = this.getThread(threadId)
@@ -275,10 +276,12 @@ export class ChatHistoryManager {
       return false
     }
 
-    // Store feedback on the message
-    ;(message as any).feedback = feedback
+    // Store feedback on the message (properly typed now)
+    message.feedback = feedback
     thread.updatedAt = Date.now()
-    this.save()
+    
+    // Force immediate save for feedback to ensure persistence
+    this.saveImmediate()
     
     console.log('[ChatHistoryManager] Updated message feedback:', { threadId, messageId, feedback })
     return true

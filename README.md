@@ -16,11 +16,16 @@ Your intelligent coding partner - now as a standalone desktop application.
 
 ### Download
 
+**Download Page:** https://denvermobileappdeveloper.com/aibuddy-desktop/
+
 Download the latest release for your platform:
 
-- **macOS**: [AIBuddy-x.x.x.dmg](https://github.com/ThomasWDev/aibuddy-desktop/releases)
-- **Windows**: [AIBuddy-x.x.x-Setup.exe](https://github.com/ThomasWDev/aibuddy-desktop/releases)
-- **Linux**: [AIBuddy-x.x.x.AppImage](https://github.com/ThomasWDev/aibuddy-desktop/releases)
+- **macOS (Apple Silicon)**: [AIBuddy-x.x.x-arm64.dmg](https://denvermobileappdeveloper.com/aibuddy-desktop/)
+- **macOS (Intel)**: [AIBuddy-x.x.x.dmg](https://denvermobileappdeveloper.com/aibuddy-desktop/)
+- **Windows**: Coming soon
+- **Linux**: Coming soon
+
+Also available on [GitHub Releases](https://github.com/ThomasWDev/aibuddy-desktop/releases)
 
 ### Build from Source
 

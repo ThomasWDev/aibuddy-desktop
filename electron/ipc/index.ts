@@ -4,6 +4,7 @@ import { initGitHandlers } from './git'
 import { initCommandHandlers } from './commands'
 import { initKnowledgeBaseHandlers, cleanupKnowledgeBaseHandlers } from './knowledge-base'
 import { initEnvironmentHandlers, cleanupEnvironmentHandlers } from './environment'
+import { initWorkspaceHandlers, cleanupWorkspaceHandlers } from './workspace'
 
 /**
  * Initialize all IPC handlers
@@ -15,6 +16,7 @@ export function initAllIpcHandlers(): void {
   initCommandHandlers()
   initKnowledgeBaseHandlers()
   initEnvironmentHandlers()
+  initWorkspaceHandlers()
   
   console.log('[IPC] All handlers initialized')
 }
@@ -27,6 +29,7 @@ export function cleanupAllIpcHandlers(): void {
   cleanupTerminalHandlers()
   cleanupKnowledgeBaseHandlers()
   cleanupEnvironmentHandlers()
+  cleanupWorkspaceHandlers()
   
   console.log('[IPC] All handlers cleaned up')
 }

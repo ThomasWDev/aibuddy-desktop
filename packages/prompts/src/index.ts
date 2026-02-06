@@ -34,7 +34,7 @@ export {
 
 // Core components (for customization)
 export { AIBUDDY_IDENTITY } from './core/identity'
-export { TDD_METHODOLOGY } from './core/tdd-methodology'
+export { TDD_METHODOLOGY, TDD_EXAMPLES } from './core/tdd-methodology'
 export { SENIOR_ENGINEER_APPROACH } from './core/senior-engineer-approach'
 export { CODE_QUALITY_STANDARDS } from './core/code-quality'
 export { COMMUNICATION_PROTOCOL } from './core/communication'

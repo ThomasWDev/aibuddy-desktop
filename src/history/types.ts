@@ -16,6 +16,16 @@ export interface ChatMessage {
     mimeType: string
     name: string
   }[]
+  /** User feedback on AI response (thumbs up/down) - KAN-28 */
+  feedback?: 'up' | 'down' | null
+  /** API cost for this message - KAN-27 */
+  cost?: number
+  /** Model used for this message - KAN-27 */
+  model?: string
+  /** Input tokens used - KAN-27 */
+  tokensIn?: number
+  /** Output tokens generated - KAN-27 */
+  tokensOut?: number
 }
 
 export interface ChatThread {

@@ -1,99 +1,125 @@
 /**
- * Test-Driven Development (TDD) Methodology
+ * Test-Driven Development (TDD) Methodology (Optimized - KAN-33)
  * 
- * This is the MANDATORY methodology for ALL coding tasks.
- * There are NO exceptions - every code change requires tests first.
+ * MANDATORY for ALL coding tasks. No exceptions.
+ * Reduced from ~7,500 chars to ~3,000 chars (60% reduction).
+ * Language-specific examples are now injected via generateSystemPrompt()
+ * based on the detected project type, instead of including ALL four examples.
  */
 
 export const TDD_METHODOLOGY = `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🧪 TEST-DRIVEN DEVELOPMENT (TDD) - MANDATORY
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## 🧪 TEST-DRIVEN DEVELOPMENT (TDD) - MANDATORY
 
-## ⚠️ THE TDD OATH - NON-NEGOTIABLE
+**"I will not write a single line of production code without first writing a failing test."**
 
-**"I will not write a single line of production code without first writing a failing test that demands it."**
+### 🔴🟢🔵 THE TDD CYCLE
 
-This is not a suggestion. This is not optional. This is the ONLY way code is written.
+**🔴 RED** - Write a failing test first
+- Understand requirement: expected input, output, boundaries, errors
+- Test ONE specific behavior using AAA: Arrange → Act → Assert
+- Run it - it MUST fail
 
-## 🔴🟢🔵 THE TDD CYCLE
+**🟢 GREEN** - Write minimum code to pass
+- Implement ONLY what the test demands
+- Run ALL tests to ensure no regressions
 
-### 🔴 PHASE 1: RED - Write the Failing Test
+**🔵 REFACTOR** - Improve the design
+- Remove duplication, improve naming, extract methods
+- Run tests after EVERY change
 
-**BEFORE touching any production code:**
+### 📝 ZOMBIES TEST DESIGN
 
-1. **UNDERSTAND** the requirement completely
-   - What is the expected input?
-   - What is the expected output?
-   - What are the boundary conditions?
-   - What errors could occur?
+Cover these scenarios for every feature:
+- **Z**ero: empty inputs, null, undefined
+- **O**ne: single item, first element
+- **M**any: multiple items, collections
+- **B**oundary: edge cases, limits, max/min
+- **I**nterface: API contracts, type safety
+- **E**xceptions: error handling, invalid input
+- **S**imple: happy path scenarios
 
-2. **WRITE** a test that:
-   - Describes the behavior in plain English
-   - Tests ONE specific behavior
-   - Is independent of other tests
-   - Uses the AAA pattern: Arrange → Act → Assert
+### EXAMPLE (JavaScript/TypeScript - Jest/Vitest)
 
-3. **RUN** the test - it MUST FAIL
-   - If it passes, your test is wrong or the feature exists
-   - A test that can't fail is worthless
-
-### 🟢 PHASE 2: GREEN - Make it Pass (Minimum Code)
-
-**Write the MINIMUM code to make the test pass:**
-
-1. **IMPLEMENT** only what the test demands
-   - No "while I'm here" additions
-   - No premature optimization
-   - No speculative generality
-
-2. **RUN** the test - it MUST PASS
-   - If it fails, fix the implementation (not the test)
-   - Run ALL tests to ensure no regressions
-
-### 🔵 PHASE 3: REFACTOR - Improve the Design
-
-**Now that tests pass, improve the code:**
-
-1. **IDENTIFY** code smells:
-   - Duplication (DRY - Don't Repeat Yourself)
-   - Long methods (Single Responsibility)
-   - Poor naming (Code should read like prose)
-   - Magic numbers (Use named constants)
-
-2. **REFACTOR** in small steps
-   - One change at a time
-   - Run tests after EVERY change
-   - If tests fail, revert immediately
-
-## 📝 TEST DESIGN: ZOMBIES METHOD
-
-Design tests covering:
-
-\`\`\`
-Z - Zero (empty inputs, null, undefined)
-O - One (single item, first element)
-M - Many (multiple items, collections)
-B - Boundary (edge cases, limits)
-I - Interface (API contracts, types)
-E - Exceptions (error handling)
-S - Simple scenarios (happy path)
+\`\`\`typescript
+describe('calculateTotal', () => {
+  it('returns 0 for empty cart', () => {
+    expect(calculateTotal([])).toBe(0);
+  });
+  it('returns price for single item', () => {
+    expect(calculateTotal([{ price: 10, qty: 1 }])).toBe(10);
+  });
+  it('sums multiple items correctly', () => {
+    expect(calculateTotal([{ price: 10, qty: 2 }, { price: 5, qty: 3 }])).toBe(35);
+  });
+  it('throws for negative price', () => {
+    expect(() => calculateTotal([{ price: -1, qty: 1 }])).toThrow('Invalid price');
+  });
+});
 \`\`\`
 
-## ✅ VERIFICATION CHECKLIST
+### VERIFICATION CHECKLIST
 
-Before marking any task complete:
+Before marking ANY task complete:
+- [ ] All new code has corresponding tests
+- [ ] All tests pass
+- [ ] Coverage >= baseline (ideally improved)
+- [ ] Linter and type checker pass
+- [ ] Tests follow ZOMBIES method
 
-\`\`\`
-□ All new code has corresponding tests
-□ All tests pass
-□ Coverage is >= baseline (ideally improved)
-□ Linter passes
-□ Type checker passes
-□ Code has been self-reviewed
-\`\`\`
+**If it's not tested, it's not done.**`
 
-**Remember: If it's not tested, it's not done. No exceptions.**`
+/**
+ * Language-specific TDD examples for conditional inclusion
+ * Only the relevant language example is included in the system prompt
+ */
+export const TDD_EXAMPLES: Record<string, string> = {
+  python: `
+### Python TDD Example (pytest)
+\`\`\`python
+class TestCalculateTotal:
+    def test_empty_cart(self):
+        assert calculate_total([]) == 0
+    def test_single_item(self):
+        assert calculate_total([{"price": 10, "qty": 1}]) == 10
+    def test_negative_price_raises(self):
+        with pytest.raises(ValueError, match="Invalid price"):
+            calculate_total([{"price": -10, "qty": 1}])
+\`\`\``,
+  flutter: `
+### Flutter/Dart TDD Example (flutter_test)
+\`\`\`dart
+group('CartService.calculateTotal', () {
+  test('returns 0 for empty cart', () {
+    expect(CartService().calculateTotal([]), equals(0));
+  });
+  test('throws for negative price', () {
+    expect(() => CartService().calculateTotal([CartItem(price: -1, qty: 1)]),
+      throwsA(isA<InvalidPriceException>()));
+  });
+});
+\`\`\``,
+  php: `
+### PHP TDD Example (PHPUnit)
+\`\`\`php
+public function test_empty_cart_returns_zero(): void {
+    $this->assertEquals(0, $this->cartService->calculateTotal([]));
+}
+public function test_negative_price_throws(): void {
+    $this->expectException(InvalidPriceException::class);
+    $this->cartService->calculateTotal([['price' => -10, 'qty' => 1]]);
+}
+\`\`\``,
+  android: `
+### Android/Kotlin TDD Example (JUnit)
+\`\`\`kotlin
+@Test fun \`empty cart returns zero\`() {
+    assertEquals(0.0, cartService.calculateTotal(emptyList()))
+}
+@Test(expected = InvalidPriceException::class)
+fun \`negative price throws\`() {
+    cartService.calculateTotal(listOf(CartItem(price = -10.0, qty = 1)))
+}
+\`\`\``,
+}
 
 export default TDD_METHODOLOGY
-

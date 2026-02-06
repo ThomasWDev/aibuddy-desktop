@@ -103,10 +103,16 @@ pnpm dev
 
 ### Download Pre-built Binaries
 
-Pre-built binaries will be available on [GitHub Releases](https://github.com/ThomasWDev/aibuddy-desktop/releases):
+**Download Page:** https://denvermobileappdeveloper.com/aibuddy-desktop/
 
-- **macOS**: `AIBuddy-Desktop-1.0.0-arm64.dmg` (Apple Silicon) / `AIBuddy-Desktop-1.0.0-x64.dmg` (Intel)
-- **Windows**: `AIBuddy-Desktop-Setup-1.0.0.exe`
+Pre-built binaries are available:
+
+- **macOS (Apple Silicon M1/M2)**: `AIBuddy-{version}-arm64.dmg`
+- **macOS (Intel)**: `AIBuddy-{version}.dmg`
+- **Windows**: Coming soon
+- **Linux**: Coming soon
+
+Also available on [GitHub Releases](https://github.com/ThomasWDev/aibuddy-desktop/releases)
 - **Linux**: `AIBuddy-Desktop-1.0.0.AppImage`
 
 ---

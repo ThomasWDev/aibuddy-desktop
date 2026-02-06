@@ -23,12 +23,53 @@ interface FileStat {
  */
 export function initFileSystemHandlers(): void {
   // Read file contents
-  ipcMain.handle('fs:readFile', async (_event, filePath: string, encoding?: BufferEncoding) => {
+  // KAN-7 FIX: Don't default to 'utf-8' for binary files (images)
+  // When encoding is undefined/null, return raw Buffer for binary compatibility
+  ipcMain.handle('fs:readFile', async (_event, filePath: string, encoding?: BufferEncoding | null) => {
     try {
-      const content = await fs.readFile(filePath, encoding || 'utf-8')
-      return content
+      if (encoding) {
+        // Text mode - return string with specified encoding
+        const content = await fs.readFile(filePath, encoding)
+        return content
+      } else {
+        // Binary mode - return Buffer (for images, etc.)
+        const buffer = await fs.readFile(filePath)
+        return buffer
+      }
     } catch (error) {
       throw new Error(`Failed to read file: ${(error as Error).message}`)
+    }
+  })
+
+  // KAN-6/KAN-7/KAN-12 FIX: Read file and return as base64 string
+  // This avoids Buffer serialization issues across IPC (Buffer becomes Uint8Array in renderer)
+  // The renderer no longer needs Node.js Buffer - everything is returned as a plain string
+  ipcMain.handle('fs:readFileAsBase64', async (_event, filePath: string) => {
+    try {
+      const buffer = await fs.readFile(filePath)
+      return buffer.toString('base64')
+    } catch (error) {
+      throw new Error(`Failed to read file as base64: ${(error as Error).message}`)
+    }
+  })
+
+  // KAN-6/KAN-12 FIX: Read file and return as UTF-8 text string
+  // For code files - avoids Buffer in renderer
+  ipcMain.handle('fs:readFileAsText', async (_event, filePath: string, encoding: BufferEncoding = 'utf-8') => {
+    try {
+      return await fs.readFile(filePath, encoding)
+    } catch (error) {
+      throw new Error(`Failed to read file as text: ${(error as Error).message}`)
+    }
+  })
+
+  // KAN-6 FIX: Get file size without needing Buffer in renderer
+  ipcMain.handle('fs:getFileSize', async (_event, filePath: string) => {
+    try {
+      const stats = await fs.stat(filePath)
+      return stats.size
+    } catch (error) {
+      throw new Error(`Failed to get file size: ${(error as Error).message}`)
     }
   })
 

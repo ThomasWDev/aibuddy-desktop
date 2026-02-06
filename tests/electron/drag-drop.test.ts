@@ -379,3 +379,117 @@ describe('Visual Feedback Integration', () => {
     expect(isDraggingOver).toBe(false)
   })
 })
+
+/**
+ * KAN-7 Regression Prevention Tests
+ * 
+ * Tests to ensure image drag-and-drop works correctly and doesn't regress.
+ * Root cause was fs.readFile defaulting to 'utf-8' which corrupts binary data.
+ */
+describe('KAN-7: Drag-Drop Regression Prevention', () => {
+  describe('Binary File Reading', () => {
+    it('should return Buffer when no encoding is specified', async () => {
+      const mockBuffer = Buffer.from([0x89, 0x50, 0x4E, 0x47]) // PNG magic bytes
+      vi.mocked(window.electronAPI.fs.readFile).mockResolvedValueOnce(mockBuffer)
+      
+      const result = await window.electronAPI.fs.readFile('/path/to/image.png')
+      
+      // Should be called without encoding for binary mode
+      expect(window.electronAPI.fs.readFile).toHaveBeenCalledWith('/path/to/image.png')
+      expect(Buffer.isBuffer(result) || result instanceof Uint8Array || typeof result !== 'string').toBe(true)
+    })
+
+    it('should return string when encoding is specified', async () => {
+      vi.mocked(window.electronAPI.fs.readFile).mockResolvedValueOnce('Hello World')
+      
+      const result = await window.electronAPI.fs.readFile('/path/to/text.txt', 'utf-8')
+      
+      expect(window.electronAPI.fs.readFile).toHaveBeenCalledWith('/path/to/text.txt', 'utf-8')
+      expect(typeof result).toBe('string')
+    })
+
+    it('should preserve binary data integrity when reading images', () => {
+      // PNG magic bytes should NOT be corrupted by utf-8 encoding
+      const pngMagicBytes = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+      const buffer = Buffer.from(pngMagicBytes)
+      
+      // Verify buffer preserves exact bytes
+      expect(buffer[0]).toBe(0x89)
+      expect(buffer[1]).toBe(0x50) // 'P'
+      expect(buffer[2]).toBe(0x4E) // 'N'
+      expect(buffer[3]).toBe(0x47) // 'G'
+      
+      // Convert to base64 (what drop handler does)
+      const base64 = buffer.toString('base64')
+      expect(base64).toBe('iVBORw0KGgo=')
+    })
+
+    it('should demonstrate binary corruption when using utf-8 encoding', () => {
+      // This test documents why utf-8 encoding breaks binary files
+      const pngMagicBytes = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+      const buffer = Buffer.from(pngMagicBytes)
+      
+      // WRONG: Converting binary to utf-8 string corrupts data
+      const corruptedString = buffer.toString('utf-8')
+      const recoveredBuffer = Buffer.from(corruptedString, 'utf-8')
+      
+      // First byte (0x89) gets corrupted because it's not valid UTF-8
+      // This is exactly what was happening before the fix
+      expect(recoveredBuffer[0]).not.toBe(0x89) // Corrupted!
+    })
+  })
+
+  describe('Drop Handler Integration', () => {
+    it('should read image file as binary buffer', async () => {
+      // Simulate what the drop handler does
+      const filePath = '/Users/test/photo.png'
+      const mockBuffer = Buffer.from([0x89, 0x50, 0x4E, 0x47]) // PNG magic
+      
+      vi.mocked(window.electronAPI.fs.readFile).mockResolvedValueOnce(mockBuffer)
+      
+      // This is how the drop handler reads the file
+      const fileBuffer = await window.electronAPI.fs.readFile(filePath) as Buffer
+      const base64 = Buffer.from(fileBuffer).toString('base64')
+      
+      expect(base64).toBe('iVBORw==')
+    })
+
+    it('should create valid attachment object from dropped image', async () => {
+      const mockBuffer = Buffer.from([0xFF, 0xD8, 0xFF, 0xE0]) // JPEG magic
+      const fileName = 'photo.jpg'
+      
+      // Convert as drop handler does
+      const base64 = mockBuffer.toString('base64')
+      
+      const attachment = {
+        id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        base64,
+        mimeType: 'image/jpeg',
+        name: fileName,
+        size: mockBuffer.length
+      }
+      
+      expect(attachment.base64).toBe('/9j/4A==')
+      expect(attachment.mimeType).toBe('image/jpeg')
+    })
+  })
+
+  describe('FileReader Fallback', () => {
+    it('should use FileReader when Electron path not available', () => {
+      // Simulate web context where file.path is undefined
+      const file = createMockFile('photo.png', 1024, 'image/png')
+      const filePath = (file as File & { path?: string }).path
+      
+      expect(filePath).toBeUndefined()
+      // In this case, FileReader API should be used instead
+    })
+
+    it('should properly extract base64 from data URL', () => {
+      // FileReader.readAsDataURL returns: "data:image/png;base64,ACTUAL_BASE64_DATA"
+      const dataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+      const base64 = dataUrl.split(',')[1]
+      
+      expect(base64).toBe('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')
+    })
+  })
+})

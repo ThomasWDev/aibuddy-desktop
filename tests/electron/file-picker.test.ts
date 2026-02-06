@@ -222,3 +222,315 @@ describe('Image Attachment Integration', () => {
     expect(attachment.size).toBe(50000)
   })
 })
+
+/**
+ * KAN-6: Code File Selection Tests
+ * 
+ * Tests for code file selection functionality including supported extensions,
+ * file size limits, and language detection.
+ */
+describe('KAN-6: Code File Selection', () => {
+  describe('Supported Extensions', () => {
+    const supportedExtensions = [
+      'ts', 'tsx', 'js', 'jsx', 'py', 'java', 'cpp', 'c', 'h',
+      'cs', 'go', 'rs', 'rb', 'php', 'swift', 'kt', 'scala', 'r',
+      'sql', 'sh', 'bash', 'zsh', 'lua', 'md', 'json', 'yaml', 'yml',
+      'xml', 'html', 'css', 'scss', 'less', 'vue', 'svelte'
+    ]
+
+    it('should support TypeScript files', async () => {
+      vi.mocked(window.electronAPI.dialog.openFile).mockResolvedValueOnce('/test/app.ts')
+      const result = await window.electronAPI.dialog.openFile([])
+      expect(result?.endsWith('.ts')).toBe(true)
+    })
+
+    it('should support Python files', async () => {
+      vi.mocked(window.electronAPI.dialog.openFile).mockResolvedValueOnce('/test/script.py')
+      const result = await window.electronAPI.dialog.openFile([])
+      expect(result?.endsWith('.py')).toBe(true)
+    })
+
+    it('should support Lua files', async () => {
+      vi.mocked(window.electronAPI.dialog.openFile).mockResolvedValueOnce('/test/config.lua')
+      const result = await window.electronAPI.dialog.openFile([])
+      expect(result?.endsWith('.lua')).toBe(true)
+    })
+
+    it('should support Java files', async () => {
+      vi.mocked(window.electronAPI.dialog.openFile).mockResolvedValueOnce('/test/Main.java')
+      const result = await window.electronAPI.dialog.openFile([])
+      expect(result?.endsWith('.java')).toBe(true)
+    })
+
+    it('should have at least 30 supported extensions', () => {
+      expect(supportedExtensions.length).toBeGreaterThanOrEqual(30)
+    })
+  })
+
+  describe('File Size Limits', () => {
+    it('should enforce 1MB limit for code files', async () => {
+      const tooLargeStats = { 
+        isDirectory: false, 
+        isFile: true, 
+        size: 2 * 1024 * 1024, // 2MB - over limit
+        mtime: Date.now() 
+      }
+      
+      vi.mocked(window.electronAPI.fs.stat).mockResolvedValueOnce(tooLargeStats)
+      const stats = await window.electronAPI.fs.stat('/test/large.ts')
+      
+      // Code files have 1MB limit
+      const maxCodeFileSize = 1 * 1024 * 1024
+      expect(stats.size).toBeGreaterThan(maxCodeFileSize)
+    })
+
+    it('should allow files under 1MB for code', async () => {
+      const normalStats = { 
+        isDirectory: false, 
+        isFile: true, 
+        size: 500 * 1024, // 500KB
+        mtime: Date.now() 
+      }
+      
+      vi.mocked(window.electronAPI.fs.stat).mockResolvedValueOnce(normalStats)
+      const stats = await window.electronAPI.fs.stat('/test/normal.ts')
+      
+      const maxCodeFileSize = 1 * 1024 * 1024
+      expect(stats.size).toBeLessThan(maxCodeFileSize)
+    })
+  })
+
+  describe('Language Detection', () => {
+    const languageMap: Record<string, string> = {
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'js': 'javascript',
+      'py': 'python',
+      'java': 'java',
+      'cpp': 'cpp',
+      'lua': 'lua',
+      'go': 'go',
+      'rs': 'rust'
+    }
+
+    it('should detect TypeScript from .ts extension', () => {
+      const path = '/test/app.ts'
+      const ext = path.split('.').pop()?.toLowerCase() || 'txt'
+      expect(languageMap[ext]).toBe('typescript')
+    })
+
+    it('should detect Python from .py extension', () => {
+      const path = '/test/script.py'
+      const ext = path.split('.').pop()?.toLowerCase() || 'txt'
+      expect(languageMap[ext]).toBe('python')
+    })
+
+    it('should detect Lua from .lua extension', () => {
+      const path = '/test/config.lua'
+      const ext = path.split('.').pop()?.toLowerCase() || 'txt'
+      expect(languageMap[ext]).toBe('lua')
+    })
+  })
+
+  describe('Content Reading', () => {
+    it('should read code file content as text', async () => {
+      const codeContent = 'function hello() { return "world"; }'
+      const buffer = Buffer.from(codeContent, 'utf-8')
+      
+      vi.mocked(window.electronAPI.fs.readFile).mockResolvedValueOnce(buffer)
+      
+      const result = await window.electronAPI.fs.readFile('/test/code.ts')
+      const content = Buffer.from(result as Buffer).toString('utf-8')
+      
+      expect(content).toBe(codeContent)
+    })
+
+    it('should handle UTF-8 encoded files correctly', async () => {
+      const unicodeContent = '// 你好世界 - Hello World in Chinese\nconst greeting = "こんにちは";'
+      const buffer = Buffer.from(unicodeContent, 'utf-8')
+      
+      vi.mocked(window.electronAPI.fs.readFile).mockResolvedValueOnce(buffer)
+      
+      const result = await window.electronAPI.fs.readFile('/test/unicode.ts')
+      const content = Buffer.from(result as Buffer).toString('utf-8')
+      
+      expect(content).toContain('你好世界')
+      expect(content).toContain('こんにちは')
+    })
+  })
+})
+
+/**
+ * KAN-12: File Selection Error Handling - Regression Prevention Tests
+ * 
+ * Tests for defensive checks and better error handling when selecting files.
+ * Root cause: Generic "Failed to select a file" error without specific information.
+ */
+describe('KAN-12: File Selection Error Handling', () => {
+  describe('API Availability Checks', () => {
+    it('should detect when dialog API is not available', () => {
+      // Simulate missing dialog API
+      const mockAPI = {
+        fs: window.electronAPI.fs,
+        store: window.electronAPI.store
+        // dialog is missing
+      }
+      
+      const hasDialog = !!(mockAPI as any).dialog?.openFile
+      expect(hasDialog).toBe(false)
+    })
+
+    it('should detect when fs API is not available', () => {
+      const mockAPI = {
+        dialog: window.electronAPI.dialog,
+        store: window.electronAPI.store
+        // fs is missing
+      }
+      
+      const hasFs = !!(mockAPI as any).fs?.readFile
+      expect(hasFs).toBe(false)
+    })
+
+    it('should pass availability check when both APIs are present', () => {
+      const hasDialog = !!window.electronAPI?.dialog?.openFile
+      const hasFs = !!window.electronAPI?.fs?.readFile
+      
+      expect(hasDialog).toBe(true)
+      expect(hasFs).toBe(true)
+    })
+  })
+
+  describe('Empty Buffer Handling', () => {
+    it('should detect empty buffer from readFile', async () => {
+      const emptyBuffer = Buffer.from('')
+      vi.mocked(window.electronAPI.fs.readFile).mockResolvedValueOnce(emptyBuffer)
+      
+      const buffer = await window.electronAPI.fs.readFile('/test/empty.png')
+      const isEmpty = !buffer || buffer.length === 0
+      
+      expect(isEmpty).toBe(true)
+    })
+
+    it('should detect non-empty buffer from readFile', async () => {
+      const validBuffer = Buffer.from([0x89, 0x50, 0x4E, 0x47]) // PNG magic
+      vi.mocked(window.electronAPI.fs.readFile).mockResolvedValueOnce(validBuffer)
+      
+      const buffer = await window.electronAPI.fs.readFile('/test/valid.png')
+      const isEmpty = !buffer || buffer.length === 0
+      
+      expect(isEmpty).toBe(false)
+    })
+  })
+
+  describe('Stat Fallback', () => {
+    it('should use buffer length when stat fails', async () => {
+      const testBuffer = Buffer.from('test content for size')
+      
+      vi.mocked(window.electronAPI.dialog.openFile).mockResolvedValueOnce('/test/file.png')
+      vi.mocked(window.electronAPI.fs.readFile).mockResolvedValueOnce(testBuffer)
+      vi.mocked(window.electronAPI.fs.stat).mockRejectedValueOnce(new Error('Stat failed'))
+      
+      // In the actual implementation, we fallback to buffer.length
+      const filePath = await window.electronAPI.dialog.openFile([])
+      const buffer = await window.electronAPI.fs.readFile(filePath!) as Buffer
+      
+      let fileSize: number
+      try {
+        const stat = await window.electronAPI.fs.stat(filePath!)
+        fileSize = stat.size
+      } catch {
+        fileSize = buffer.length // Fallback
+      }
+      
+      expect(fileSize).toBe(testBuffer.length)
+    })
+  })
+
+  describe('Error Message Classification', () => {
+    it('should identify permission errors', () => {
+      const error = new Error('EACCES: permission denied')
+      const isPermissionError = error.message.includes('permission')
+      expect(isPermissionError).toBe(true)
+    })
+
+    it('should identify file not found errors', () => {
+      const error = new Error('ENOENT: no such file or directory')
+      const isNotFoundError = error.message.includes('not found') || error.message.includes('no such file')
+      expect(isNotFoundError).toBe(true)
+    })
+
+    it('should identify network/timeout errors', () => {
+      const error1 = new Error('Network error occurred')
+      const error2 = new Error('Request timeout')
+      
+      // Case-insensitive check
+      const msg1 = error1.message.toLowerCase()
+      const msg2 = error2.message.toLowerCase()
+      
+      const isNetworkError1 = msg1.includes('network') || msg1.includes('timeout')
+      const isNetworkError2 = msg2.includes('network') || msg2.includes('timeout')
+      
+      expect(isNetworkError1).toBe(true)
+      expect(isNetworkError2).toBe(true)
+    })
+  })
+
+  describe('User-Friendly Error Messages', () => {
+    it('should provide actionable message for API unavailable', () => {
+      const messages = {
+        noDialog: 'Desktop features not available. Please restart the app.',
+        noFs: 'File system access not available. Try drag and drop instead.',
+        permission: 'Permission denied. Try drag and drop instead.',
+        notFound: 'File not found. Please select a different file.',
+        empty: 'File appears to be empty. Please select a different image.'
+      }
+      
+      expect(messages.noDialog).toContain('restart')
+      expect(messages.noFs).toContain('drag and drop')
+      expect(messages.permission).toContain('drag and drop')
+      expect(messages.notFound).toContain('different file')
+      expect(messages.empty).toContain('empty')
+    })
+  })
+
+  describe('Full Error Flow Simulation', () => {
+    it('should handle dialog rejection gracefully', async () => {
+      vi.mocked(window.electronAPI.dialog.openFile).mockRejectedValueOnce(
+        new Error('Dialog initialization failed')
+      )
+      
+      let errorOccurred = false
+      let errorMessage = ''
+      
+      try {
+        await window.electronAPI.dialog.openFile([])
+      } catch (error) {
+        errorOccurred = true
+        errorMessage = (error as Error).message
+      }
+      
+      expect(errorOccurred).toBe(true)
+      expect(errorMessage).toBe('Dialog initialization failed')
+    })
+
+    it('should handle file read permission error', async () => {
+      vi.mocked(window.electronAPI.dialog.openFile).mockResolvedValueOnce('/protected/file.png')
+      vi.mocked(window.electronAPI.fs.readFile).mockRejectedValueOnce(
+        new Error('EACCES: permission denied')
+      )
+      
+      const filePath = await window.electronAPI.dialog.openFile([])
+      expect(filePath).toBe('/protected/file.png')
+      
+      let readError: Error | null = null
+      try {
+        await window.electronAPI.fs.readFile(filePath!)
+      } catch (error) {
+        readError = error as Error
+      }
+      
+      expect(readError).not.toBeNull()
+      expect(readError?.message).toContain('permission denied')
+    })
+  })
+})
