@@ -1,6 +1,6 @@
 {
   "name": "aibuddy-desktop",
-  "version": "1.4.53",
+  "version": "1.5.56",
   "description": "AIBuddy Desktop IDE - Your intelligent coding partner",
   "main": "out/main/index.js",
   "author": "AIBuddy Studio",
@@ -109,7 +109,7 @@
     "@vitest/ui": "2.1.9",
     "autoprefixer": "^10.4.20",
     "electron": "^28.3.3",
-    "electron-builder": "^24.9.0",
+    "electron-builder": "^26.7.0",
     "electron-vite": "^2.0.0",
     "eslint": "^9.15.0",
     "eslint-plugin-react": "^7.37.0",
@@ -127,6 +127,7 @@
     "appId": "com.aibuddy.desktop",
     "productName": "AIBuddy",
     "asar": true,
+    "afterPack": "build/afterPack.js",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -160,10 +161,8 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "notarize": {
-        "teamId": "S2237D23CB"
-      },
-      "identity": "AI Buddy Inc (Apps) (S2237D23CB)",
+      "notarize": false,
+      "identity": "68A3C88FAA75334D19C025AC00BA4F95A582040D",
       "signIgnore": [
         "node_modules"
       ]
@@ -190,7 +189,6 @@
           ]
         }
       ],
-      "publisherName": "AIBuddy Studio",
       "legalTrademarks": "AIBuddy is a trademark of AIBuddy Studio"
     },
     "appx": {
