@@ -26,6 +26,20 @@
     <key>com.apple.security.files.downloads.read-write</key>
     <true/>
     
+    <!-- Allow spawning child processes (needed for terminal integration and env detection) -->
+    <key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
+    <array>
+        <string>com.apple.coreservices.launchservicesd</string>
+    </array>
+    
+    <!-- Allow executing helper processes (needed for git, terminal commands) -->
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+    
+    <!-- Bookmarks for accessing user-opened folders across restarts -->
+    <key>com.apple.security.files.bookmarks.app-scope</key>
+    <true/>
+    
     <!-- Team ID for provisioning -->
     <key>com.apple.application-identifier</key>
     <string>$(TeamIdentifierPrefix)com.aibuddy.desktop</string>

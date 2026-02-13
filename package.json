@@ -161,7 +161,9 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "notarize": false,
+      "notarize": {
+        "teamId": "S2237D23CB"
+      },
       "identity": "68A3C88FAA75334D19C025AC00BA4F95A582040D",
       "signIgnore": [
         "node_modules"
@@ -172,7 +174,9 @@
       "entitlements": "build/entitlements.mas.plist",
       "entitlementsInherit": "build/entitlements.mas.inherit.plist",
       "hardenedRuntime": false,
-      "provisioningProfile": "build/embedded.provisionprofile"
+      "provisioningProfile": "build/embedded.provisionprofile",
+      "identity": "AI Buddy Inc (Apps) (S2237D23CB)",
+      "type": "distribution"
     },
     "win": {
       "target": [

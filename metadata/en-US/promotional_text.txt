@@ -1,0 +1,1 @@
+Now with smart AI provider rotation — if one AI model is unavailable, AIBuddy automatically switches to another for uninterrupted coding assistance.

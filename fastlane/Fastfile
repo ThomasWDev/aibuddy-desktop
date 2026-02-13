@@ -1,0 +1,49 @@
+default_platform(:mac)
+
+platform :mac do
+  desc "Create/download Mac App Store provisioning profile"
+  lane :create_profile do
+    # Create App ID if needed
+    produce(
+      app_identifier: "com.aibuddy.desktop",
+      app_name: "AIBuddy Desktop IDE",
+      team_id: "S2237D23CB",
+      platform: "osx"
+    )
+    
+    # Download/create provisioning profile
+    sigh(
+      app_identifier: "com.aibuddy.desktop",
+      team_id: "S2237D23CB",
+      platform: "macos",
+      output_path: "build",
+      filename: "embedded.provisionprofile",
+      adhoc: false,
+      readonly: false
+    )
+  end
+
+  desc "Build for Mac App Store"
+  lane :build_mas do
+    sh("cd .. && npm run build")
+    sh("cd .. && npx electron-builder --mac mas --arm64 --publish never")
+  end
+
+  desc "Upload to App Store Connect"
+  lane :upload do
+    pkg_path = Dir["../release/mas*/*.pkg"].first
+    if pkg_path
+      deliver(
+        pkg: pkg_path,
+        platform: "osx",
+        team_id: "S2237D23CB",
+        skip_screenshots: true,
+        skip_metadata: false,
+        metadata_path: "../metadata/en-US",
+        force: true
+      )
+    else
+      UI.error("No .pkg found. Run build_mas first.")
+    end
+  end
+end

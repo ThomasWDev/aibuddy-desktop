@@ -1,0 +1,7 @@
+Version 1.5.58:
+• SECURITY: Strict workspace boundary enforcement — AI only accesses files in your opened project folder
+• Smart AI provider auto-rotation when a provider is unavailable
+• User-friendly error messages throughout the app
+• Hamburger menu navigation for cleaner UI
+• Voice input improvements
+• Bug fixes and performance improvements
