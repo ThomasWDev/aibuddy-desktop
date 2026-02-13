@@ -133,7 +133,7 @@ interface ServerInfo {
 │  ── Connected Providers ──────────────────────────────────────  │
 │                                                                 │
 │  ☁️ AWS (us-east-2)                              [✓ Connected]  │
-│     Account: 484260713849                                       │
+│     Account: REDACTED_AWS_ACCOUNT                                       │
 │     Servers: denver-production, aibuddy-lambda                  │
 │     [Test Connection] [View Details] [Edit]                     │
 │                                                                 │
@@ -174,7 +174,7 @@ interface ServerInfo {
 │  🔍 AIBuddy detected the following:                             │
 │                                                                 │
 │  ☑️ AWS Configuration                                           │
-│     Account: 484260713849                                       │
+│     Account: REDACTED_AWS_ACCOUNT                                       │
 │     Region: us-east-2                                           │
 │     Instance: i-0030a379f872bdea3 (t3.medium)                   │
 │                                                                 │
@@ -328,7 +328,7 @@ Users can import docs in this format:
 # My Infrastructure
 
 ## AWS (Production)
-- Account: 484260713849
+- Account: REDACTED_AWS_ACCOUNT
 - Region: us-east-2
 - Instance ID: i-0030a379f872bdea3
 - Instance Type: t3.medium

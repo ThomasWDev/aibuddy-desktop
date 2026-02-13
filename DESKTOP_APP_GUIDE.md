@@ -340,7 +340,7 @@ Same as VS Code extension - see `KNOWN_ISSUES.md` for full list:
 
 Uses the same DSN as the VS Code extension:
 ```
-SENTRY_DSN=https://982b270aa75b24be5d77786b58929121@o1319003.ingest.us.sentry.io/4510695985774592
+SENTRY_DSN=https://REDACTED@o1319003.ingest.us.sentry.io/REDACTED
 ```
 
 ---
