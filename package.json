@@ -164,7 +164,7 @@
       "notarize": {
         "teamId": "S2237D23CB"
       },
-      "identity": "68A3C88FAA75334D19C025AC00BA4F95A582040D",
+      "identity": "9D252A06AE029A2B809D27023A11BAA10306002A",
       "signIgnore": [
         "node_modules"
       ]
