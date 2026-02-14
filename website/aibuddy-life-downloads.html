@@ -3,64 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIBuddy Desktop Downloads - AI Coding Assistant</title>
-    <meta name="description" content="Download AIBuddy Desktop for macOS, Windows, and Linux. Your intelligent AI coding partner.">
+    <title>AIBuddy - AI Coding Agent for VS Code & Desktop | Download Free</title>
+    <meta name="description" content="AIBuddy is the AI coding agent that auto-selects the best AI model (Claude Opus 4, GPT-5.3-Codex, DeepSeek V3) for every task. No subscriptions. Pay only for what you use. Download for VS Code, macOS, Windows, and Linux.">
+    <meta name="keywords" content="AI coding assistant, VS Code extension, AI agent, Claude Opus 4, GPT-5.3 Codex, DeepSeek, code generation, autonomous coding, copilot alternative, cursor alternative">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="AIBuddy - The AI Coding Agent That Picks the Best Model for You">
+    <meta property="og:description" content="Smart AI routing auto-selects Claude, GPT-5.3-Codex, or DeepSeek for each task. No subscriptions — pay only for what you use.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://aibuddy.life/downloads/">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AIBuddy - AI Coding Agent for VS Code & Desktop">
+    <meta name="twitter:description" content="Smart AI routing. No subscriptions. Pay per use. Download free.">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @keyframes pulse-glow {
             0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.4); }
             50% { box-shadow: 0 0 40px rgba(168, 85, 247, 0.6); }
         }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
         .pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+        .float { animation: float 3s ease-in-out infinite; }
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 3s infinite;
+        }
+        .comparison-badge { background: linear-gradient(135deg, #10b981, #059669); }
+        .vs-badge { background: linear-gradient(135deg, #ef4444, #dc2626); }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen">
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen text-white">
+
+    <!-- Top Navigation Bar -->
+    <nav class="border-b border-slate-800/50 backdrop-blur-md sticky top-0 z-50 bg-slate-900/80">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <span class="text-lg font-bold">AIBuddy</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="/pricing" class="text-sm text-slate-300 hover:text-white transition-colors">Pricing</a>
+                <a href="/my-account" class="text-sm text-slate-300 hover:text-white transition-colors">My Account</a>
+                <a href="https://marketplace.visualstudio.com/items?itemName=AIBuddyStudio.AIBuddy" target="_blank" class="text-sm px-4 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors font-medium">Get VS Code Extension</a>
+            </div>
+        </div>
+    </nav>
+
     <!-- Hero Section -->
-    <div class="container mx-auto px-4 py-16">
-        <div class="text-center mb-12">
-            <!-- Logo -->
-            <div class="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-pink-500 to-orange-400 mb-6 shadow-2xl pulse-glow">
+    <div class="container mx-auto px-4 pt-16 pb-8">
+        <div class="text-center mb-6">
+            <div class="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-pink-500 to-orange-400 mb-6 shadow-2xl pulse-glow float">
                 <svg class="w-14 h-14 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                 </svg>
             </div>
             
-            <h1 class="text-5xl md:text-6xl font-black text-white mb-4">
-                AIBuddy Desktop
+            <h1 class="text-5xl md:text-7xl font-black mb-4 leading-tight">
+                The AI Coding Agent That<br>
+                <span class="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">Picks the Best Model for You</span>
             </h1>
-            <p class="text-xl md:text-2xl text-purple-200 mb-2">
-                Your Intelligent AI Coding Partner
+            <p class="text-xl md:text-2xl text-slate-300 mb-3 max-w-3xl mx-auto">
+                AIBuddy auto-routes every request to Claude Opus 4, GPT-5.3-Codex, or DeepSeek V3 &mdash; whichever is best for that task. No subscriptions. Pay only for what you use.
             </p>
+            <p class="text-slate-500 text-sm mb-6">Available as a VS Code extension and standalone desktop app for macOS, Windows, and Linux</p>
             
             <!-- Version Badge -->
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-green-500/20 rounded-full border border-green-500/50 mt-4">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-green-500/20 rounded-full border border-green-500/50">
                 <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                <span class="text-green-400 font-semibold">Version 1.4.48</span>
-                <span class="text-slate-500">•</span>
-                <span class="text-slate-400">February 4, 2026</span>
+                <span class="text-green-400 font-semibold">v1.4.53</span>
+                <span class="text-slate-500">|</span>
+                <span class="text-slate-400">3,800+ tests passing</span>
+                <span class="text-slate-500">|</span>
+                <span class="text-slate-400">February 2026</span>
             </div>
         </div>
+    </div>
 
-        <!-- Download Cards -->
-        <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-16">
+    <!-- ================================================================== -->
+    <!-- PRIMARY CTA: VS Code Extension (Most Users) -->
+    <!-- ================================================================== -->
+    <div class="container mx-auto px-4 mb-12">
+        <div class="max-w-4xl mx-auto">
+            <div class="relative bg-gradient-to-r from-blue-600/20 to-blue-800/20 backdrop-blur-xl rounded-3xl border-2 border-blue-500/40 p-8 md:p-10 overflow-hidden">
+                <div class="shimmer absolute inset-0 rounded-3xl"></div>
+                <div class="relative z-10 flex flex-col md:flex-row items-center gap-8">
+                    <div class="flex-shrink-0">
+                        <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-2xl shadow-blue-500/30">
+                            <svg class="w-12 h-12 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="flex-1 text-center md:text-left">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-full border border-blue-500/40 mb-3 text-xs font-semibold text-blue-300">
+                            RECOMMENDED FOR 73% OF DEVELOPERS
+                        </div>
+                        <h2 class="text-3xl md:text-4xl font-black text-white mb-2">Get the VS Code Extension</h2>
+                        <p class="text-slate-300 text-lg mb-4">Free to install. Same AI power. Directly inside the world's most popular editor. One API key works across VS Code and Desktop.</p>
+                        <div class="flex flex-col sm:flex-row items-center gap-3">
+                            <a href="https://marketplace.visualstudio.com/items?itemName=AIBuddyStudio.AIBuddy" target="_blank"
+                               class="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 hover:scale-105 text-lg">
+                                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352z"/>
+                                </svg>
+                                Install from VS Code Marketplace
+                            </a>
+                            <span class="text-slate-500 text-sm">Free install &bull; v1.4.53</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Feature pills -->
+                <div class="relative z-10 flex flex-wrap justify-center md:justify-start gap-2 mt-6 md:ml-28">
+                    <span class="px-3 py-1 bg-slate-800/60 rounded-full text-xs text-slate-300 border border-slate-700">Autonomous coding agent</span>
+                    <span class="px-3 py-1 bg-slate-800/60 rounded-full text-xs text-slate-300 border border-slate-700">Reads &amp; writes files</span>
+                    <span class="px-3 py-1 bg-slate-800/60 rounded-full text-xs text-slate-300 border border-slate-700">Runs terminal commands</span>
+                    <span class="px-3 py-1 bg-slate-800/60 rounded-full text-xs text-slate-300 border border-slate-700">Smart AI model routing</span>
+                    <span class="px-3 py-1 bg-slate-800/60 rounded-full text-xs text-slate-300 border border-slate-700">Git integration</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- Desktop Download Cards -->
+    <!-- ================================================================== -->
+    <div class="container mx-auto px-4 mb-16">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-white mb-2">Or Download the Desktop App</h2>
+            <p class="text-slate-400">Standalone app with the same AI power &mdash; no IDE required</p>
+        </div>
+        <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             <!-- macOS Card -->
             <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-8 hover:border-purple-500 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/20">
                 <div class="text-center">
                     <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center shadow-lg">
-                        <!-- Apple Logo -->
                         <svg class="w-10 h-10 text-white" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
                         </svg>
                     </div>
                     <h3 class="text-xl font-bold text-white mb-1">macOS</h3>
-                    <p class="text-slate-400 text-sm mb-6">Apple Silicon (M1/M2/M3)</p>
-                    
-                    <a href="https://denvermobileappdeveloper.com/downloads/aibuddy-desktop/v1.4.48/AIBuddy-1.4.48-arm64.dmg" 
-                       class="block w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg hover:shadow-purple-500/25 mb-3">
-                        ⬇️ Download DMG
-                    </a>
-                    
-                    <p class="text-slate-500 text-xs">~120 MB • macOS 10.12+</p>
+                    <span class="inline-block px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 mb-4">Code Signed</span>
+                    <div class="space-y-2 mb-4">
+                        <a href="https://denvermobileappdeveloper.com/downloads/aibuddy/latest/AIBuddy-arm64.dmg" 
+                           class="block w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg hover:shadow-purple-500/25">
+                            Apple Silicon (M1-M4)
+                        </a>
+                        <a href="https://denvermobileappdeveloper.com/downloads/aibuddy/latest/AIBuddy-x64.dmg" 
+                           class="block w-full py-2.5 px-6 bg-slate-700/50 text-slate-300 font-medium rounded-xl hover:bg-slate-700 transition-all border border-slate-600">
+                            Intel Mac
+                        </a>
+                    </div>
+                    <p class="text-slate-500 text-xs">~120-126 MB &bull; macOS 10.12+</p>
                 </div>
             </div>
 
@@ -68,20 +176,17 @@
             <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-8 hover:border-blue-500 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-500/20">
                 <div class="text-center">
                     <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center shadow-lg">
-                        <!-- Windows Logo -->
                         <svg class="w-10 h-10 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M3 12V6.75l6-1.32v6.48L3 12zm17-9v8.75l-10 .15V5.21L20 3zM3 13l6 .09v6.81l-6-1.15V13zm17 .25V22l-10-1.91V13.1l10 .15z"/>
                         </svg>
                     </div>
                     <h3 class="text-xl font-bold text-white mb-1">Windows</h3>
-                    <p class="text-slate-400 text-sm mb-6">Windows 10/11 (64-bit)</p>
-                    
-                    <a href="https://denvermobileappdeveloper.com/downloads/aibuddy-desktop/v1.4.48/AIBuddy-Setup-1.4.48.exe" 
-                       class="block w-full py-3 px-6 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-blue-500/25 mb-3">
-                        ⬇️ Download EXE
+                    <span class="inline-block px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30 mb-4">Windows 10/11</span>
+                    <a href="https://denvermobileappdeveloper.com/downloads/aibuddy/latest/AIBuddy-Setup.exe" 
+                       class="block w-full py-3 px-6 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-blue-500/25 mb-4">
+                        Download EXE
                     </a>
-                    
-                    <p class="text-slate-500 text-xs">~93 MB • Windows 10+</p>
+                    <p class="text-slate-500 text-xs">~93 MB &bull; Windows 10+</p>
                 </div>
             </div>
 
@@ -89,278 +194,420 @@
             <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-8 hover:border-orange-500 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-orange-500/20">
                 <div class="text-center">
                     <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center shadow-lg">
-                        <!-- Linux Logo -->
                         <svg class="w-10 h-10 text-orange-400" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 00-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68-.09.189-.136.394-.132.602 0 .199.027.4.055.536.058.399.116.728.04.97-.249.68-.28 1.145-.106 1.484.174.334.535.47.94.601.81.2 1.91.135 2.774.6.926.466 1.866.67 2.616.47.526-.116.97-.464 1.208-.946.587-.003 1.23-.269 2.26-.334.699-.058 1.574.267 2.577.2.025.134.063.198.114.333l.003.003c.391.778 1.113 1.132 1.884 1.071.771-.06 1.592-.536 2.257-1.306.631-.765 1.683-1.084 2.378-1.503.348-.199.629-.469.649-.853.023-.4-.2-.811-.714-1.376v-.097l-.003-.003c-.17-.2-.25-.535-.338-.926-.085-.401-.182-.786-.492-1.046h-.003c-.059-.054-.123-.067-.188-.135a.357.357 0 00-.19-.064c.431-1.278.264-2.55-.173-3.694-.533-1.41-1.465-2.638-2.175-3.483-.796-1.005-1.576-1.957-1.56-3.368.026-2.152.236-6.133-3.544-6.139z"/>
                         </svg>
                     </div>
                     <h3 class="text-xl font-bold text-white mb-1">Linux</h3>
-                    <p class="text-slate-400 text-sm mb-6">Ubuntu, Debian, Fedora</p>
-                    
-                    <a href="https://denvermobileappdeveloper.com/downloads/aibuddy-desktop/v1.4.48/AIBuddy-1.4.48.AppImage" 
-                       class="block w-full py-3 px-6 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-bold rounded-xl hover:from-orange-600 hover:to-yellow-600 transition-all shadow-lg hover:shadow-orange-500/25 mb-3">
-                        ⬇️ Download AppImage
+                    <span class="inline-block px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded-full border border-orange-500/30 mb-4">AppImage</span>
+                    <a href="https://denvermobileappdeveloper.com/downloads/aibuddy/latest/AIBuddy.AppImage" 
+                       class="block w-full py-3 px-6 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-bold rounded-xl hover:from-orange-600 hover:to-yellow-600 transition-all shadow-lg hover:shadow-orange-500/25 mb-4">
+                        Download AppImage
                     </a>
-                    
-                    <p class="text-slate-500 text-xs">~129 MB • glibc 2.17+</p>
+                    <p class="text-slate-500 text-xs">~129 MB &bull; glibc 2.17+</p>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- VS Code Extension CTA -->
-        <div class="max-w-3xl mx-auto mb-16 text-center">
-            <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-blue-500/30 p-8">
-                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg">
-                    <svg class="w-10 h-10 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/>
-                    </svg>
-                </div>
-                <p class="text-slate-400 mb-4 text-lg">Already using VS Code? Get the extension instead:</p>
-                <a href="https://marketplace.visualstudio.com/items?itemName=AIBuddyStudio.AIBuddy" 
-                   target="_blank"
-                   class="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-blue-500/25">
-                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/>
-                    </svg>
-                    Install VS Code Extension
-                </a>
-                <p class="text-slate-500 text-sm mt-4">Free to install - same AI power, directly in VS Code</p>
+    <!-- ================================================================== -->
+    <!-- WHY AIBUDDY vs Competitors -->
+    <!-- ================================================================== -->
+    <div class="container mx-auto px-4 mb-20">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl md:text-5xl font-black mb-4">Why Developers Switch to AIBuddy</h2>
+                <p class="text-slate-400 text-lg max-w-2xl mx-auto">The only AI coding tool that combines the best models, pay-per-use pricing, and a true autonomous agent &mdash; all in one.</p>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="overflow-x-auto mb-12">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-700">
+                            <th class="text-left py-4 px-4 text-slate-400 font-medium">Feature</th>
+                            <th class="py-4 px-4 text-center">
+                                <div class="inline-flex flex-col items-center">
+                                    <span class="text-lg font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">AIBuddy</span>
+                                    <span class="comparison-badge text-white text-xs px-2 py-0.5 rounded-full mt-1">BEST VALUE</span>
+                                </div>
+                            </th>
+                            <th class="py-4 px-4 text-center text-slate-400">GitHub Copilot</th>
+                            <th class="py-4 px-4 text-center text-slate-400">Cursor</th>
+                            <th class="py-4 px-4 text-center text-slate-400">Claude Pro</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        <tr class="hover:bg-slate-800/30">
+                            <td class="py-3 px-4 text-slate-300 font-medium">Pricing</td>
+                            <td class="py-3 px-4 text-center"><span class="text-green-400 font-bold">Pay per use</span><br><span class="text-slate-500 text-xs">~$0.01-0.07/request</span></td>
+                            <td class="py-3 px-4 text-center text-slate-400">$19/mo<br><span class="text-slate-600 text-xs">or $10/mo individual</span></td>
+                            <td class="py-3 px-4 text-center text-slate-400">$20/mo<br><span class="text-slate-600 text-xs">500 fast requests</span></td>
+                            <td class="py-3 px-4 text-center text-slate-400">$20-100/mo<br><span class="text-slate-600 text-xs">Pro/Max tiers</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-800/30">
+                            <td class="py-3 px-4 text-slate-300 font-medium">AI Models</td>
+                            <td class="py-3 px-4 text-center"><span class="text-green-400 font-bold">3 best models</span><br><span class="text-slate-500 text-xs">Auto-routed per task</span></td>
+                            <td class="py-3 px-4 text-center text-slate-400">GPT-4o only</td>
+                            <td class="py-3 px-4 text-center text-slate-400">Claude + GPT</td>
+                            <td class="py-3 px-4 text-center text-slate-400">Claude only</td>
+                        </tr>
+                        <tr class="hover:bg-slate-800/30">
+                            <td class="py-3 px-4 text-slate-300 font-medium">Smart Model Selection</td>
+                            <td class="py-3 px-4 text-center"><span class="text-green-400 text-lg">&#10003;</span><br><span class="text-slate-500 text-xs">Automatic per-task</span></td>
+                            <td class="py-3 px-4 text-center text-red-400/60">&#10007;</td>
+                            <td class="py-3 px-4 text-center text-red-400/60">Manual</td>
+                            <td class="py-3 px-4 text-center text-red-400/60">&#10007;</td>
+                        </tr>
+                        <tr class="hover:bg-slate-800/30">
+                            <td class="py-3 px-4 text-slate-300 font-medium">Autonomous Agent</td>
+                            <td class="py-3 px-4 text-center"><span class="text-green-400 text-lg">&#10003;</span><br><span class="text-slate-500 text-xs">Files, terminal, git</span></td>
+                            <td class="py-3 px-4 text-center text-slate-400">Completions</td>
+                            <td class="py-3 px-4 text-center"><span class="text-green-400 text-lg">&#10003;</span></td>
+                            <td class="py-3 px-4 text-center text-red-400/60">Chat only</td>
+                        </tr>
+                        <tr class="hover:bg-slate-800/30">
+                            <td class="py-3 px-4 text-slate-300 font-medium">Desktop App</td>
+                            <td class="py-3 px-4 text-center"><span class="text-green-400 text-lg">&#10003;</span><br><span class="text-slate-500 text-xs">Mac, Win, Linux</span></td>
+                            <td class="py-3 px-4 text-center text-red-400/60">&#10007;</td>
+                            <td class="py-3 px-4 text-center text-slate-400">Custom IDE</td>
+                            <td class="py-3 px-4 text-center"><span class="text-green-400 text-lg">&#10003;</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-800/30">
+                            <td class="py-3 px-4 text-slate-300 font-medium">Subscription Required</td>
+                            <td class="py-3 px-4 text-center"><span class="text-green-400 font-bold">No</span></td>
+                            <td class="py-3 px-4 text-center text-red-400">Yes</td>
+                            <td class="py-3 px-4 text-center text-red-400">Yes</td>
+                            <td class="py-3 px-4 text-center text-red-400">Yes</td>
+                        </tr>
+                        <tr class="hover:bg-slate-800/30">
+                            <td class="py-3 px-4 text-slate-300 font-medium">Works in VS Code</td>
+                            <td class="py-3 px-4 text-center"><span class="text-green-400 text-lg">&#10003;</span></td>
+                            <td class="py-3 px-4 text-center"><span class="text-green-400 text-lg">&#10003;</span></td>
+                            <td class="py-3 px-4 text-center text-red-400/60">Fork only</td>
+                            <td class="py-3 px-4 text-center text-red-400/60">&#10007;</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
+    </div>
 
-        <!-- Why Choose AIBuddy Section -->
-        <div class="max-w-5xl mx-auto mb-16">
-            <h2 class="text-3xl font-bold text-white text-center mb-4">Why Developers Choose AIBuddy</h2>
-            <p class="text-slate-400 text-center mb-10 text-lg">The AI coding assistant that works for 70% of developers worldwide</p>
+    <!-- ================================================================== -->
+    <!-- SMART AI ROUTING Explainer -->
+    <!-- ================================================================== -->
+    <div class="container mx-auto px-4 mb-20">
+        <div class="max-w-5xl mx-auto">
+            <div class="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-3xl border border-slate-700 p-8 md:p-12">
+                <div class="text-center mb-10">
+                    <span class="inline-block px-4 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm font-semibold border border-purple-500/30 mb-4">SMART AI ROUTING</span>
+                    <h2 class="text-3xl md:text-4xl font-black text-white mb-3">Three World-Class Models. One API Key.</h2>
+                    <p class="text-slate-400 text-lg max-w-2xl mx-auto">AIBuddy automatically analyzes every request and routes it to the optimal model. You never have to choose.</p>
+                </div>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <!-- Claude -->
+                    <div class="bg-slate-800/60 rounded-2xl p-6 border border-amber-500/20 hover:border-amber-500/50 transition-all">
+                        <div class="w-12 h-12 mb-4 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                            <span class="text-2xl">&#129504;</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-1">Claude Opus 4</h3>
+                        <p class="text-amber-400 text-xs font-semibold mb-3">COMPLEX REASONING</p>
+                        <p class="text-slate-400 text-sm mb-3">Debugging, architecture, refactoring, code review. 80.9% SWE-bench &mdash; the industry's best reasoning model.</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            <span class="px-2 py-0.5 bg-slate-700/60 rounded text-xs text-slate-400">debug</span>
+                            <span class="px-2 py-0.5 bg-slate-700/60 rounded text-xs text-slate-400">refactor</span>
+                            <span class="px-2 py-0.5 bg-slate-700/60 rounded text-xs text-slate-400">security</span>
+                            <span class="px-2 py-0.5 bg-slate-700/60 rounded text-xs text-slate-400">architecture</span>
+                        </div>
+                    </div>
+                    <!-- GPT -->
+                    <div class="bg-slate-800/60 rounded-2xl p-6 border border-emerald-500/20 hover:border-emerald-500/50 transition-all">
+                        <div class="w-12 h-12 mb-4 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                            <span class="text-2xl">&#9889;</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-1">GPT-5.3-Codex</h3>
+                        <p class="text-emerald-400 text-xs font-semibold mb-3">CODE GENERATION</p>
+                        <p class="text-slate-400 text-sm mb-3">Building features, generating code, images, and creating new files. 25% faster than Claude for writing code.</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            <span class="px-2 py-0.5 bg-slate-700/60 rounded text-xs text-slate-400">generate</span>
+                            <span class="px-2 py-0.5 bg-slate-700/60 rounded text-xs text-slate-400">create</span>
+                            <span class="px-2 py-0.5 bg-slate-700/60 rounded text-xs text-slate-400">images</span>
+                            <span class="px-2 py-0.5 bg-slate-700/60 rounded text-xs text-slate-400">implement</span>
+                        </div>
+                    </div>
+                    <!-- DeepSeek -->
+                    <div class="bg-slate-800/60 rounded-2xl p-6 border border-sky-500/20 hover:border-sky-500/50 transition-all">
+                        <div class="w-12 h-12 mb-4 rounded-xl bg-sky-500/20 flex items-center justify-center">
+                            <span class="text-2xl">&#128176;</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-1">DeepSeek V3</h3>
+                        <p class="text-sky-400 text-xs font-semibold mb-3">COST OPTIMIZATION</p>
+                        <p class="text-slate-400 text-sm mb-3">Simple tasks, chat, quick questions. 50x cheaper than Claude while delivering quality answers. Handles ~60% of requests.</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            <span class="px-2 py-0.5 bg-slate-700/60 rounded text-xs text-slate-400">chat</span>
+                            <span class="px-2 py-0.5 bg-slate-700/60 rounded text-xs text-slate-400">explain</span>
+                            <span class="px-2 py-0.5 bg-slate-700/60 rounded text-xs text-slate-400">simple tasks</span>
+                            <span class="px-2 py-0.5 bg-slate-700/60 rounded text-xs text-slate-400">math</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- Feature Grid -->
+    <!-- ================================================================== -->
+    <div class="container mx-auto px-4 mb-20">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-3xl md:text-4xl font-black text-white text-center mb-4">Everything You Need to Code Faster</h2>
+            <p class="text-slate-400 text-center mb-12 text-lg">Built by developers, for developers. Every feature solves a real problem.</p>
             
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Cross-Platform -->
+                <!-- Autonomous Agent -->
                 <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-6 hover:border-purple-500/50 transition-all">
-                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-white mb-2">Works Everywhere</h3>
-                    <p class="text-slate-400 text-sm">Windows, macOS, and Linux. Unlike Xcode AI - works for <strong class="text-purple-400">70% of developers</strong> on non-Apple platforms.</p>
+                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl">&#129302;</div>
+                    <h3 class="text-xl font-bold text-white mb-2">Autonomous Coding Agent</h3>
+                    <p class="text-slate-400 text-sm">Reads your codebase, writes files, runs terminal commands, and iterates until the task is complete &mdash; all autonomously.</p>
                 </div>
-
-                <!-- VS Code Integration -->
-                <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-6 hover:border-blue-500/50 transition-all">
-                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352z"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-white mb-2">VS Code - #1 IDE</h3>
-                    <p class="text-slate-400 text-sm"><strong class="text-blue-400">73% of developers</strong> use VS Code. AIBuddy integrates seamlessly with the world's most popular editor.</p>
+                <!-- Extended Thinking -->
+                <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-6 hover:border-amber-500/50 transition-all">
+                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-2xl">&#129504;</div>
+                    <h3 class="text-xl font-bold text-white mb-2">Extended Thinking</h3>
+                    <p class="text-slate-400 text-sm">Watch the AI reason step-by-step through complex problems. Say "think harder" to activate deep analysis mode.</p>
                 </div>
-
-                <!-- Pay-Per-Use -->
-                <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-6 hover:border-green-500/50 transition-all">
-                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-white mb-2">No Subscriptions</h3>
-                    <p class="text-slate-400 text-sm">Pay only for what you use. <strong class="text-green-400">No $20-100/month</strong> subscription like Claude Pro/Max or Copilot.</p>
+                <!-- File Attachments -->
+                <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-6 hover:border-cyan-500/50 transition-all">
+                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-2xl">&#128206;</div>
+                    <h3 class="text-xl font-bold text-white mb-2">Image &amp; File Attachments</h3>
+                    <p class="text-slate-400 text-sm">Drag-and-drop screenshots, paste images, or attach code files. AI understands images and routes to the best vision model.</p>
                 </div>
-
-                <!-- DeepSeek Integration -->
-                <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-6 hover:border-orange-500/50 transition-all">
-                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-white mb-2">30-50x Cheaper Reasoning</h3>
-                    <p class="text-slate-400 text-sm">DeepSeek R1 for math and reasoning tasks at a <strong class="text-orange-400">fraction of the cost</strong>. Smart model routing saves you money.</p>
-                </div>
-
-                <!-- Thread Memory -->
-                <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-6 hover:border-pink-500/50 transition-all">
-                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-white mb-2">Persistent Context</h3>
-                    <p class="text-slate-400 text-sm">AIBuddy <strong class="text-pink-400">remembers your project</strong> across sessions - tech stack, decisions, and preferences.</p>
-                </div>
-
-                <!-- Git Expert Mode -->
+                <!-- Git Integration -->
                 <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-6 hover:border-indigo-500/50 transition-all">
-                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-white mb-2">AI Conflict Resolution</h3>
-                    <p class="text-slate-400 text-sm">Intelligent Git integration with <strong class="text-indigo-400">AI-powered merge conflict</strong> resolution. Never struggle with conflicts again.</p>
+                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-2xl">&#128736;</div>
+                    <h3 class="text-xl font-bold text-white mb-2">AI Git Integration</h3>
+                    <p class="text-slate-400 text-sm">Intelligent merge conflict resolution, automatic commits, branch management. The AI understands your repo.</p>
+                </div>
+                <!-- Context Memory -->
+                <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-6 hover:border-pink-500/50 transition-all">
+                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-2xl">&#128218;</div>
+                    <h3 class="text-xl font-bold text-white mb-2">Persistent Context</h3>
+                    <p class="text-slate-400 text-sm">Remembers your project's tech stack, past decisions, and coding style across sessions. No repeating yourself.</p>
+                </div>
+                <!-- Pay Per Use -->
+                <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-6 hover:border-green-500/50 transition-all">
+                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-2xl">&#128176;</div>
+                    <h3 class="text-xl font-bold text-white mb-2">No Subscriptions</h3>
+                    <p class="text-slate-400 text-sm">Pay only for what you use. Most requests cost $0.01-0.07. No $20-100/month subscription. One credit balance works across VS Code and Desktop.</p>
+                </div>
+                <!-- Cross Platform -->
+                <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-6 hover:border-violet-500/50 transition-all">
+                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-2xl">&#127760;</div>
+                    <h3 class="text-xl font-bold text-white mb-2">Works Everywhere</h3>
+                    <p class="text-slate-400 text-sm">VS Code extension + desktop app for macOS (Intel &amp; Apple Silicon), Windows, and Linux. Unlike Xcode AI &mdash; available for 70% of developers.</p>
+                </div>
+                <!-- Shared Prompts -->
+                <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-6 hover:border-teal-500/50 transition-all">
+                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-2xl">&#128172;</div>
+                    <h3 class="text-xl font-bold text-white mb-2">Shared Code Architecture</h3>
+                    <p class="text-slate-400 text-sm">Desktop and VS Code extension share the same AI prompts and logic via a shared package. Consistent experience everywhere.</p>
+                </div>
+                <!-- Test Coverage -->
+                <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700 p-6 hover:border-lime-500/50 transition-all">
+                    <div class="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-lime-500 to-green-500 flex items-center justify-center text-2xl">&#9989;</div>
+                    <h3 class="text-xl font-bold text-white mb-2">3,800+ Tests Passing</h3>
+                    <p class="text-slate-400 text-sm">Enterprise-grade reliability with comprehensive unit, integration, E2E, and smoke tests across the entire ecosystem.</p>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- What's New Section -->
-        <div class="max-w-4xl mx-auto mb-16">
-            <h2 class="text-3xl font-bold text-white text-center mb-8">What's New in v1.4.48</h2>
-            <div class="grid md:grid-cols-2 gap-4">
-                <div class="flex items-start gap-4 p-5 bg-slate-800/30 rounded-xl border border-slate-700/50">
-                    <span class="text-3xl">🧠</span>
-                    <div>
-                        <h4 class="font-bold text-white text-lg">Extended Thinking</h4>
-                        <p class="text-sm text-slate-400">Watch AI reason through complex problems step-by-step with visible thinking process.</p>
-                    </div>
-                </div>
-                <div class="flex items-start gap-4 p-5 bg-slate-800/30 rounded-xl border border-slate-700/50">
-                    <span class="text-3xl">📎</span>
-                    <div>
-                        <h4 class="font-bold text-white text-lg">Fixed File Attachments</h4>
-                        <p class="text-sm text-slate-400">Image and code file uploads now work reliably with drag-and-drop support.</p>
-                    </div>
-                </div>
-                <div class="flex items-start gap-4 p-5 bg-slate-800/30 rounded-xl border border-slate-700/50">
-                    <span class="text-3xl">⚙️</span>
-                    <div>
-                        <h4 class="font-bold text-white text-lg">Scrollable Settings</h4>
-                        <p class="text-sm text-slate-400">Settings modal now scrolls properly on smaller screens.</p>
-                    </div>
-                </div>
-                <div class="flex items-start gap-4 p-5 bg-slate-800/30 rounded-xl border border-slate-700/50">
-                    <span class="text-3xl">💾</span>
-                    <div>
-                        <h4 class="font-bold text-white text-lg">Persistent Feedback</h4>
-                        <p class="text-sm text-slate-400">Like/dislike and cost per message now persist after app restart.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stats Banner -->
-        <div class="max-w-4xl mx-auto mb-16 bg-slate-800/50 rounded-2xl border border-slate-700 p-8">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+    <!-- ================================================================== -->
+    <!-- Stats Banner -->
+    <!-- ================================================================== -->
+    <div class="container mx-auto px-4 mb-20">
+        <div class="max-w-5xl mx-auto bg-gradient-to-r from-purple-900/50 to-pink-900/50 rounded-3xl border border-purple-500/20 p-10">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-8 text-center">
                 <div>
-                    <div class="text-3xl md:text-4xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">70%</div>
-                    <p class="text-slate-400 text-sm mt-1">of developers can use AIBuddy</p>
+                    <div class="text-3xl md:text-4xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">3</div>
+                    <p class="text-slate-400 text-sm mt-1">AI models auto-selected</p>
                 </div>
                 <div>
-                    <div class="text-3xl md:text-4xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">73%</div>
-                    <p class="text-slate-400 text-sm mt-1">VS Code market share</p>
+                    <div class="text-3xl md:text-4xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">50x</div>
+                    <p class="text-slate-400 text-sm mt-1">cheaper with smart routing</p>
                 </div>
                 <div>
-                    <div class="text-3xl md:text-4xl font-black bg-gradient-to-r from-orange-400 to-yellow-400 bg-clip-text text-transparent">50x</div>
-                    <p class="text-slate-400 text-sm mt-1">cheaper with DeepSeek</p>
+                    <div class="text-3xl md:text-4xl font-black bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">$0</div>
+                    <p class="text-slate-400 text-sm mt-1">monthly subscription</p>
                 </div>
                 <div>
-                    <div class="text-3xl md:text-4xl font-black bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">1000+</div>
+                    <div class="text-3xl md:text-4xl font-black bg-gradient-to-r from-orange-400 to-yellow-400 bg-clip-text text-transparent">3,800+</div>
                     <p class="text-slate-400 text-sm mt-1">tests passing</p>
                 </div>
+                <div>
+                    <div class="text-3xl md:text-4xl font-black bg-gradient-to-r from-pink-400 to-rose-400 bg-clip-text text-transparent">5</div>
+                    <p class="text-slate-400 text-sm mt-1">platforms supported</p>
+                </div>
             </div>
         </div>
+    </div>
 
-        <!-- Installation Notes -->
-        <div class="max-w-3xl mx-auto mb-8 space-y-4">
+    <!-- ================================================================== -->
+    <!-- What's New in v1.4.53 -->
+    <!-- ================================================================== -->
+    <div class="container mx-auto px-4 mb-20">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-3xl font-bold text-white text-center mb-8">What's New in v1.4.53</h2>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="flex items-start gap-4 p-5 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                    <span class="text-3xl">&#129504;</span>
+                    <div>
+                        <h4 class="font-bold text-white text-lg">Smart AI Routing</h4>
+                        <p class="text-sm text-slate-400">Backend auto-selects Claude Opus 4, GPT-5.3-Codex, or DeepSeek V3 per task. You never pick a model.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4 p-5 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                    <span class="text-3xl">&#128206;</span>
+                    <div>
+                        <h4 class="font-bold text-white text-lg">File Attachments Fixed</h4>
+                        <p class="text-sm text-slate-400">Image drag-and-drop and code file selection now work reliably across Desktop and VS Code.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4 p-5 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                    <span class="text-3xl">&#128279;</span>
+                    <div>
+                        <h4 class="font-bold text-white text-lg">Share Conversations</h4>
+                        <p class="text-sm text-slate-400">Copy as text/markdown or export as file. Share AI conversations with your team.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4 p-5 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                    <span class="text-3xl">&#9889;</span>
+                    <div>
+                        <h4 class="font-bold text-white text-lg">Faster Responses</h4>
+                        <p class="text-sm text-slate-400">Removed artificial delays. Responses stream immediately. Retry logic with exponential backoff for reliability.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4 p-5 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                    <span class="text-3xl">&#128736;</span>
+                    <div>
+                        <h4 class="font-bold text-white text-lg">Resume Task Fix</h4>
+                        <p class="text-sm text-slate-400">Fixed a race condition where the "Resume Task" button would leave the agent stuck. Now recovers cleanly.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4 p-5 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                    <span class="text-3xl">&#128176;</span>
+                    <div>
+                        <h4 class="font-bold text-white text-lg">Persistent Cost Display</h4>
+                        <p class="text-sm text-slate-400">API cost and model info persists after reopening. Always know what each request costs.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- Installation Notes (Collapsible) -->
+    <!-- ================================================================== -->
+    <div class="container mx-auto px-4 mb-12">
+        <div class="max-w-3xl mx-auto space-y-4">
+            <h2 class="text-2xl font-bold text-white text-center mb-6">Installation Help</h2>
+            
             <!-- Mac Installation Note -->
             <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6">
-                <h3 class="text-lg font-bold text-amber-400 mb-3">🍎 Mac Installation</h3>
-                <p class="text-slate-300 text-sm mb-3">
-                    If you see <strong class="text-red-400">"AIBuddy is damaged and can't be opened"</strong>:
-                </p>
+                <h3 class="text-lg font-bold text-amber-400 mb-3">&#127822; Mac Installation</h3>
+                <p class="text-slate-300 text-sm mb-3">If you see <strong class="text-red-400">"AIBuddy is damaged and can't be opened"</strong>:</p>
                 <div class="bg-slate-900/50 rounded-lg p-4 mb-3">
                     <p class="text-slate-400 text-xs mb-2">Run this command in Terminal:</p>
                     <code class="text-green-400 text-sm font-mono">xattr -cr /Applications/AIBuddy.app</code>
                 </div>
-                <p class="text-slate-400 text-sm mb-2"><strong class="text-white">Alternative method:</strong></p>
-                <ol class="text-slate-400 text-sm space-y-1 ml-4 list-decimal">
-                    <li><strong class="text-white">Right-click</strong> on AIBuddy.app → select <strong class="text-white">"Open"</strong></li>
-                    <li>Click "Open" in the security dialog</li>
-                    <li>App will work normally after first open</li>
-                </ol>
-                <p class="text-slate-500 text-xs mt-3">
-                    Or: System Settings → Privacy & Security → click "Open Anyway"
-                </p>
+                <p class="text-slate-400 text-sm mb-2"><strong class="text-white">Alternative:</strong> Right-click AIBuddy.app &rarr; "Open" &rarr; click "Open" in the dialog.</p>
+                <p class="text-slate-500 text-xs">Or: System Settings &rarr; Privacy &amp; Security &rarr; "Open Anyway"</p>
             </div>
 
             <!-- Windows Installation Note -->
             <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6">
-                <h3 class="text-lg font-bold text-blue-400 mb-3">🪟 Windows Installation</h3>
-                <p class="text-slate-300 text-sm mb-3">
-                    If you see <strong class="text-blue-400">"Windows protected your PC"</strong> (SmartScreen):
-                </p>
+                <h3 class="text-lg font-bold text-blue-400 mb-3">&#129695; Windows Installation</h3>
+                <p class="text-slate-300 text-sm mb-3">If SmartScreen shows <strong class="text-blue-400">"Windows protected your PC"</strong>:</p>
                 <ol class="text-slate-400 text-sm space-y-1 ml-4 list-decimal">
-                    <li>Click <strong class="text-white">"More info"</strong> link</li>
-                    <li>Click <strong class="text-white">"Run anyway"</strong> button</li>
-                    <li>Follow the installation wizard</li>
+                    <li>Click <strong class="text-white">"More info"</strong></li>
+                    <li>Click <strong class="text-white">"Run anyway"</strong></li>
                 </ol>
-                <p class="text-slate-500 text-xs mt-3">
-                    This warning appears because the app is new. It's safe to install.
-                </p>
             </div>
 
             <!-- Linux Installation Note -->
             <div class="bg-orange-500/10 border border-orange-500/30 rounded-xl p-6">
-                <h3 class="text-lg font-bold text-orange-400 mb-3">🐧 Linux Installation</h3>
-                <p class="text-slate-300 text-sm mb-3">For AppImage:</p>
-                <div class="bg-slate-900/50 rounded-lg p-4 mb-3">
-                    <code class="text-green-400 text-sm font-mono">chmod +x AIBuddy-*.AppImage && ./AIBuddy-*.AppImage</code>
+                <h3 class="text-lg font-bold text-orange-400 mb-3">&#128039; Linux Installation</h3>
+                <div class="bg-slate-900/50 rounded-lg p-4">
+                    <code class="text-green-400 text-sm font-mono">chmod +x AIBuddy-*.AppImage &amp;&amp; ./AIBuddy-*.AppImage</code>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Getting Started Section -->
-        <div class="max-w-3xl mx-auto mb-16">
-            <h2 class="text-3xl font-bold text-white text-center mb-8">🚀 Getting Started</h2>
+    <!-- ================================================================== -->
+    <!-- Getting Started -->
+    <!-- ================================================================== -->
+    <div class="container mx-auto px-4 mb-16">
+        <div class="max-w-3xl mx-auto">
+            <h2 class="text-3xl font-bold text-white text-center mb-8">Get Started in 3 Steps</h2>
             <div class="space-y-4">
-                <div class="flex items-center gap-4 p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                    <div class="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center font-bold text-white">1</div>
+                <div class="flex items-center gap-4 p-5 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-purple-500/50 transition-all">
+                    <div class="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center font-bold text-white text-lg flex-shrink-0">1</div>
                     <div>
-                        <h4 class="font-semibold text-white">Download for your platform</h4>
-                        <p class="text-sm text-slate-400">Currently available for macOS (Apple Silicon)</p>
+                        <h4 class="font-semibold text-white text-lg">Download</h4>
+                        <p class="text-sm text-slate-400">Install the <a href="https://marketplace.visualstudio.com/items?itemName=AIBuddyStudio.AIBuddy" target="_blank" class="text-blue-400 hover:text-blue-300 underline">VS Code extension</a> or download the desktop app above</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-4 p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                    <div class="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center font-bold text-white">2</div>
+                <div class="flex items-center gap-4 p-5 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-purple-500/50 transition-all">
+                    <div class="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center font-bold text-white text-lg flex-shrink-0">2</div>
                     <div>
-                        <h4 class="font-semibold text-white">Get your API key</h4>
-                        <p class="text-sm text-slate-400">
-                            <a href="/pricing" class="text-purple-400 hover:text-purple-300">Purchase credits</a> to get your AIBuddy API key
-                        </p>
+                        <h4 class="font-semibold text-white text-lg">Get Your API Key</h4>
+                        <p class="text-sm text-slate-400"><a href="/pricing" class="text-purple-400 hover:text-purple-300 underline">Purchase credits</a> and get your AIBuddy API key. One key works across all platforms.</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-4 p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                    <div class="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center font-bold text-white">3</div>
+                <div class="flex items-center gap-4 p-5 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-purple-500/50 transition-all">
+                    <div class="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center font-bold text-white text-lg flex-shrink-0">3</div>
                     <div>
-                        <h4 class="font-semibold text-white">Start coding with AI</h4>
-                        <p class="text-sm text-slate-400">Paste your API key and start asking questions!</p>
+                        <h4 class="font-semibold text-white text-lg">Start Coding with AI</h4>
+                        <p class="text-sm text-slate-400">Paste your API key and ask anything. The AI reads your codebase, writes files, runs commands, and resolves issues autonomously.</p>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- CTA Section -->
-        <div class="text-center">
-            <div class="inline-flex flex-col sm:flex-row gap-4">
-                <a href="/pricing" class="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg hover:shadow-purple-500/25">
-                    💳 Buy Credits
+    <!-- ================================================================== -->
+    <!-- Bottom CTA -->
+    <!-- ================================================================== -->
+    <div class="container mx-auto px-4 mb-16">
+        <div class="max-w-3xl mx-auto text-center bg-gradient-to-r from-purple-900/40 to-pink-900/40 rounded-3xl border border-purple-500/20 p-10">
+            <h2 class="text-3xl font-black text-white mb-3">Ready to Code Smarter?</h2>
+            <p class="text-slate-400 mb-8 text-lg">Join developers who save hours every week with AI-powered coding.</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="https://marketplace.visualstudio.com/items?itemName=AIBuddyStudio.AIBuddy" target="_blank"
+                   class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-blue-600/30 inline-flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352z"/></svg>
+                    VS Code Extension
+                </a>
+                <a href="/pricing" class="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-purple-500/25">
+                    Buy Credits
                 </a>
                 <a href="/my-account" class="px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl transition-all border border-white/20">
-                    🔑 Get API Key
+                    Get API Key
                 </a>
             </div>
         </div>
     </div>
 
     <!-- Footer -->
-    <footer class="border-t border-slate-800 py-8 mt-16">
+    <footer class="border-t border-slate-800 py-8">
         <div class="container mx-auto px-4 text-center">
-            <p class="text-slate-500 text-sm">
-                © 2026 AIBuddy. Made with ❤️ for developers.
-            </p>
+            <p class="text-slate-500 text-sm">&copy; 2026 AIBuddy. Made with &#10084;&#65039; for developers.</p>
             <p class="text-slate-600 text-xs mt-2">
-                <a href="/privacy" class="hover:text-slate-400">Privacy</a> • 
-                <a href="/terms" class="hover:text-slate-400">Terms</a> • 
-                <a href="mailto:support@aibuddy.life" class="hover:text-slate-400">Support</a>
+                <a href="/privacy" class="hover:text-slate-400">Privacy</a> &bull; 
+                <a href="/terms" class="hover:text-slate-400">Terms</a> &bull; 
+                <a href="mailto:support@aibuddy.life" class="hover:text-slate-400">Support</a> &bull;
+                <a href="https://marketplace.visualstudio.com/items?itemName=AIBuddyStudio.AIBuddy" target="_blank" class="hover:text-slate-400">VS Code Marketplace</a>
             </p>
         </div>
     </footer>

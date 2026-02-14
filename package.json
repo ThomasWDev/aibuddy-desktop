@@ -179,6 +179,7 @@
       "type": "distribution"
     },
     "win": {
+      "publisherName": "AIBuddy Studio",
       "target": [
         {
           "target": "nsis",

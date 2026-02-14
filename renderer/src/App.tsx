@@ -35,7 +35,9 @@ import {
   Mic,
   MicOff,
   Share2,
-  FileCode // KAN-6 FIX
+  FileCode, // KAN-6 FIX
+  Menu, // KAN-42 FIX: Hamburger menu icon
+  Square // KAN-35 FIX: Stop button icon
 } from 'lucide-react'
 import { CloudKnowledgePanel } from './components/knowledge'
 import { HistorySidebar } from './components/HistorySidebar'
@@ -599,6 +601,10 @@ function App() {
   // Track last user message for regenerate feature
   const [lastUserMessage, setLastUserMessage] = useState<{ content: string; images?: ImageAttachment[] } | null>(null)
   
+  // KAN-42 FIX: Hamburger menu state for secondary actions
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
+  
   // Model selection removed - backend uses smart AI routing
   // Users no longer choose models; AIBuddy automatically selects optimal model
   
@@ -613,7 +619,22 @@ function App() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  // KAN-35 FIX: Store AbortController ref so user can cancel in-flight requests
+  const abortControllerRef = useRef<AbortController | null>(null)
   const terminalEndRef = useRef<HTMLDivElement>(null)
+
+  // KAN-42 FIX: Click outside to close hamburger menu
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setShowMoreMenu(false)
+      }
+    }
+    if (showMoreMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMoreMenu])
 
   // Load on mount - FAST startup, no blocking network calls
   useEffect(() => {
@@ -673,6 +694,59 @@ function App() {
           if (threads && threads.length > 0) {
             setRecentThreads(threads.slice(0, 5)) // Top 5 recent
             setHasUsedBefore(true)
+            
+            // KAN-37 FIX: Restore the most recent thread's messages on startup
+            // so responses don't disappear after reopening the app
+            try {
+              const activeThread = await electronAPI.history.getActiveThread() as ChatThread | null
+              const threadToRestore = activeThread || threads[0] // Fallback to most recent
+              if (threadToRestore?.id && threadToRestore.messages?.length > 0) {
+                const loadedMessages: Message[] = threadToRestore.messages.map((msg: any) => ({
+                  id: msg.id,
+                  role: msg.role || 'user',
+                  content: msg.content || '',
+                  cost: msg.cost,
+                  model: msg.model,
+                  images: msg.images?.map((img: any) => ({
+                    id: img.id,
+                    base64: img.base64,
+                    mimeType: img.mimeType,
+                  })),
+                }))
+                setMessages(loadedMessages)
+                setActiveThreadId(threadToRestore.id)
+                // KAN-27 FIX: Also restore cost/model from thread
+                if (threadToRestore.totalCost !== undefined) setLastCost(threadToRestore.totalCost)
+                if (threadToRestore.model) setLastModel(threadToRestore.model)
+                console.log(`[App] KAN-37 FIX: Restored ${loadedMessages.length} messages from thread ${threadToRestore.id}`)
+                addBreadcrumb('Restored active thread on startup', 'app.init', {
+                  threadId: threadToRestore.id,
+                  messageCount: loadedMessages.length,
+                })
+              } else if (threadToRestore?.id) {
+                // Thread exists but no embedded messages - load via getThread
+                const fullThread = await electronAPI.history.getThread(threadToRestore.id) as ChatThread | null
+                if (fullThread?.messages?.length) {
+                  const loadedMessages: Message[] = fullThread.messages.map((msg: any) => ({
+                    id: msg.id,
+                    role: msg.role || 'user',
+                    content: msg.content || '',
+                    cost: msg.cost,
+                    model: msg.model,
+                  }))
+                  setMessages(loadedMessages)
+                  setActiveThreadId(fullThread.id)
+                  if (fullThread.totalCost !== undefined) setLastCost(fullThread.totalCost)
+                  if (fullThread.model) setLastModel(fullThread.model)
+                  console.log(`[App] KAN-37 FIX: Restored ${loadedMessages.length} messages via getThread(${fullThread.id})`)
+                }
+              }
+            } catch (restoreErr) {
+              console.warn('[App] Could not restore active thread:', restoreErr)
+              addBreadcrumb('Failed to restore active thread', 'app.init', { 
+                error: (restoreErr as Error).message 
+              }, 'warning')
+            }
           }
         } catch {}
         
@@ -825,7 +899,15 @@ function App() {
       
       // Escape key handlers
       if (e.key === 'Escape') {
-        if (showSettings) {
+        // KAN-35 FIX: Escape cancels in-flight requests first
+        if (isLoading && abortControllerRef.current) {
+          abortControllerRef.current.abort()
+          abortControllerRef.current = null
+          setIsLoading(false)
+          setStatus('idle')
+          toast.info('Request cancelled')
+          addBreadcrumb('User cancelled request via Escape', 'ui.action')
+        } else if (showSettings) {
           setShowSettings(false)
         } else if (showHistory) {
           setShowHistory(false)
@@ -837,7 +919,7 @@ function App() {
     
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showSettings, showHistory, showKnowledgeBase])
+  }, [showSettings, showHistory, showKnowledgeBase, isLoading])
 
   // Validate API key and get credits (non-blocking, background operation)
   const validateApiKey = async (key: string, showToast = true) => {
@@ -2049,6 +2131,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       try {
         toast.info(`🚀 Sending to AI...`)
         const controller = new AbortController()
+        abortControllerRef.current = controller // KAN-35 FIX: Store for cancel button
         const timeoutId = setTimeout(() => {
           console.log(`[App] Request timeout after ${TIMEOUT_MS/1000}s, aborting...`)
           controller.abort()
@@ -2553,12 +2636,15 @@ Be concise and actionable. Focus on fixing the immediate problem.`
     const actualIdx = messages.length - 1 - lastUserIdx
     const lastUser = messages[actualIdx]
     
-    // Remove the assistant response after the last user message (if any)
-    const newMessages = messages.slice(0, actualIdx + 1)
+    // KAN-36 FIX: Remove BOTH the user message AND the assistant response
+    // Then re-submit. handleSubmit will re-add the user message exactly once,
+    // preventing the duplicate text issue.
+    const newMessages = messages.slice(0, actualIdx)
     setMessages(newMessages)
     
-    // Re-trigger the submission with the last user message content
-    setInput(lastUser.content === '📷 [Image attached - please analyze]' ? '' : lastUser.content)
+    // Set input to the last user's content so handleSubmit can re-add it
+    const contentToResubmit = lastUser.content === '📷 [Image attached - please analyze]' ? '' : lastUser.content
+    setInput(contentToResubmit)
     if (lastUser.images) {
       setAttachedImages(lastUser.images)
     }
@@ -2566,7 +2652,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
     toast.info('🔄 Regenerating response...')
     addBreadcrumb('Regenerating response', 'chat.action', { messageId: lastUser.id })
     
-    // Trigger submit after state updates
+    // Trigger submit after state updates - handleSubmit will add user message fresh
     setTimeout(() => {
       const form = document.querySelector('form')
       if (form) {
@@ -2585,78 +2671,103 @@ Be concise and actionable. Focus on fixing the immediate problem.`
         fontFamily: "'Nunito', 'Comic Neue', sans-serif"
       }}
     >
-      {/* Header - Big & Friendly */}
+      {/* KAN-48/40/42 FIX: Compact header - no longer blocks scrolling */}
       <header 
-        className="flex items-center justify-between px-6 py-4"
+        className="flex items-center justify-between px-4 py-2 flex-shrink-0"
         style={{ 
-          borderBottom: '3px solid #334155',
-          background: 'linear-gradient(180deg, rgba(15,23,42,0.9) 0%, rgba(30,41,59,0.9) 100%)'
+          borderBottom: '2px solid #334155',
+          background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(30,41,59,0.95) 100%)'
         }}
       >
-        {/* Logo & Status */}
-        <div className="flex items-center gap-4">
-          {/* Big Logo */}
-          <Tooltip text="🌟 Hi! I'm AIBuddy, your coding friend!" position="bottom">
+        {/* Logo & Status - compact */}
+        <div className="flex items-center gap-3 min-w-0">
+          <Tooltip text="AIBuddy - Your Coding Friend" position="bottom">
             <div 
-              className="w-14 h-14 rounded-2xl flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
+              className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer hover:scale-110 transition-transform flex-shrink-0"
               style={{ 
                 background: 'linear-gradient(135deg, #ec4899, #f97316)',
-                boxShadow: '0 8px 24px rgba(236, 72, 153, 0.5)'
+                boxShadow: '0 4px 16px rgba(236, 72, 153, 0.4)'
               }}
             >
-              <Sparkles className="w-8 h-8 text-white" />
+              <Sparkles className="w-6 h-6 text-white" />
             </div>
           </Tooltip>
           
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black text-white">AIBuddy</h1>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-lg font-black text-white truncate">AIBuddy</h1>
               <span 
-                className="px-2 py-0.5 text-xs font-bold rounded-full"
+                className="px-1.5 py-0.5 text-[10px] font-bold rounded-full flex-shrink-0"
                 style={{ 
                   background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
                   color: 'white',
-                  boxShadow: '0 2px 8px rgba(139, 92, 246, 0.4)'
                 }}
               >
                 v{appVersion}
               </span>
             </div>
-            <p className="text-sm text-slate-400 font-semibold">Your Coding Friend! 🚀</p>
           </div>
           
-          {/* Status Badge - Bigger */}
-          <Tooltip text="👀 This shows what I'm doing right now!" position="bottom">
-            <div 
-              className="flex items-center gap-3 px-5 py-3 rounded-2xl ml-4 cursor-help"
-              style={{ 
-                background: `${currentStatus.color}20`,
-                border: `2px solid ${currentStatus.color}`,
-                boxShadow: `0 4px 16px ${currentStatus.color}30`
-              }}
-            >
-              <div style={{ color: currentStatus.color }} className="text-xl">{currentStatus.icon}</div>
-              <span className="text-lg font-bold text-white">{currentStatus.text}</span>
-            </div>
-          </Tooltip>
+          {/* Status Badge - compact */}
+          <div 
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl cursor-help flex-shrink-0"
+            style={{ 
+              background: `${currentStatus.color}15`,
+              border: `1px solid ${currentStatus.color}`,
+            }}
+          >
+            <div style={{ color: currentStatus.color }} className="text-sm">{currentStatus.icon}</div>
+            <span className="text-xs font-bold text-white hidden sm:inline">{currentStatus.text}</span>
+          </div>
         </div>
 
-        {/* Credits & Actions - Consistent Button Sizes */}
-        <div className="flex items-center gap-2">
-          {/* Credits Display */}
-          <Tooltip text="💰 These are your AIBuddy credits! Each question uses some credits." position="bottom">
+        {/* KAN-42 FIX: Clean header with primary actions + hamburger menu */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* KAN-38 FIX: Always-visible New Chat button */}
+          <Tooltip text="New chat (⌘N)" position="bottom">
+            <button
+              onClick={() => {
+                trackButtonClick('New Chat', 'Header')
+                if (isLoading) {
+                  toast.warning('Request in progress - press ⌘N again to force new chat')
+                  return
+                }
+                setMessages([])
+                setActiveThreadId(null)
+                setMessageFeedback({})
+                setLastCost(null)
+                setLastModel(null)
+                setInput('')
+                inputRef.current?.focus()
+                toast.info('Started new chat')
+                addBreadcrumb('New chat from header button', 'ui.action')
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl font-semibold text-xs transition-all hover:scale-105 h-8"
+              style={{
+                background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                color: 'white',
+                border: '1px solid rgba(99, 102, 241, 0.5)',
+              }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">New</span>
+            </button>
+          </Tooltip>
+
+          {/* Credits Display - compact */}
+          <Tooltip text={`Credits: ${credits !== null ? credits.toFixed(2) : '...'}`} position="bottom">
             <div 
-              className="flex items-center gap-2 px-3 py-2 rounded-xl cursor-help h-10"
+              className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl cursor-help h-8"
               style={{ 
                 background: credits !== null && credits < 5 
                   ? 'rgba(239, 68, 68, 0.2)' 
                   : 'rgba(34, 197, 94, 0.15)',
-                border: `2px solid ${credits !== null && credits < 5 ? '#ef4444' : '#22c55e'}`,
+                border: `1px solid ${credits !== null && credits < 5 ? '#ef4444' : '#22c55e'}`,
               }}
             >
-              <Coins className="w-5 h-5" style={{ color: credits !== null && credits < 5 ? '#ef4444' : '#22c55e' }} />
+              <Coins className="w-3.5 h-3.5" style={{ color: credits !== null && credits < 5 ? '#ef4444' : '#22c55e' }} />
               <span 
-                className="text-sm font-bold"
+                className="text-xs font-bold"
                 style={{ color: credits !== null && credits < 5 ? '#ef4444' : '#22c55e' }}
               >
                 {credits !== null ? `${credits.toFixed(0)}` : '...'}
@@ -2664,14 +2775,14 @@ Be concise and actionable. Focus on fixing the immediate problem.`
             </div>
           </Tooltip>
 
-          {/* KAN-27 FIX: Last Cost & Model Display - shows cost after each response and when reopening app */}
+          {/* KAN-27 FIX: Last Cost - compact inline */}
           {lastCost !== null && (
-            <Tooltip text={`Last request cost: $${lastCost.toFixed(4)}${lastModel ? ` via ${lastModel}` : ''}`} position="bottom">
+            <Tooltip text={`Last: $${lastCost.toFixed(4)}${lastModel ? ` via ${lastModel}` : ''}`} position="bottom">
               <div 
-                className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl cursor-help h-10"
+                className="flex items-center gap-1 px-2 py-1.5 rounded-xl cursor-help h-8"
                 style={{ 
                   background: 'rgba(168, 85, 247, 0.15)',
-                  border: '2px solid rgba(168, 85, 247, 0.4)',
+                  border: '1px solid rgba(168, 85, 247, 0.4)',
                 }}
               >
                 <span className="text-xs" style={{ color: '#a855f7' }}>$</span>
@@ -2693,181 +2804,146 @@ Be concise and actionable. Focus on fixing the immediate problem.`
             </Tooltip>
           )}
 
-          {/* Open Folder Button */}
-          <Tooltip text="📁 Open your code folder" position="bottom">
-            <button
-              onClick={handleOpenFolder}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 h-10"
-              style={{ 
-                background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
-                color: 'white',
-              }}
-            >
-              <FolderOpen className="w-5 h-5" />
-              <span>Open Folder</span>
-            </button>
-          </Tooltip>
-
-          {/* Terminal Button */}
-          <Tooltip text="🖥️ Show/hide terminal" position="bottom">
-            <button
-              onClick={() => {
-                trackButtonClick('Terminal', 'App')
-                trackPanelToggle('Terminal', !showTerminal)
-                setShowTerminal(!showTerminal)
-              }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 h-10"
-              style={{ 
-                background: showTerminal 
-                  ? 'linear-gradient(135deg, #22c55e, #16a34a)' 
-                  : 'rgba(34, 197, 94, 0.2)',
-                color: 'white',
-                border: `2px solid #22c55e`,
-              }}
-            >
-              <span>🖥️</span>
-              <span>Terminal</span>
-              {terminalOutput.length > 0 && (
-                <span 
-                  className="px-1.5 py-0.5 rounded-full text-xs font-bold"
-                  style={{ background: 'rgba(255,255,255,0.2)' }}
-                >
-                  {terminalOutput.length}
-                </span>
-              )}
-            </button>
-          </Tooltip>
-
-          {/* History Button */}
-          <Tooltip text="📜 Chat history" position="bottom">
+          {/* History - quick access */}
+          <Tooltip text="Chat history" position="bottom">
             <button
               onClick={() => {
                 trackButtonClick('History', 'App')
-                trackPanelToggle('History', true)
-                addBreadcrumb('Opening History panel', 'ui.panel', { panel: 'history' })
                 setShowHistory(true)
               }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 h-10"
+              className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:scale-105"
               style={{ 
-                background: showHistory 
-                  ? 'linear-gradient(135deg, #06b6d4, #0891b2)' 
-                  : 'rgba(6, 182, 212, 0.2)',
-                color: 'white',
-                border: `2px solid #06b6d4`,
+                background: showHistory ? 'rgba(6, 182, 212, 0.3)' : 'rgba(6, 182, 212, 0.1)',
+                border: '1px solid rgba(6, 182, 212, 0.4)',
               }}
             >
-              <History className="w-5 h-5" />
-              <span>History</span>
+              <History className="w-4 h-4 text-cyan-400" />
             </button>
           </Tooltip>
 
-          {/* Knowledge Base Button */}
-          <Tooltip text="📚 Knowledge base" position="bottom">
-            <button
-              onClick={() => {
-                trackButtonClick('Knowledge Base', 'App')
-                trackPanelToggle('Knowledge Base', true)
-                addBreadcrumb('Opening Knowledge Base panel', 'ui.panel', { panel: 'knowledge_base' })
-                setShowKnowledgeBase(true)
-              }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 h-10"
-              style={{ 
-                background: showKnowledgeBase 
-                  ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' 
-                  : 'rgba(139, 92, 246, 0.2)',
-                color: 'white',
-                border: `2px solid #8b5cf6`,
-              }}
-            >
-              <BookOpen className="w-5 h-5" />
-              <span>Knowledge</span>
-              {knowledgeContext && (
-                <span 
-                  className="w-2 h-2 rounded-full animate-pulse"
-                  style={{ background: '#22c55e', boxShadow: '0 0 8px #22c55e' }}
-                />
-              )}
-            </button>
-          </Tooltip>
-
-          {/* Share Button */}
-          <Tooltip text="🔗 Share conversation" position="bottom">
-            <button
-              onClick={() => {
-                trackButtonClick('Share', 'App', { messageCount: messages.length })
-                addBreadcrumb('Opening share modal', 'ui.panel', { 
-                  panel: 'share',
-                  messageCount: messages.length,
-                  threadId: currentThreadId
-                })
-                setShowShareModal(true)
-              }}
-              disabled={messages.length === 0}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 h-10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              style={{ 
-                background: 'rgba(168, 85, 247, 0.2)',
-                color: '#a855f7',
-                border: '2px solid #a855f7',
-              }}
-              aria-label="Share conversation"
-            >
-              <Share2 className="w-5 h-5" />
-              <span>Share</span>
-            </button>
-          </Tooltip>
-
-          {/* Settings Button */}
-          <Tooltip text="🔑 API key settings" position="bottom">
+          {/* KAN-39 FIX: Settings/API Key - clear text */}
+          <Tooltip text={apiKey ? 'API Key configured' : 'Add your API key'} position="bottom">
             <button
               onClick={() => {
                 trackButtonClick('Settings', 'App', { hasApiKey: !!apiKey })
-                trackPanelToggle('Settings', true)
-                addBreadcrumb('Opening settings panel', 'ui.panel', { 
-                  panel: 'settings',
-                  hasApiKey: !!apiKey 
-                })
                 setShowSettings(true)
               }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 h-10"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl font-semibold text-xs transition-all hover:scale-105 h-8"
               style={{ 
                 background: apiKey 
                   ? 'rgba(34, 197, 94, 0.2)' 
                   : 'linear-gradient(135deg, #fbbf24, #f59e0b)',
                 color: apiKey ? '#22c55e' : 'white',
-                border: `2px solid ${apiKey ? '#22c55e' : '#fbbf24'}`,
+                border: `1px solid ${apiKey ? '#22c55e' : '#fbbf24'}`,
               }}
             >
-              <Key className="w-5 h-5" />
-              <span>{apiKey ? '✓ Key Set' : 'Add Key'}</span>
+              <Key className="w-3.5 h-3.5" />
+              <span>{apiKey ? 'API Key ✓' : 'Add Key'}</span>
             </button>
           </Tooltip>
 
-          {/* Buy Credits Button */}
-          <Tooltip text="💳 Buy more credits" position="bottom">
-            <button
-              onClick={() => {
-                trackButtonClick('Buy Credits', 'App', { currentCredits: credits })
-                addBreadcrumb('User clicked Buy Credits', 'ui.click', { 
-                  currentCredits: credits,
-                  destination: AIBUDDY_BUY_CREDITS_URL 
-                })
-                const electronAPI = (window as any).electronAPI
-                if (electronAPI?.shell?.openExternal) {
-                  electronAPI.shell.openExternal(AIBUDDY_BUY_CREDITS_URL)
-                } else {
-                  window.open(AIBUDDY_BUY_CREDITS_URL, '_blank')
-                }
-              }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 h-10"
-              style={{ 
-                background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                color: 'white',
-              }}
-            >
-              <CreditCard className="w-5 h-5" />
-              <span>Buy Credits</span>
-            </button>
-          </Tooltip>
+          {/* KAN-42 FIX: Hamburger menu for secondary actions */}
+          <div className="relative" ref={moreMenuRef}>
+            <Tooltip text="More actions" position="bottom">
+              <button
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:scale-105"
+                style={{ 
+                  background: showMoreMenu ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                }}
+              >
+                <Menu className="w-4 h-4 text-slate-300" />
+              </button>
+            </Tooltip>
+
+            {/* Dropdown menu */}
+            {showMoreMenu && (
+              <div 
+                className="absolute right-0 top-full mt-2 w-56 rounded-xl overflow-hidden z-50"
+                style={{ 
+                  background: 'linear-gradient(180deg, #1e293b, #0f172a)',
+                  border: '2px solid #334155',
+                  boxShadow: '0 16px 48px rgba(0,0,0,0.6)'
+                }}
+              >
+                {/* Open Folder */}
+                <button
+                  onClick={() => { handleOpenFolder(); setShowMoreMenu(false) }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors"
+                >
+                  <FolderOpen className="w-4 h-4 text-cyan-400" />
+                  <span>Open Folder</span>
+                  {workspacePath && <span className="ml-auto text-xs text-green-400">●</span>}
+                </button>
+
+                {/* Terminal */}
+                <button
+                  onClick={() => { 
+                    trackButtonClick('Terminal', 'App')
+                    setShowTerminal(!showTerminal)
+                    setShowMoreMenu(false)
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors"
+                >
+                  <span className="text-base">🖥️</span>
+                  <span>Terminal</span>
+                  {showTerminal && <span className="ml-auto text-xs text-green-400">Active</span>}
+                  {terminalOutput.length > 0 && !showTerminal && (
+                    <span className="ml-auto text-xs bg-cyan-500/20 text-cyan-400 px-1.5 rounded-full">{terminalOutput.length}</span>
+                  )}
+                </button>
+
+                {/* Knowledge Base */}
+                <button
+                  onClick={() => { 
+                    trackButtonClick('Knowledge Base', 'App')
+                    setShowKnowledgeBase(true)
+                    setShowMoreMenu(false)
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors"
+                >
+                  <BookOpen className="w-4 h-4 text-purple-400" />
+                  <span>Knowledge Base</span>
+                  {knowledgeContext && <span className="ml-auto w-2 h-2 rounded-full bg-green-400 animate-pulse" />}
+                </button>
+
+                {/* Share */}
+                <button
+                  onClick={() => { 
+                    trackButtonClick('Share', 'App', { messageCount: messages.length })
+                    setShowShareModal(true)
+                    setShowMoreMenu(false)
+                  }}
+                  disabled={messages.length === 0}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors disabled:opacity-40"
+                >
+                  <Share2 className="w-4 h-4 text-purple-400" />
+                  <span>Share Conversation</span>
+                </button>
+
+                <div className="border-t border-slate-700 my-1" />
+
+                {/* Buy Credits */}
+                <button
+                  onClick={() => {
+                    trackButtonClick('Buy Credits', 'App', { currentCredits: credits })
+                    const electronAPI = (window as any).electronAPI
+                    if (electronAPI?.shell?.openExternal) {
+                      electronAPI.shell.openExternal(AIBUDDY_BUY_CREDITS_URL)
+                    } else {
+                      window.open(AIBUDDY_BUY_CREDITS_URL, '_blank')
+                    }
+                    setShowMoreMenu(false)
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors"
+                >
+                  <CreditCard className="w-4 h-4 text-green-400" />
+                  <span>Buy Credits</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -2883,8 +2959,8 @@ Be concise and actionable. Focus on fixing the immediate problem.`
         </div>
       )}
 
-      {/* Chat Area */}
-      <main className="flex-1 overflow-y-auto p-6">
+      {/* KAN-48 FIX: Chat Area - min-h-0 ensures flex child can scroll properly */}
+      <main className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-4">
             {hasUsedBefore ? (
@@ -3107,7 +3183,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                   }
                 >
                   {message.role === 'assistant' ? (
-                    <div className="prose prose-invert prose-sm max-w-none text-slate-200">
+                    <div className="prose prose-invert prose-sm max-w-none text-slate-200 overflow-x-auto">
                       <ReactMarkdown
                         components={{
                           code({ node, inline, className, children, ...props }: any) {
@@ -3679,38 +3755,81 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                 />
               </div>
               
-              {/* Voice Input Button - Dictation */}
-              {voiceSupported && (
-                <Tooltip text={voiceState === 'listening' ? '🛑 Stop dictation' : '🎤 Start dictation'}>
+              {/* KAN-17 FIX: Voice Input Button - always visible, shows error if not supported */}
+              <Tooltip text={
+                !voiceSupported 
+                  ? 'Voice input not available in this environment'
+                  : voiceState === 'listening' 
+                    ? 'Stop dictation' 
+                    : 'Start voice dictation'
+              }>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!voiceSupported) {
+                      toast.error('🎤 Voice input is not available in this environment. Try using the desktop app on a system with microphone permissions enabled.')
+                      addBreadcrumb('Voice input not supported', 'ui.action', { reason: 'no_speech_api' }, 'warning')
+                      return
+                    }
+                    toggleVoice()
+                  }}
+                  disabled={isLoading}
+                  className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex-shrink-0 self-center ${
+                    voiceState === 'listening' ? 'animate-pulse' : ''
+                  }`}
+                  style={{ 
+                    background: voiceState === 'listening' 
+                      ? 'linear-gradient(135deg, #ef4444, #dc2626)' 
+                      : !voiceSupported
+                        ? 'rgba(107, 114, 128, 0.1)'
+                        : 'rgba(107, 114, 128, 0.2)',
+                    border: voiceState === 'listening' 
+                      ? '2px solid #ef4444' 
+                      : '2px solid #6b7280',
+                    boxShadow: voiceState === 'listening' 
+                      ? '0 0 20px rgba(239, 68, 68, 0.5)' 
+                      : 'none',
+                    opacity: !voiceSupported ? 0.5 : 1
+                  }}
+                  aria-label={voiceState === 'listening' ? 'Stop voice input' : 'Start voice input'}
+                >
+                  {voiceState === 'listening' ? (
+                    <MicOff className="w-5 h-5 text-white" />
+                  ) : (
+                    <Mic className="w-5 h-5 text-slate-400" />
+                  )}
+                </button>
+              </Tooltip>
+              
+              {/* KAN-35 FIX: Stop Button - prominent, like ChatGPT/Claude stop button */}
+              {isLoading && (
+                <Tooltip text="Stop generating (Esc)">
                   <button
                     type="button"
-                    onClick={toggleVoice}
-                    disabled={isLoading}
-                    className={`flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex-shrink-0 self-center ${
-                      voiceState === 'listening' ? 'animate-pulse' : ''
-                    }`}
-                    style={{ 
-                      background: voiceState === 'listening' 
-                        ? 'linear-gradient(135deg, #ef4444, #dc2626)' 
-                        : 'rgba(107, 114, 128, 0.2)',
-                      border: voiceState === 'listening' 
-                        ? '2px solid #ef4444' 
-                        : '2px solid #6b7280',
-                      boxShadow: voiceState === 'listening' 
-                        ? '0 0 20px rgba(239, 68, 68, 0.5)' 
-                        : 'none'
+                    onClick={() => {
+                      if (abortControllerRef.current) {
+                        abortControllerRef.current.abort()
+                        abortControllerRef.current = null
+                      }
+                      setIsLoading(false)
+                      setStatus('idle')
+                      toast.info('⏹ Response stopped')
+                      addBreadcrumb('User stopped request', 'ui.action')
                     }}
-                    aria-label={voiceState === 'listening' ? 'Stop voice input' : 'Start voice input'}
+                    className="flex items-center justify-center gap-1.5 px-4 h-10 sm:h-11 rounded-xl transition-all hover:scale-105 active:scale-95 flex-shrink-0 self-center animate-pulse"
+                    style={{
+                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      boxShadow: '0 4px 16px rgba(239, 68, 68, 0.5)',
+                      border: '2px solid rgba(239, 68, 68, 0.6)'
+                    }}
+                    aria-label="Stop generating"
                   >
-                    {voiceState === 'listening' ? (
-                      <MicOff className="w-5 h-5 text-white" />
-                    ) : (
-                      <Mic className="w-5 h-5 text-slate-400" />
-                    )}
+                    <Square className="w-4 h-4 text-white fill-white" />
+                    <span className="text-white text-sm font-bold">Stop</span>
                   </button>
                 </Tooltip>
               )}
-              
+
               {/* Send Button - aligned with input */}
               <Tooltip text="🚀 Send message">
                 <button
