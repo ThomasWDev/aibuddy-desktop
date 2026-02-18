@@ -4,21 +4,15 @@
  * Tests the pure logic functions from electron/ipc/workspace.ts
  * without requiring Electron. Validates hashing, path generation,
  * and file I/O logic.
+ * 
+ * RULE: getWorkspaceHash is imported from source — NEVER duplicated.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { createHash } from 'crypto'
 import { join } from 'path'
 import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
-
-// We test the same hash logic used in the workspace module
-function getWorkspaceHash(workspacePath: string): string {
-  return createHash('sha256')
-    .update(workspacePath.toLowerCase())
-    .digest('hex')
-    .substring(0, 16)
-}
+import { getWorkspaceHash } from '../../electron/ipc/workspace'
 
 describe('Workspace Storage', () => {
   const TEST_BASE = join(tmpdir(), '.aibuddy-test-workspaces')

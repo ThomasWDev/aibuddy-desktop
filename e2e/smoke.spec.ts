@@ -927,3 +927,54 @@ test.describe('Smoke Tests - KAN-41 Chat View', () => {
     expect(['hidden', 'auto', 'visible']).toContain(bodyOverflowX);
   });
 });
+
+/**
+ * Version display smoke tests
+ * Ensures app version is read from package.json at runtime (no stale/cached version in UI).
+ */
+test.describe('Smoke Tests - Version Display', () => {
+  test('should have app.getVersion IPC available', async ({ page }) => {
+    const hasGetVersion = await page.evaluate(() => {
+      return typeof (window as any).electronAPI?.app?.getVersion === 'function';
+    });
+    expect(hasGetVersion).toBe(true);
+  });
+
+  test('should return semver string from getVersion', async ({ page }) => {
+    const version = await page.evaluate(async () => {
+      const api = (window as any).electronAPI;
+      if (api?.app?.getVersion) return await api.app.getVersion();
+      if (api?.version?.get) {
+        const info = await api.version.get();
+        return info?.currentVersion ?? null;
+      }
+      return null;
+    });
+    expect(version).toBeTruthy();
+    expect(typeof version).toBe('string');
+    expect(version).toMatch(/^\d+\.\d+\.\d+/);
+  });
+});
+
+/**
+ * App launch resilience
+ * Ensures critical IPC is available so app does not fail silently on startup.
+ */
+test.describe('Smoke Tests - App Launch Resilience', () => {
+  test('should have history.getThreads returning array', async ({ page }) => {
+    const threads = await page.evaluate(async () => {
+      const api = (window as any).electronAPI;
+      if (!api?.history?.getThreads) return null;
+      return await api.history.getThreads();
+    });
+    expect(Array.isArray(threads)).toBe(true);
+  });
+
+  test('should have store.get/store.set for persistence', async ({ page }) => {
+    const hasStore = await page.evaluate(() => {
+      const api = (window as any).electronAPI;
+      return typeof api?.store?.get === 'function' && typeof api?.store?.set === 'function';
+    });
+    expect(hasStore).toBe(true);
+  });
+});

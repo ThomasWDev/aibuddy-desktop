@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { X, Copy, Check, FileText, MessageSquare, Download } from 'lucide-react'
+import { formatAsText, formatAsMarkdown, sanitizeFilename, type ShareMessage } from '../utils/share-formatting'
 
 /**
  * Share Conversation Modal - KAN-18 FIX
@@ -15,12 +16,10 @@ import { X, Copy, Check, FileText, MessageSquare, Download } from 'lucide-react'
  * FIX: Removed non-functional web link generation. Made clipboard copy and file export
  * the primary actions since they actually work without backend infrastructure.
  * Web link sharing will be added when the backend API endpoint is implemented.
+ * 
+ * NOTE: Formatting logic lives in utils/share-formatting.ts (pure functions).
+ * Tests import from there directly — NEVER duplicate code.
  */
-
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-}
 
 interface ShareModalProps {
   isOpen: boolean
@@ -28,7 +27,7 @@ interface ShareModalProps {
   threadId: string
   threadTitle?: string
   messageCount: number
-  messages?: Message[]
+  messages?: ShareMessage[]
 }
 
 export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCount, messages }: ShareModalProps) {
@@ -57,32 +56,13 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
     return () => window.removeEventListener('keydown', handleEscape)
   }, [isOpen, onClose])
 
-  // Format messages as plain text
-  const formatAsText = useCallback((): string => {
-    if (!messages || messages.length === 0) return ''
-    
-    const conversationText = messages.map((msg) => {
-      const role = msg.role === 'user' ? 'You' : 'AIBuddy'
-      return `${role}:\n${msg.content}`
-    }).join('\n\n---\n\n')
-
-    return `${threadTitle || 'AIBuddy Conversation'}\n${'='.repeat(40)}\n\n${conversationText}`
+  // Format functions delegate to pure utilities in utils/share-formatting.ts
+  const getTextOutput = useCallback((): string => {
+    return formatAsText(messages || [], threadTitle)
   }, [messages, threadTitle])
 
-  // Format messages as Markdown
-  const formatAsMarkdown = useCallback((): string => {
-    if (!messages || messages.length === 0) return ''
-    
-    const conversationMd = messages.map((msg) => {
-      const role = msg.role === 'user' ? '**You**' : '**AIBuddy**'
-      return `### ${role}\n\n${msg.content}`
-    }).join('\n\n---\n\n')
-
-    const date = new Date().toLocaleDateString('en-US', { 
-      year: 'numeric', month: 'long', day: 'numeric' 
-    })
-
-    return `# ${threadTitle || 'AIBuddy Conversation'}\n\n_Exported on ${date} | ${messageCount} messages_\n\n---\n\n${conversationMd}\n`
+  const getMarkdownOutput = useCallback((): string => {
+    return formatAsMarkdown(messages || [], threadTitle, messageCount)
   }, [messages, threadTitle, messageCount])
 
   // Copy conversation as text to clipboard
@@ -93,14 +73,14 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
     }
 
     try {
-      await navigator.clipboard.writeText(formatAsText())
+      await navigator.clipboard.writeText(getTextOutput())
       setIsTextCopied(true)
       setTimeout(() => setIsTextCopied(false), 2000)
     } catch (err) {
       console.error('Copy failed:', err)
       setError('Failed to copy conversation')
     }
-  }, [messages, formatAsText])
+  }, [messages, getTextOutput])
 
   // Copy as Markdown to clipboard
   const handleCopyMarkdown = useCallback(async () => {
@@ -110,14 +90,14 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
     }
 
     try {
-      await navigator.clipboard.writeText(formatAsMarkdown())
+      await navigator.clipboard.writeText(getMarkdownOutput())
       setIsMdCopied(true)
       setTimeout(() => setIsMdCopied(false), 2000)
     } catch (err) {
       console.error('Copy failed:', err)
       setError('Failed to copy conversation')
     }
-  }, [messages, formatAsMarkdown])
+  }, [messages, getMarkdownOutput])
 
   // Export as Markdown file
   const handleExportMarkdown = useCallback(async () => {
@@ -127,11 +107,8 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
     }
 
     try {
-      const markdown = formatAsMarkdown()
-      const safeTitle = (threadTitle || 'aibuddy-conversation')
-        .replace(/[^a-z0-9]+/gi, '-')
-        .toLowerCase()
-        .substring(0, 50)
+      const markdown = getMarkdownOutput()
+      const safeTitle = sanitizeFilename(threadTitle || '')
       const filename = `${safeTitle}-${Date.now()}.md`
 
       // Use Electron save dialog if available
@@ -162,7 +139,7 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
       console.error('Export failed:', err)
       setError('Failed to export conversation')
     }
-  }, [messages, threadTitle, formatAsMarkdown, onClose])
+  }, [messages, threadTitle, getMarkdownOutput, onClose])
 
   if (!isOpen) return null
 

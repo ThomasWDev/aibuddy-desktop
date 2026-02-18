@@ -151,7 +151,7 @@ class ElectronBridge {
    */
   get app() {
     return this.electronAPI?.app || {
-      getVersion: async () => '1.0.0',
+      getVersion: async () => 'unknown',
       getPlatform: () => 'browser',
       getArch: () => 'unknown'
     }

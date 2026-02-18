@@ -194,22 +194,22 @@ export const CloudKnowledgePanel: React.FC<CloudKnowledgePanelProps> = ({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '20px' }}>☁️</span>
-          <span style={{ color: '#fff', fontWeight: 600 }}>{stats.providers}</span>
+          <span style={{ color: '#fff', fontWeight: 600 }}>{stats.providerCount}</span>
           <span style={{ color: '#888' }}>Providers</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '20px' }}>🖥️</span>
-          <span style={{ color: '#fff', fontWeight: 600 }}>{stats.servers}</span>
+          <span style={{ color: '#fff', fontWeight: 600 }}>{stats.serverCount}</span>
           <span style={{ color: '#888' }}>Servers</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '20px' }}>🔐</span>
-          <span style={{ color: '#fff', fontWeight: 600 }}>{stats.credentials}</span>
+          <span style={{ color: '#fff', fontWeight: 600 }}>{stats.credentialCount}</span>
           <span style={{ color: '#888' }}>Credentials</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '20px' }}>📄</span>
-          <span style={{ color: '#fff', fontWeight: 600 }}>{stats.docs}</span>
+          <span style={{ color: '#fff', fontWeight: 600 }}>{stats.documentCount}</span>
           <span style={{ color: '#888' }}>Documents</span>
         </div>
       </div>

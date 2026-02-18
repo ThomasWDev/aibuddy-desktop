@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, shell, nativeImage, session } from 'electron'
 import { join } from 'path'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import * as os from 'os'
 
 // Get the app icon path for dialogs
 function getAppIconPath(): string {
@@ -110,8 +111,35 @@ import {
 // Check if running in development
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
-// Get app version
-const appVersion = app.getVersion() || '1.0.0'
+// Get app version dynamically from package.json (Electron reads it automatically)
+// Never hardcode version - app.getVersion() returns package.json "version" field
+const appVersion = app.getVersion()
+
+// Crash protection: log and show user-visible error so app doesn't fail silently
+function showStartupError(title: string, message: string, detail?: string): void {
+  console.error(`[AIBuddy] ${title}:`, message, detail ?? '')
+  setImmediate(() => {
+    if (app.isReady()) {
+      dialog.showMessageBox({
+        type: 'error',
+        title: title,
+        message,
+        detail: detail ?? undefined,
+        noLink: true
+      }).catch(() => {})
+    }
+  })
+}
+
+process.on('uncaughtException', (err: Error) => {
+  showStartupError('AIBuddy failed to start', err.message, err.stack ?? undefined)
+})
+
+process.on('unhandledRejection', (reason: unknown) => {
+  const message = reason instanceof Error ? reason.message : String(reason)
+  const detail = reason instanceof Error ? reason.stack : undefined
+  showStartupError('AIBuddy startup error', message, detail)
+})
 
 // Initialize Sentry early (before any errors can occur)
 initSentryMain(appVersion)
@@ -219,12 +247,24 @@ function createWindow(): void {
     })
   })
 
-  // Load the renderer
-  if (isDev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  // Load the renderer (catch load failures so user sees error instead of blank window)
+  const loadRenderer = () => {
+    if (isDev && process.env['ELECTRON_RENDERER_URL']) {
+      mainWindow!.loadURL(process.env['ELECTRON_RENDERER_URL']).catch((err: Error) => {
+        showStartupError('Failed to load app', err.message, err.stack ?? undefined)
+      })
+    } else {
+      const rendererPath = join(__dirname, '../renderer/index.html')
+      if (!existsSync(rendererPath)) {
+        showStartupError('App files missing', `Renderer not found at: ${rendererPath}`, 'Try rebuilding the app (pnpm run build).')
+      } else {
+        mainWindow!.loadFile(rendererPath).catch((err: Error) => {
+          showStartupError('Failed to load app', err.message, err.stack ?? undefined)
+        })
+      }
+    }
   }
+  loadRenderer()
 }
 
 // Create application menu
@@ -518,53 +558,58 @@ async function checkAndNotifyUpdates(force: boolean = false): Promise<void> {
 
 // App lifecycle
 app.whenReady().then(() => {
-  // Set app user model id for windows
-  if (process.platform === 'win32') {
-    app.setAppUserModelId('com.aibuddy.desktop')
-  }
-
-  // Track session start
-  trackSessionStart(sessionId)
-
-  // Initialize all IPC handlers
-  initAllIpcHandlers()
-
-  createMenu()
-  createWindow()
-  
-  // Load dismissed version from store
-  dismissedVersion = store.get('dismissedVersion' as any) || null
-  
-  // Check for updates after window is ready (5 second delay)
-  setTimeout(() => checkAndNotifyUpdates(), 5000)
-  
-  // Check for updates periodically (every 24 hours)
-  setInterval(() => checkAndNotifyUpdates(), 24 * 60 * 60 * 1000)
-  
-  // Show urgent update warning if version is too old
-  if (isVersionOutdated(appVersion)) {
-    setTimeout(() => {
-      const icon = getAppIcon()
-      dialog.showMessageBox({
-        type: 'warning',
-        title: 'Update Required',
-        message: 'Your version of AIBuddy is outdated',
-        detail: `Version ${appVersion} may have compatibility issues. Please update to the latest version for the best experience.`,
-        buttons: ['Download Update', 'Later'],
-        icon
-      }).then((result) => {
-        if (result.response === 0) {
-          shell.openExternal(DOWNLOAD_PAGE_URL)
-        }
-      })
-    }, 2000)
-  }
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
+  try {
+    // Set app user model id for windows
+    if (process.platform === 'win32') {
+      app.setAppUserModelId('com.aibuddy.desktop')
     }
-  })
+
+    // Track session start
+    trackSessionStart(sessionId)
+
+    // Initialize all IPC handlers (can throw if history/fs init fails)
+    initAllIpcHandlers()
+
+    createMenu()
+    createWindow()
+
+    // Load dismissed version from store
+    dismissedVersion = store.get('dismissedVersion' as any) || null
+
+    // Check for updates after window is ready (5 second delay)
+    setTimeout(() => checkAndNotifyUpdates(), 5000)
+
+    // Check for updates periodically (every 24 hours)
+    setInterval(() => checkAndNotifyUpdates(), 24 * 60 * 60 * 1000)
+
+    // Show urgent update warning if version is too old
+    if (isVersionOutdated(appVersion)) {
+      setTimeout(() => {
+        const icon = getAppIcon()
+        dialog.showMessageBox({
+          type: 'warning',
+          title: 'Update Required',
+          message: 'Your version of AIBuddy is outdated',
+          detail: `Version ${appVersion} may have compatibility issues. Please update to the latest version for the best experience.`,
+          buttons: ['Download Update', 'Later'],
+          icon
+        }).then((result) => {
+          if (result.response === 0) {
+            shell.openExternal(DOWNLOAD_PAGE_URL)
+          }
+        })
+      }, 2000)
+    }
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow()
+      }
+    })
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err))
+    showStartupError('AIBuddy failed to start', error.message, error.stack ?? undefined)
+  }
 })
 
 app.on('window-all-closed', () => {
@@ -599,107 +644,132 @@ app.on('before-quit', async () => {
   cleanupAllIpcHandlers()
 })
 
-// IPC Handlers - Store operations
-ipcMain.handle('store:get', (_event, key: string) => {
-  return store.get(key)
-})
+// IPC Handlers - Main process handlers (store, dialog, shell, metrics, version)
+// Wrapped in a function with removeHandler guards to prevent duplicate-handler crashes on dev reload
+function initMainProcessHandlers(): void {
+  const channels = [
+    'store:get', 'store:set', 'store:delete',
+    'dialog:openFolder', 'dialog:openFile', 'dialog:saveFile', 'dialog:showMessage',
+    'shell:openExternal', 'shell:showItemInFolder',
+    'metrics:increment', 'metrics:get',
+    'sentry:setUser',
+    'version:check', 'version:get', 'version:dismissUpdate',
+  ] as const
+  for (const ch of channels) { ipcMain.removeHandler(ch) }
 
-ipcMain.handle('store:set', (_event, key: string, value: unknown) => {
-  store.set(key, value)
-  return true
-})
-
-ipcMain.handle('store:delete', (_event, key: string) => {
-  store.delete(key)
-  return true
-})
-
-// IPC Handlers - Dialog operations
-ipcMain.handle('dialog:openFolder', async () => {
-  const result = await dialog.showOpenDialog({
-    properties: ['openDirectory']
+  // Store operations
+  ipcMain.handle('store:get', (_event, key: string) => {
+    return store.get(key as any)
   })
-  return result.canceled ? null : result.filePaths[0]
-})
 
-ipcMain.handle('dialog:openFile', async (_event, filters?: Electron.FileFilter[]) => {
-  const result = await dialog.showOpenDialog({
-    properties: ['openFile'],
-    filters
+  ipcMain.handle('store:set', (_event, key: string, value: unknown) => {
+    store.set(key as any, value as any)
+    return true
   })
-  return result.canceled ? null : result.filePaths[0]
-})
 
-ipcMain.handle('dialog:saveFile', async (_event, defaultPath?: string) => {
-  const result = await dialog.showSaveDialog({
-    defaultPath
+  ipcMain.handle('store:delete', (_event, key: string) => {
+    store.delete(key as any)
+    return true
   })
-  return result.canceled ? null : result.filePath
-})
 
-ipcMain.handle('dialog:showMessage', async (_event, options: Electron.MessageBoxOptions) => {
-  // Add app icon to dialog if not specified
-  const icon = getAppIcon()
-  const optionsWithIcon: Electron.MessageBoxOptions = {
-    ...options,
-    icon: options.icon || icon
-  }
-  return dialog.showMessageBox(optionsWithIcon)
-})
+  // Dialog operations
+  ipcMain.handle('dialog:openFolder', async (_event, defaultPath?: string | null) => {
+    const startPath = defaultPath && defaultPath.length > 0
+      ? defaultPath.replace(/^~/, os.homedir())
+      : undefined
+    const options: Electron.OpenDialogOptions = {
+      properties: ['openDirectory'],
+      ...(startPath && { defaultPath: startPath })
+    }
+    const result = mainWindow
+      ? await dialog.showOpenDialog(mainWindow, options)
+      : await dialog.showOpenDialog(options)
+    return result.canceled ? null : result.filePaths[0]
+  })
 
-// IPC Handlers - Shell operations
-ipcMain.handle('shell:openExternal', async (_event, url: string) => {
-  await shell.openExternal(url)
-  return true
-})
+  ipcMain.handle('dialog:openFile', async (_event, filters?: Electron.FileFilter[]) => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters
+    })
+    return result.canceled ? null : result.filePaths[0]
+  })
 
-ipcMain.handle('shell:showItemInFolder', (_event, path: string) => {
-  shell.showItemInFolder(path)
-  return true
-})
+  ipcMain.handle('dialog:saveFile', async (_event, defaultPath?: string) => {
+    const result = await dialog.showSaveDialog({
+      defaultPath
+    })
+    return result.canceled ? null : result.filePath
+  })
 
-// IPC Handlers - Session metrics (from renderer)
-ipcMain.handle('metrics:increment', (_event, metric: keyof typeof sessionMetrics, value: number = 1) => {
-  if (metric === 'responseTimesMs') {
-    sessionMetrics.responseTimesMs.push(value)
-  } else if (metric in sessionMetrics && typeof sessionMetrics[metric] === 'number') {
-    (sessionMetrics[metric] as number) += value
-  }
-  return true
-})
+  ipcMain.handle('dialog:showMessage', async (_event, options: Electron.MessageBoxOptions) => {
+    const icon = getAppIcon()
+    const optionsWithIcon: Electron.MessageBoxOptions = {
+      ...options,
+      icon: options.icon || icon
+    }
+    return dialog.showMessageBox(optionsWithIcon)
+  })
 
-ipcMain.handle('metrics:get', () => {
-  return {
-    ...sessionMetrics,
-    sessionDurationMs: Date.now() - sessionStartTime,
-    sessionId,
-  }
-})
+  // Shell operations
+  ipcMain.handle('shell:openExternal', async (_event, url: string) => {
+    await shell.openExternal(url)
+    return true
+  })
 
-// IPC Handlers - User context (for Sentry)
-ipcMain.handle('sentry:setUser', (_event, userId: string, email?: string) => {
-  setUserContext(userId, email)
-  return true
-})
+  ipcMain.handle('shell:showItemInFolder', (_event, path: string) => {
+    shell.showItemInFolder(path)
+    return true
+  })
 
-// IPC Handlers - Version checker
-ipcMain.handle('version:check', async () => {
-  await checkAndNotifyUpdates(true)
-  return lastVersionInfo
-})
+  // Session metrics (from renderer)
+  ipcMain.handle('metrics:increment', (_event, metric: keyof typeof sessionMetrics, value: number = 1) => {
+    if (metric === 'responseTimesMs') {
+      sessionMetrics.responseTimesMs.push(value)
+    } else if (metric in sessionMetrics && typeof sessionMetrics[metric] === 'number') {
+      (sessionMetrics[metric] as number) += value
+    }
+    return true
+  })
 
-ipcMain.handle('version:get', () => {
-  return {
-    currentVersion: appVersion,
-    lastVersionInfo
-  }
-})
+  ipcMain.handle('metrics:get', () => {
+    return {
+      ...sessionMetrics,
+      sessionDurationMs: Date.now() - sessionStartTime,
+      sessionId,
+    }
+  })
 
-ipcMain.handle('version:dismissUpdate', (_event, version: string) => {
-  dismissedVersion = version
-  store.set('dismissedVersion' as any, version)
-  return true
-})
+  // User context (for Sentry)
+  ipcMain.handle('sentry:setUser', (_event, userId: string, email?: string) => {
+    setUserContext(userId, email)
+    return true
+  })
+
+  // App version is registered in electron/ipc/commands.ts (initCommandHandlers)
+
+  // Version checker
+  ipcMain.handle('version:check', async () => {
+    await checkAndNotifyUpdates(true)
+    return lastVersionInfo
+  })
+
+  ipcMain.handle('version:get', () => {
+    return {
+      currentVersion: appVersion,
+      lastVersionInfo
+    }
+  })
+
+  ipcMain.handle('version:dismissUpdate', (_event, version: string) => {
+    dismissedVersion = version
+    store.set('dismissedVersion' as any, version)
+    return true
+  })
+}
+
+// Register main-process handlers
+initMainProcessHandlers()
 
 // Initialize history handlers
 import { initHistoryHandlers } from './ipc/history'

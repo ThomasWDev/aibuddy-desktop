@@ -66,7 +66,7 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
   const [recentWorkspaces, setRecentWorkspaces] = useState<string[]>([])
-  const [appVersion, setAppVersion] = useState('1.0.0')
+  const [appVersion, setAppVersion] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<string | null>(null)
   const [apiAvailable, setApiAvailable] = useState<boolean | null>(null)
   const [hoverButton, setHoverButton] = useState<string | null>(null)
@@ -722,7 +722,7 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
 
       {/* Footer */}
       <footer style={styles.footer}>
-        AIBuddy Desktop v{appVersion} • Made with 💖 for young coders
+        AIBuddy Desktop {appVersion ? `v${appVersion}` : ''} • Made with 💖 for young coders
       </footer>
 
       {/* API Key Modal */}

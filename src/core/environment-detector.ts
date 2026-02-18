@@ -335,6 +335,12 @@ function detectIOS(): LanguageEnvironment {
   // Check for Swift Package Manager (built into Swift)
   const hasSPM = !!swiftVersion
   
+  // Check for Carthage
+  const carthageVersion = getVersion('carthage', 'version')
+  
+  // Check for Objective-C presence (detect .m files in common locations)
+  const hasObjC = commandExists('clang')
+  
   const notes: string[] = []
   if (hasXcode) {
     notes.push(`✅ Xcode installed`)
@@ -350,6 +356,8 @@ function detectIOS(): LanguageEnvironment {
   
   if (cocoapodsVersion) notes.push(`✅ CocoaPods: ${cocoapodsVersion}`)
   if (hasSPM) notes.push('✅ Swift Package Manager available')
+  if (carthageVersion) notes.push(`✅ Carthage: ${carthageVersion}`)
+  if (hasObjC) notes.push('✅ Objective-C toolchain (clang) available')
   
   return {
     language: 'iOS / SwiftUI',
@@ -360,9 +368,10 @@ function detectIOS(): LanguageEnvironment {
       { name: 'Xcode', installed: hasXcode, version: xcodeVersion?.split('\n')[0] || undefined },
       { name: 'CocoaPods', installed: !!cocoapodsVersion, version: cocoapodsVersion || undefined },
       { name: 'Swift Package Manager', installed: hasSPM },
+      { name: 'Carthage', installed: !!carthageVersion, version: carthageVersion || undefined },
     ],
-    runCommand: 'xcodebuild -scheme [AppName] -destination "platform=iOS Simulator" build',
-    testCommand: 'xcodebuild test -scheme [AppName] -destination "platform=iOS Simulator"',
+    runCommand: 'xcodebuild -scheme [AppName] -destination "platform=iOS Simulator,name=iPhone 16" build',
+    testCommand: 'xcodebuild test -scheme [AppName] -destination "platform=iOS Simulator,name=iPhone 16"',
     buildCommand: 'xcodebuild -scheme [AppName] -configuration Release archive',
     notes
   }

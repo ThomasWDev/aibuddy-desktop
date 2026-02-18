@@ -3,11 +3,14 @@
  * 
  * Uses a lightweight HTTP-based approach instead of @sentry/electron/renderer
  * to avoid native module issues with Electron's asar packaging.
- * Shares the same DSN as main process and VS Code extension.
+ * 
+ * Dedicated Sentry project: aibuddy-desktop (ID: 4510894086881280)
+ * Focus: breadcrumbs for user behavior analytics, NOT just logs/errors.
  */
 
-// Same DSN as main process and VS Code extension
-const SENTRY_DSN = 'https://982b270aa75b24be5d77786b58929121@o1319003.ingest.us.sentry.io/4510695985774592'
+// Dedicated Sentry project for AIBuddy Desktop (breadcrumbs + errors)
+// Created Feb 16, 2026 — separate from extension project for cleaner analytics
+const SENTRY_DSN = 'https://f3b03acc22c821d535aa6efe39b01837@o1319003.ingest.us.sentry.io/4510894086881280'
 
 // Parse DSN to get project details
 function parseDSN(dsn: string): { publicKey: string; host: string; projectId: string } | null {
@@ -25,6 +28,7 @@ function parseDSN(dsn: string): { publicKey: string; host: string; projectId: st
 const dsnParts = parseDSN(SENTRY_DSN)
 
 let isInitialized = false
+let appVersionCache: string | null = null
 let breadcrumbs: Array<{
   message: string
   category: string
@@ -52,7 +56,7 @@ async function sendToSentry(event: Record<string, unknown>): Promise<void> {
       body: JSON.stringify({
         ...event,
         platform: 'javascript',
-        sdk: { name: 'aibuddy-desktop-renderer', version: '1.0.0' },
+        sdk: { name: 'aibuddy-desktop-renderer', version: appVersionCache || 'unknown' },
         environment: 'production',
         breadcrumbs: breadcrumbs.slice(-50),
         timestamp: Date.now() / 1000,
@@ -76,6 +80,19 @@ export function initSentryRenderer(): void {
   }
 
   isInitialized = true
+  
+  // Fetch version dynamically from Electron (never hardcoded)
+  const electronAPI = (window as any).electronAPI
+  if (electronAPI?.app?.getVersion) {
+    electronAPI.app.getVersion().then((v: string) => {
+      appVersionCache = v
+    }).catch(() => {})
+  } else if (electronAPI?.version?.get) {
+    electronAPI.version.get().then((info: { currentVersion: string }) => {
+      appVersionCache = info.currentVersion
+    }).catch(() => {})
+  }
+  
   console.log('[Sentry Renderer] ✅ Initialized')
 }
 

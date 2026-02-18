@@ -18,9 +18,10 @@ import { homedir } from 'os'
 const AIBUDDY_BASE = join(homedir(), '.aibuddy', 'workspaces')
 
 /**
- * Generate a consistent hash for a workspace path
+ * Generate a consistent hash for a workspace path.
+ * Exported for direct testing — tests MUST import this, not duplicate it.
  */
-function getWorkspaceHash(workspacePath: string): string {
+export function getWorkspaceHash(workspacePath: string): string {
   return createHash('sha256')
     .update(workspacePath.toLowerCase())
     .digest('hex')
@@ -146,6 +147,13 @@ function writeJsonData(workspacePath: string, key: string, value: unknown): bool
  * Initialize workspace IPC handlers
  */
 export function initWorkspaceHandlers(): void {
+  // Remove any previously registered handlers to prevent "second handler" errors on dev reload
+  const channels = [
+    'workspace:getPath', 'workspace:getRules', 'workspace:setRules', 'workspace:appendRule',
+    'workspace:getTestPatterns', 'workspace:setTestPatterns', 'workspace:appendTestPattern',
+    'workspace:getFixesLog', 'workspace:appendFix', 'workspace:getData', 'workspace:setData',
+  ] as const
+  for (const ch of channels) { ipcMain.removeHandler(ch) }
   // Get workspace storage path
   ipcMain.handle('workspace:getPath', async (_event, workspacePath: string) => {
     return getWorkspaceDir(workspacePath)

@@ -4,7 +4,7 @@ Built for developers who want AI assistance without leaving their code editor, A
 
 KEY FEATURES:
 
-• AI-Powered Coding — Get intelligent code suggestions, explanations, and refactoring powered by Claude Opus 4, GPT-5.2, and DeepSeek models with automatic provider rotation for maximum uptime.
+• AI-Powered Coding — Get intelligent code suggestions, explanations, and refactoring powered by the AIBuddy Vibe Coding API with automatic smart routing for maximum uptime.
 
 • Monaco Editor — Full-featured code editor with syntax highlighting for 100+ languages, IntelliSense, multi-cursor editing, and all the keyboard shortcuts you already know.
 

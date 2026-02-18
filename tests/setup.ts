@@ -1,5 +1,9 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
+
+const pkg = JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 'utf-8'))
 
 // Mock scrollIntoView which is not available in jsdom
 Element.prototype.scrollIntoView = vi.fn()
@@ -105,7 +109,7 @@ const mockElectronAPI = {
     getSummary: vi.fn().mockResolvedValue('')
   },
   app: {
-    getVersion: vi.fn().mockResolvedValue('1.4.32'),
+    getVersion: vi.fn().mockResolvedValue(pkg.version),
     getPlatform: vi.fn().mockReturnValue('darwin'),
     getArch: vi.fn().mockReturnValue('arm64')
   },

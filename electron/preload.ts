@@ -11,7 +11,7 @@ export interface ElectronAPI {
 
   // Dialog operations
   dialog: {
-    openFolder: () => Promise<string | null>
+    openFolder: (defaultPath?: string | null) => Promise<string | null>
     openFile: (filters?: Electron.FileFilter[]) => Promise<string | null>
     saveFile: (defaultPath?: string) => Promise<string | null>
     showMessage: (options: Electron.MessageBoxOptions) => Promise<Electron.MessageBoxReturnValue>
@@ -89,6 +89,8 @@ export interface ElectronAPI {
     deleteServer: (providerId: string, serverId: string) => Promise<boolean>
     importDocument: (providerId: string, filename: string, content: string) => Promise<unknown>
     openFileDialog: () => Promise<{ filename: string; content: string; filePath: string } | null>
+    readFilePath: (filePath: string) => Promise<unknown>
+    readMultipleFiles: (filePaths: string[]) => Promise<unknown>
     unlock: (password: string) => Promise<boolean>
     lock: () => Promise<void>
     generateAIContext: () => Promise<string>
@@ -109,7 +111,7 @@ export interface ElectronAPI {
     getActiveThread: () => Promise<unknown>
     createThread: (firstMessage?: string, workspacePath?: string) => Promise<unknown>
     setActiveThread: (threadId: string | null) => Promise<boolean>
-    addMessage: (threadId: string, message: { role: 'user' | 'assistant', content: string, images?: unknown[] }) => Promise<unknown>
+    addMessage: (threadId: string, message: { role: 'user' | 'assistant', content: string, images?: unknown[], cost?: number, model?: string, tokensIn?: number, tokensOut?: number }) => Promise<unknown>
     updateMetadata: (threadId: string, metadata: unknown) => Promise<boolean>
     updateMessageFeedback: (threadId: string, messageId: string, feedback: 'up' | 'down' | null) => Promise<boolean>
     renameThread: (threadId: string, newTitle: string) => Promise<boolean>
@@ -175,7 +177,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Dialog operations
   dialog: {
-    openFolder: () => ipcRenderer.invoke('dialog:openFolder'),
+    openFolder: (defaultPath?: string | null) => ipcRenderer.invoke('dialog:openFolder', defaultPath),
     openFile: (filters?: Electron.FileFilter[]) => ipcRenderer.invoke('dialog:openFile', filters),
     saveFile: (defaultPath?: string) => ipcRenderer.invoke('dialog:saveFile', defaultPath),
     showMessage: (options: Electron.MessageBoxOptions) => ipcRenderer.invoke('dialog:showMessage', options)
@@ -189,7 +191,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // File system operations
   fs: {
-    readFile: (path: string, encoding?: string) => ipcRenderer.invoke('fs:readFile', path, encoding),
+    readFile: (path: string, encoding?: string | null) => ipcRenderer.invoke('fs:readFile', path, encoding),
     // KAN-6/KAN-7/KAN-12 FIX: Return base64 string directly (avoids Buffer in renderer)
     readFileAsBase64: (path: string) => ipcRenderer.invoke('fs:readFileAsBase64', path),
     // KAN-6/KAN-12 FIX: Return text string directly (avoids Buffer in renderer)
@@ -309,7 +311,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     createThread: (firstMessage?: string, workspacePath?: string) => 
       ipcRenderer.invoke('history:createThread', firstMessage, workspacePath),
     setActiveThread: (threadId: string | null) => ipcRenderer.invoke('history:setActiveThread', threadId),
-    addMessage: (threadId: string, message: { role: 'user' | 'assistant', content: string, images?: unknown[] }) => 
+    addMessage: (threadId: string, message: { role: 'user' | 'assistant', content: string, images?: unknown[], cost?: number, model?: string, tokensIn?: number, tokensOut?: number }) => 
       ipcRenderer.invoke('history:addMessage', threadId, message),
     updateMetadata: (threadId: string, metadata: unknown) => 
       ipcRenderer.invoke('history:updateMetadata', threadId, metadata),

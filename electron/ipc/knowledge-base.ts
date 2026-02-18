@@ -21,6 +21,19 @@ let knowledgeBase: KnowledgeBaseManager | null = null
  * Initialize knowledge base IPC handlers
  */
 export function initKnowledgeBaseHandlers(): void {
+  // Remove any previously registered handlers to prevent "second handler" errors on dev reload
+  const channels = [
+    'kb:getProviders', 'kb:getProvider', 'kb:getProvidersByType', 'kb:addProvider',
+    'kb:updateProvider', 'kb:deleteProvider', 'kb:getServers', 'kb:getServersByProvider',
+    'kb:addServer', 'kb:updateServer', 'kb:deleteServer', 'kb:importDocument',
+    'kb:openFileDialog', 'kb:readFilePath', 'kb:readMultipleFiles',
+    'kb:unlock', 'kb:lock', 'kb:isUnlocked',
+    'kb:addCredential', 'kb:getCredentialValue', 'kb:deleteCredential',
+    'kb:generateAIContext', 'kb:getRelevantContext',
+    'kb:getPreferences', 'kb:savePreferences', 'kb:getStats', 'kb:openTerminalWithSsh',
+  ] as const
+  for (const ch of channels) { ipcMain.removeHandler(ch) }
+
   // Initialize the knowledge base manager
   knowledgeBase = new KnowledgeBaseManager()
   knowledgeBase.initialize().then(() => {

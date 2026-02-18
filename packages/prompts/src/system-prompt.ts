@@ -23,6 +23,17 @@ import { AGENTIC_EXECUTION } from './core/agentic-execution'
 import { IMAGE_ANALYSIS_PROMPT } from './core/image-analysis'
 
 /**
+ * Desktop app: rules so the AI and user avoid wrong-workspace mistakes.
+ * - Commands run only in the currently opened folder.
+ * - If the user asks to "review [folder] on desktop", they must open that folder first.
+ */
+export const DESKTOP_PLATFORM_CONTEXT = `### Desktop app – workspace and commands
+- **Commands run only in the currently opened folder.** The working directory shown above is the only folder where terminal commands execute.
+- If the user asks to review or work in a **different** folder (e.g. "CourtEdge-NCAA-System on desktop"), tell them: **Open that folder first** via **File → Open Folder on Desktop** (or **Open Folder** and choose it), then send their request again. Otherwise commands will run in the wrong project and fail or do the wrong thing.
+- When creating multi-line scripts (e.g. Python), output a **single** bash block that writes the script with a heredoc (\`cat > file << 'EOF'\` ... \`EOF\`) and then runs it (e.g. \`python3 script.py\`). Do not send script lines as separate shell commands.
+- **ALWAYS search for documentation first.** Before non-trivial tasks, run \`find . -name "*.md" -not -path "*/node_modules/*" -not -path "*/.git/*" | head -30\` to discover README, KNOWN_ISSUES, CHANGELOG, docs/ folders, and project guides. Read relevant .md files BEFORE coding — they contain architecture decisions, API keys, deployment steps, known issues, and rules that prevent regressions.`
+
+/**
  * The complete AIBuddy system prompt
  * 
  * Order matters - AGENTIC_EXECUTION comes first to establish the core behavior
@@ -64,6 +75,9 @@ export interface SystemPromptContext {
   
   /** Whether the message includes images for analysis */
   hasImages?: boolean
+  
+  /** Project handoff doc (e.g. COMPLETE_SYSTEM_HANDOFF.md) - injected so the AI understands the project */
+  handoffDoc?: string
   
   /** User preferences */
   userPreferences?: {
@@ -132,6 +146,10 @@ export function generateSystemPrompt(context?: SystemPromptContext): string {
     
     if (context.platformContext) {
       prompt += `\n\n${context.platformContext}`
+    }
+    
+    if (context.handoffDoc) {
+      prompt += `\n\n### Project handoff / documentation\n\nThe following project handoff document is in the user's workspace. Use it to understand the project and tasks.\n\n\`\`\`\n${context.handoffDoc}\n\`\`\``
     }
     
     if (context.userPreferences) {

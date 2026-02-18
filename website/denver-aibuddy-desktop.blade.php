@@ -24,7 +24,7 @@
             </p>
             <div class="inline-flex items-center gap-2 px-4 py-2 bg-green-500/20 rounded-full border border-green-500/50">
                 <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                <span class="text-green-400 font-semibold">Version 1.4.32</span>
+                <span class="text-green-400 font-semibold">Version 1.5.59</span>
             </div>
         </div>
 
@@ -40,7 +40,7 @@
                     </div>
                     <h3 class="text-xl font-bold text-white mb-2">macOS</h3>
                     <p class="text-slate-400 text-sm mb-6">Apple Silicon (M1/M2/M3)</p>
-                    <a href="/downloads/aibuddy-desktop/v1.4.32/AIBuddy-1.4.32-arm64.dmg" 
+                    <a href="https://aibuddy.life/downloads/v1.5.59/AIBuddy-1.5.59-arm64.dmg" 
                        class="block w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg hover:shadow-purple-500/25">
                         Download DMG
                     </a>
@@ -58,7 +58,7 @@
                     </div>
                     <h3 class="text-xl font-bold text-white mb-2">Windows</h3>
                     <p class="text-slate-400 text-sm mb-6">Windows 10/11 (64-bit)</p>
-                    <a href="/downloads/aibuddy-desktop/v1.4.32/AIBuddy-1.4.32-Setup.exe" 
+                    <a href="https://aibuddy.life/downloads/v1.5.59/AIBuddy-1.5.59-Setup.exe" 
                        class="block w-full py-3 px-6 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-blue-500/25">
                         Download EXE
                     </a>
@@ -76,7 +76,7 @@
                     </div>
                     <h3 class="text-xl font-bold text-white mb-2">Linux</h3>
                     <p class="text-slate-400 text-sm mb-6">Ubuntu, Debian, Fedora</p>
-                    <a href="/downloads/aibuddy-desktop/v1.4.32/AIBuddy-1.4.32.AppImage" 
+                    <a href="https://aibuddy.life/downloads/v1.5.59/AIBuddy-1.5.59.AppImage" 
                        class="block w-full py-3 px-6 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-bold rounded-xl hover:from-orange-600 hover:to-yellow-600 transition-all shadow-lg hover:shadow-orange-500/25">
                         Download AppImage
                     </a>

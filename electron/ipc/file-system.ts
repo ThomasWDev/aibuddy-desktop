@@ -22,6 +22,14 @@ interface FileStat {
  * Initialize file system IPC handlers
  */
 export function initFileSystemHandlers(): void {
+  // Remove any previously registered handlers to prevent "second handler" errors on dev reload
+  const channels = [
+    'fs:readFile', 'fs:readFileAsBase64', 'fs:readFileAsText', 'fs:getFileSize',
+    'fs:writeFile', 'fs:readDir', 'fs:stat', 'fs:exists', 'fs:mkdir',
+    'fs:rm', 'fs:rename', 'fs:copy', 'fs:watch', 'fs:unwatch', 'fs:readTree',
+  ] as const
+  for (const ch of channels) { ipcMain.removeHandler(ch) }
+
   // Read file contents
   // KAN-7 FIX: Don't default to 'utf-8' for binary files (images)
   // When encoding is undefined/null, return raw Buffer for binary compatibility

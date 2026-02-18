@@ -1,9 +1,11 @@
 /**
- * Sentry Error Monitoring for AIBuddy Desktop (Main Process)
+ * Sentry for AIBuddy Desktop (Main Process)
  * 
- * This module provides error tracking and user behavior analytics.
- * It's designed to be compatible with the VS Code extension's Sentry implementation
- * so breadcrumbs and errors can be analyzed together in the Sentry dashboard.
+ * Dedicated Sentry project: aibuddy-desktop (ID: 4510894086881280)
+ * Focus: breadcrumbs for user behavior analytics, NOT just logs/errors.
+ * 
+ * This is a SEPARATE project from the VS Code extension so desktop
+ * breadcrumbs/errors don't pollute extension analytics and vice versa.
  * 
  * NOTE: Uses a lightweight HTTP-based approach instead of @sentry/electron
  * to avoid native module issues with Electron's asar packaging.
@@ -11,8 +13,9 @@
 
 import { net } from 'electron'
 
-// Same DSN as VS Code extension - all errors go to same project
-const SENTRY_DSN = process.env.SENTRY_DSN || 'https://982b270aa75b24be5d77786b58929121@o1319003.ingest.us.sentry.io/4510695985774592'
+// Dedicated Sentry project for AIBuddy Desktop (breadcrumbs + errors)
+// Created Feb 16, 2026 — separate from extension project for cleaner analytics
+const SENTRY_DSN = process.env.SENTRY_DSN || 'https://f3b03acc22c821d535aa6efe39b01837@o1319003.ingest.us.sentry.io/4510894086881280'
 
 // Parse DSN to get project details
 function parseDSN(dsn: string): { publicKey: string; host: string; projectId: string } | null {

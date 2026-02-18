@@ -40,11 +40,11 @@
     <key>com.apple.security.files.bookmarks.app-scope</key>
     <true/>
     
-    <!-- Team ID for provisioning -->
+    <!-- Team ID for provisioning (hardcoded — electron-builder does not resolve Xcode macros) -->
     <key>com.apple.application-identifier</key>
-    <string>$(TeamIdentifierPrefix)com.aibuddy.desktop</string>
+    <string>S2237D23CB.com.aibuddy.desktop</string>
     <key>com.apple.developer.team-identifier</key>
-    <string>$(TeamIdentifierPrefix)</string>
+    <string>S2237D23CB</string>
 </dict>
 </plist>
 

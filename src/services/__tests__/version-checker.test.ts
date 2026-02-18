@@ -9,6 +9,7 @@ import {
   isNewerVersion,
   isVersionOutdated,
   getUpdateMessage,
+  filterReleaseNotes,
   MINIMUM_SUPPORTED_VERSION,
   type VersionInfo
 } from '../version-checker'
@@ -198,6 +199,101 @@ describe('Desktop Version Checker', () => {
       const result = await checkForUpdates('1.4.32')
 
       expect(result.updateAvailable).toBe(false)
+    })
+  })
+
+  describe('filterReleaseNotes', () => {
+    it('should return null for null input', () => {
+      expect(filterReleaseNotes(null)).toBeNull()
+    })
+
+    it('should return null for empty string', () => {
+      expect(filterReleaseNotes('')).toBeNull()
+    })
+
+    it('should keep testable bug fix items', () => {
+      const notes = `## Bug Fixes
+- KAN-34: Server error while processing request - Fixed
+- KAN-35: Unable to stop a request - Fixed`
+      const filtered = filterReleaseNotes(notes)
+      expect(filtered).toContain('KAN-34')
+      expect(filtered).toContain('KAN-35')
+    })
+
+    it('should strip code signing section (not testable by users)', () => {
+      const notes = `## What's New
+
+### Code-Signed macOS Builds
+- macOS DMGs are now signed with Developer ID Application certificate
+- Certificate hash: 68A3C88FAA75334D19C025AC00BA4F95A582040D
+
+## Bug Fixes
+- Fixed server error`
+      const filtered = filterReleaseNotes(notes)
+      expect(filtered).not.toContain('Developer ID Application')
+      expect(filtered).not.toContain('Certificate hash')
+      expect(filtered).toContain('Fixed server error')
+    })
+
+    it('should strip build system improvements (not testable)', () => {
+      const notes = `### Build System Improvements
+- electron-builder upgraded from ^24.9.0 to ^26.7.0
+- Added afterPack build script for resource fork cleanup
+
+## Security Fixes
+- Workspace boundary enforcement`
+      const filtered = filterReleaseNotes(notes)
+      expect(filtered).not.toContain('electron-builder')
+      expect(filtered).not.toContain('afterPack')
+      expect(filtered).toContain('Workspace boundary enforcement')
+    })
+
+    it('should strip Sentry noise reduction section', () => {
+      const notes = `## Bug Fixes
+- Fixed login issue
+
+## Sentry Noise Reduction
+- Added beforeSend filters
+- Excluded third-party extensions`
+      const filtered = filterReleaseNotes(notes)
+      expect(filtered).toContain('Fixed login issue')
+      expect(filtered).not.toContain('beforeSend filters')
+    })
+
+    it('should strip deployment checklist items', () => {
+      const notes = `## Bug Fixes
+- Fixed crash
+
+## Deployment Checklist (completed)
+- [x] Version bumped in package.json
+- [x] Smoke tests pass
+- [x] Git tag created`
+      const filtered = filterReleaseNotes(notes)
+      expect(filtered).toContain('Fixed crash')
+      expect(filtered).not.toContain('Version bumped')
+      expect(filtered).not.toContain('Git tag')
+    })
+
+    it('should keep security fixes (testable)', () => {
+      const notes = `## Security Fixes
+### KAN-48: Workspace Boundary Enforcement
+- Prevents file access outside the designated working directory
+- New enforceWorkspaceBoundary() function`
+      const filtered = filterReleaseNotes(notes)
+      expect(filtered).toContain('KAN-48')
+      expect(filtered).toContain('Workspace Boundary')
+    })
+
+    it('should not have triple or more blank lines', () => {
+      const notes = `## Bug Fixes
+- Fix 1
+
+
+
+## Test Coverage
+- 2095 tests`
+      const filtered = filterReleaseNotes(notes)
+      expect(filtered).not.toMatch(/\n{3,}/)
     })
   })
 

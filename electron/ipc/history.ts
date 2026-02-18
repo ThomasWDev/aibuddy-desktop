@@ -10,79 +10,97 @@ import { ChatHistoryManager } from '../../src/history/history-manager'
 let historyManager: ChatHistoryManager | null = null
 
 /**
- * Initialize history IPC handlers
+ * Initialize history IPC handlers.
+ * If history fails to load (e.g. corrupted file), app still opens with empty history.
  */
 export function initHistoryHandlers(): void {
-  historyManager = ChatHistoryManager.getInstance()
+  try {
+    historyManager = ChatHistoryManager.getInstance()
+  } catch (err) {
+    console.error('[History] Failed to initialize (app will open with no history):', err)
+    historyManager = null
+  }
+
+  // Remove any previously registered handlers to prevent "second handler" errors on dev reload
+  const channels = [
+    'history:getThreads', 'history:getThread', 'history:getActiveThread',
+    'history:createThread', 'history:setActiveThread', 'history:addMessage',
+    'history:updateMetadata', 'history:renameThread', 'history:updateMessageFeedback',
+    'history:deleteThread', 'history:clearAll', 'history:search', 'history:export',
+  ] as const
+  for (const ch of channels) { ipcMain.removeHandler(ch) }
+
+  const safe = <T>(fn: () => T): T | [] => (historyManager ? fn() : [] as T)
+  const safeThread = <T>(fn: () => T): T | null => (historyManager ? fn() : null)
+  const safeBool = (fn: () => boolean): boolean => (historyManager ? fn() : false)
+  const safeVoid = (fn: () => void): void => { if (historyManager) fn() }
 
   // Get all threads
   ipcMain.handle('history:getThreads', async () => {
-    return historyManager!.getThreads()
+    return safe(() => historyManager!.getThreads())
   })
 
   // Get a specific thread
   ipcMain.handle('history:getThread', async (_event, threadId: string) => {
-    return historyManager!.getThread(threadId)
+    return safeThread(() => historyManager!.getThread(threadId))
   })
 
   // Get active thread
   ipcMain.handle('history:getActiveThread', async () => {
-    return historyManager!.getActiveThread()
+    return safeThread(() => historyManager!.getActiveThread())
   })
 
   // Create new thread
   ipcMain.handle('history:createThread', async (_event, firstMessage?: string, workspacePath?: string) => {
-    return historyManager!.createThread(firstMessage, workspacePath)
+    if (!historyManager) return null
+    return historyManager.createThread(firstMessage, workspacePath)
   })
 
   // Set active thread
   ipcMain.handle('history:setActiveThread', async (_event, threadId: string | null) => {
-    historyManager!.setActiveThread(threadId)
-    return true
+    return safeBool(() => (historyManager!.setActiveThread(threadId), true))
   })
 
   // Add message to thread
   ipcMain.handle('history:addMessage', async (_event, threadId: string, message: { role: 'user' | 'assistant', content: string, images?: any[] }) => {
-    return historyManager!.addMessage(threadId, message)
+    if (!historyManager) return null
+    return historyManager.addMessage(threadId, message)
   })
 
   // Update thread metadata
   ipcMain.handle('history:updateMetadata', async (_event, threadId: string, metadata: any) => {
-    historyManager!.updateThreadMetadata(threadId, metadata)
-    return true
+    return safeBool(() => (historyManager!.updateThreadMetadata(threadId, metadata), true))
   })
 
   // Rename thread
   ipcMain.handle('history:renameThread', async (_event, threadId: string, newTitle: string) => {
-    historyManager!.renameThread(threadId, newTitle)
-    return true
+    return safeBool(() => (historyManager!.renameThread(threadId, newTitle), true))
   })
 
   // Update message feedback (thumbs up/down)
   ipcMain.handle('history:updateMessageFeedback', async (_event, threadId: string, messageId: string, feedback: 'up' | 'down' | null) => {
-    return historyManager!.updateMessageFeedback(threadId, messageId, feedback)
+    return safeVoid(() => historyManager!.updateMessageFeedback(threadId, messageId, feedback))
   })
 
   // Delete thread
   ipcMain.handle('history:deleteThread', async (_event, threadId: string) => {
-    historyManager!.deleteThread(threadId)
-    return true
+    return safeBool(() => (historyManager!.deleteThread(threadId), true))
   })
 
   // Clear all history
   ipcMain.handle('history:clearAll', async () => {
-    historyManager!.clearAll()
-    return true
+    return safeBool(() => (historyManager!.clearAll(), true))
   })
 
   // Search threads
   ipcMain.handle('history:search', async (_event, query: string) => {
-    return historyManager!.searchThreads(query)
+    return safe(() => historyManager!.searchThreads(query))
   })
 
   // Export thread to markdown
   ipcMain.handle('history:export', async (_event, threadId: string) => {
-    return historyManager!.exportThread(threadId)
+    if (!historyManager) return ''
+    return historyManager.exportThread(threadId)
   })
 
   console.log('[History] IPC handlers initialized')

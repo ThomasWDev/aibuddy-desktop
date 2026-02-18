@@ -55,13 +55,18 @@ export function TopToolbar({
   operationStatus,
   operationText
 }: TopToolbarProps) {
-  const [appVersion, setAppVersion] = useState('1.4.27')
+  const [appVersion, setAppVersion] = useState<string | null>(null)
   
   useEffect(() => {
-    // Try to get version from electron
+    // Get version dynamically from Electron (reads package.json version at runtime)
     const electronAPI = (window as any).electronAPI
     if (electronAPI?.app?.getVersion) {
       electronAPI.app.getVersion().then((v: string) => setAppVersion(v)).catch(() => {})
+    } else if (electronAPI?.version?.get) {
+      // Fallback: use the version:get IPC handler
+      electronAPI.version.get().then((info: { currentVersion: string }) => {
+        setAppVersion(info.currentVersion)
+      }).catch(() => {})
     }
   }, [])
   
@@ -121,9 +126,11 @@ export function TopToolbar({
         </div>
         <div className="flex items-center gap-2">
           <span className="font-bold text-white text-sm">AIBuddy</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-300 font-mono">
-            v{appVersion}
-          </span>
+          {appVersion && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-300 font-mono">
+              v{appVersion}
+            </span>
+          )}
         </div>
         
         {/* Divider */}

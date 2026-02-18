@@ -7,7 +7,7 @@ Your intelligent coding partner - now as a standalone desktop application.
 ## Features
 
 - **Full IDE Experience**: Monaco editor with syntax highlighting, IntelliSense, and more
-- **AI-Powered Coding**: Claude-powered assistant that understands your codebase
+- **AI-Powered Coding**: AIBuddy Vibe Coding API assistant that understands your codebase
 - **Integrated Terminal**: Built-in terminal with full shell support
 - **Git Integration**: Commit, push, pull, and manage branches without leaving the app
 - **Cross-Platform**: Available for Windows, macOS, and Linux

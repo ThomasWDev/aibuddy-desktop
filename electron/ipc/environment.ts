@@ -20,6 +20,13 @@ let cachedEnv: DevelopmentEnvironment | null = null
  * Initialize environment detection IPC handlers
  */
 export function initEnvironmentHandlers(): void {
+  // Remove any previously registered handlers to prevent "second handler" errors on dev reload
+  const channels = [
+    'env:detect', 'env:getCached', 'env:getSummary', 'env:getRunCommand',
+    'env:isInstalled', 'env:getLanguageInfo', 'env:clearCache',
+  ] as const
+  for (const ch of channels) { ipcMain.removeHandler(ch) }
+
   console.log('[Environment IPC] Initializing handlers')
 
   // Detect full environment

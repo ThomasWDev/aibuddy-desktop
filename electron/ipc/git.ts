@@ -54,6 +54,14 @@ function isGitAvailable(): boolean {
  * Initialize Git IPC handlers
  */
 export function initGitHandlers(): void {
+  // Remove any previously registered handlers to prevent "second handler" errors on dev reload
+  const channels = [
+    'git:status', 'git:diff', 'git:log', 'git:branch', 'git:checkout',
+    'git:commit', 'git:add', 'git:push', 'git:pull', 'git:stash',
+    'git:reset', 'git:blame', 'git:isRepo', 'git:init', 'git:clone', 'git:getRemoteUrl',
+  ] as const
+  for (const ch of channels) { ipcMain.removeHandler(ch) }
+
   // Check if git is available at startup
   const gitAvailable = isGitAvailable()
   if (!gitAvailable) {

@@ -407,6 +407,20 @@ DEBUG=electron-vite:* pnpm dev
 
 ---
 
+## Reviewing a folder on Desktop
+
+When you want AIBuddy to **review or analyze a project that lives on your Desktop** (e.g. “review CourtEdge-NCAA-System folder on desktop”):
+
+1. **Open that folder first.** All terminal commands run in the **currently opened workspace** only. If you have a different folder open, commands will run there instead.
+2. Use **Open Folder on Desktop:** open the hamburger menu (⋮) → **Open Folder on Desktop**. The folder picker will start at your Desktop; select the project folder (e.g. `CourtEdge-NCAA-System`).
+3. Then send your message (e.g. “review this folder, check today’s matchups and server errors”). The AI will run commands in the folder you just opened.
+
+**Why “Downloads” might appear:** The app does not request “Downloads” by name. macOS may show a permission dialog the first time the app accesses a folder; the system can label it as “Downloads”, “Desktop”, or “Documents”. Using **Open Folder on Desktop** and selecting the correct folder ensures the first path you grant is the right one.
+
+**Investigating a bad session in Sentry:** See `docs/SESSION_ANALYSIS_FOLDER_ON_DESKTOP.md` for how to list events and fetch breadcrumbs (e.g. `user.chat`, `ui.click`, `workspace`) to see which folder was open and which path was selected.
+
+---
+
 ## Related Documentation
 
 | Document | Path | Purpose |
@@ -416,6 +430,7 @@ DEBUG=electron-vite:* pnpm dev
 | Backend Migration | `/Users/thomaswoodfin/Documents/GitHub/AICodingVS/BACKEND_MIGRATION.md` | API architecture |
 | API Keys | `/Users/thomaswoodfin/Documents/Hire-Programmers/tbl_site_2020/docs/API_KEYS_MASTER.md` | Credentials |
 | Sentry Setup | See `KNOWN_ISSUES.md` | Error monitoring |
+| Session analysis (folder on Desktop, Sentry breadcrumbs) | `docs/SESSION_ANALYSIS_FOLDER_ON_DESKTOP.md` | Debug “review folder on desktop” sessions |
 
 ---
 

@@ -71,7 +71,7 @@ import {
 
 // Debug: Log the API URL at module load time
 console.log('[App] API URL configured:', AIBUDDY_API_INFERENCE_URL)
-import { generateSystemPrompt } from '../../src/constants/system-prompt'
+import { generateSystemPrompt, DESKTOP_PLATFORM_CONTEXT } from '../../src/constants/system-prompt'
 
 // Child-friendly tooltip with big text and emojis
 function Tooltip({ text, children, position = 'top' }: { text: string; children: React.ReactNode; position?: 'top' | 'bottom' | 'left' | 'right' }) {
@@ -219,6 +219,14 @@ const CODE_FILE_EXTENSIONS: Record<string, string> = {
   'dockerfile': 'dockerfile', 'makefile': 'makefile', 'cmake': 'cmake'
 }
 
+export interface OpenFile {
+  path: string
+  name: string
+  content: string
+  language: string
+  isDirty: boolean
+}
+
 interface Message {
   id: string
   role: 'user' | 'assistant'
@@ -245,6 +253,18 @@ interface TerminalOutput {
   text: string
   timestamp: number
 }
+
+interface TaskProgress {
+  totalCommands: number
+  completedCommands: number
+  passedCommands: number
+  failedCommands: number
+  currentStep: string
+  steps: string[]
+}
+
+const MAX_TERMINAL_LINES = 100
+const COLLAPSED_VISIBLE_LINES = 5
 
 // AIBuddy uses smart backend routing - users never select models
 // Backend automatically chooses optimal model based on task analysis:
@@ -274,63 +294,83 @@ function parseCodeBlocks(content: string): { language: string; code: string }[] 
 }
 
 // Extract individual commands from a code block
-// KAN-32 FIX: Now handles heredoc (cat << 'EOF') as a single command
-// so the AI can create files using bash heredoc syntax
+// Handles heredoc, python3 -c, multi-line continuations, and --no-interaction injection
 function extractCommands(codeBlock: string): string[] {
   const lines = codeBlock.split('\n')
   const commands: string[] = []
   let i = 0
+
+  const isOutputLine = (l: string): boolean => {
+    if (!l) return true
+    if (l.startsWith('#') || l.startsWith('//')) return true
+    if (l.startsWith('echo "')) return true
+    if (l.startsWith('total ')) return true
+    if (/^[d-][rwx-]{9}/.test(l)) return true
+    if (/^[a-z0-9_-]+\s+\d+\s+\d+/i.test(l)) return true
+    if (l.startsWith('List of devices')) return true
+    if (/^\d+\s+actionable/.test(l)) return true
+    if (l.startsWith('BUILD ')) return true
+    if (l.startsWith('> Task')) return true
+    if (l.startsWith('Starting:')) return true
+    if (l.startsWith('Installed on')) return true
+    if (l.startsWith('Error type')) return true
+    if (l.startsWith('Error:')) return true
+    if (l.startsWith('WARNING:')) return true
+    if (l.startsWith('INFO')) return true
+    if (l.startsWith('FAILURE:')) return true
+    if (/^[A-Z][a-z]+:$/.test(l)) return true
+    if (/^[\s\-|=+]+$/.test(l)) return true
+    if (/^\d+\.\d+\.\d+/.test(l)) return true
+    if (l.includes('at org.gradle')) return true
+    if (l.includes('at java.base')) return true
+    if (l.includes('Caused by:')) return true
+    return false
+  }
   
   while (i < lines.length) {
     const line = lines[i].trim()
     
-    // Skip empty lines
-    if (!line) { i++; continue }
-    // Skip comments
-    if (line.startsWith('#') || line.startsWith('//')) { i++; continue }
-    // Skip echo explanations
-    if (line.startsWith('echo "')) { i++; continue }
-    // Skip lines that look like terminal output (not commands)
-    if (line.startsWith('total ')) { i++; continue }
-    if (line.match(/^[d-][rwx-]{9}/)) { i++; continue }
-    if (line.match(/^[a-z0-9_-]+\s+\d+\s+\d+/i)) { i++; continue }
-    if (line.startsWith('List of devices')) { i++; continue }
-    if (line.match(/^\d+\s+actionable/)) { i++; continue }
-    if (line.startsWith('BUILD ')) { i++; continue }
-    if (line.startsWith('> Task')) { i++; continue }
-    if (line.startsWith('Starting:')) { i++; continue }
-    if (line.startsWith('Installed on')) { i++; continue }
-    if (line.startsWith('Error type')) { i++; continue }
-    if (line.startsWith('Error:')) { i++; continue }
-    if (line.startsWith('WARNING:')) { i++; continue }
-    if (line.startsWith('INFO')) { i++; continue }
-    if (line.startsWith('FAILURE:')) { i++; continue }
-    if (line.match(/^[A-Z][a-z]+:$/)) { i++; continue }
-    if (line.match(/^[\s\-\|=\+]+$/)) { i++; continue }
-    if (line.match(/^\d+\.\d+\.\d+/)) { i++; continue }
-    if (line.includes('at org.gradle')) { i++; continue }
-    if (line.includes('at java.base')) { i++; continue }
-    if (line.includes('Caused by:')) { i++; continue }
+    if (isOutputLine(line)) { i++; continue }
     
-    // KAN-32 FIX: Detect heredoc start (cat > file << 'EOF') and collect until delimiter
-    // This allows the AI to create files using bash heredoc syntax
-    const heredocMatch = line.match(/<<\s*['"]?(\w+)['"]?\s*$/)
+    // Heredoc: `cat > file << 'EOF'`, `python3 << 'PY'`, etc.
+    const heredocMatch = line.match(/<<-?\s*['"]?(\w+)['"]?\s*$/)
     if (heredocMatch) {
       const delimiter = heredocMatch[1]
-      let heredocCmd = lines[i]  // Use original line (not trimmed) to preserve indentation
+      let heredocCmd = lines[i]
       i++
-      
-      // Collect all lines until the closing delimiter
       while (i < lines.length) {
         heredocCmd += '\n' + lines[i]
-        if (lines[i].trim() === delimiter) {
-          break
-        }
+        if (lines[i].trim() === delimiter) break
         i++
       }
-      
       commands.push(heredocCmd)
       i++
+      continue
+    }
+
+    // python3 -c '...' spanning multiple lines (single-quoted block)
+    if (/^python3?\s+-c\s+'/.test(line) && !line.endsWith("'")) {
+      let multiCmd = lines[i]
+      i++
+      while (i < lines.length) {
+        multiCmd += '\n' + lines[i]
+        if (lines[i].trimEnd().endsWith("'")) { i++; break }
+        i++
+      }
+      commands.push(multiCmd)
+      continue
+    }
+
+    // Line continuation with trailing backslash
+    if (line.endsWith('\\')) {
+      let joined = lines[i]
+      i++
+      while (i < lines.length) {
+        joined += '\n' + lines[i]
+        if (!lines[i].trimEnd().endsWith('\\')) { i++; break }
+        i++
+      }
+      commands.push(joined)
       continue
     }
     
@@ -339,6 +379,29 @@ function extractCommands(codeBlock: string): string[] {
   }
   
   return commands
+}
+
+const NO_INTERACTION_TOOLS: Record<string, string> = {
+  'composer': '--no-interaction',
+  'artisan': '--no-interaction',
+  'phpunit': '--no-interaction',
+  'pint': '--no-interaction',
+  'pecl': '',  // handled by stdin piping
+  'npm': '--yes',
+  'npx': '--yes',
+  'yarn': '--non-interactive',
+}
+
+function injectNoInteraction(command: string): string {
+  const trimmed = command.trim()
+  for (const [tool, flag] of Object.entries(NO_INTERACTION_TOOLS)) {
+    if (!flag) continue
+    const toolPattern = new RegExp(`(^|/)${tool}\\b`)
+    if (toolPattern.test(trimmed) && !trimmed.includes(flag)) {
+      return `${trimmed} ${flag}`
+    }
+  }
+  return command
 }
 
 // Status steps for visual feedback
@@ -561,7 +624,7 @@ function App() {
   const [showShareModal, setShowShareModal] = useState(false)
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [appVersion, setAppVersion] = useState('1.4.27')
+  const [appVersion, setAppVersion] = useState<string | null>(null)
   
   // Credits tracking
   const [credits, setCredits] = useState<number | null>(null)
@@ -580,6 +643,8 @@ function App() {
   const [terminalOutput, setTerminalOutput] = useState<TerminalOutput[]>([])
   const [isExecutingCommands, setIsExecutingCommands] = useState(false)
   const [currentCommand, setCurrentCommand] = useState<string | null>(null)
+  const [terminalCollapsed, setTerminalCollapsed] = useState(true)
+  const [taskProgress, setTaskProgress] = useState<TaskProgress | null>(null)
   
   // Error recovery state
   const [deepSeekRetryCount, setDeepSeekRetryCount] = useState(0)
@@ -647,11 +712,22 @@ function App() {
       // PHASE 1: Load local data FAST (no network)
       // This should complete in <100ms
       
-      // Get version (local)
+      // Get version dynamically from Electron (reads package.json at runtime, never hardcoded)
+      let versionLoaded = false
       if (electronAPI?.app?.getVersion) {
         try {
           const v = await electronAPI.app.getVersion()
-          setAppVersion(v)
+          if (v) {
+            setAppVersion(v)
+            versionLoaded = true
+          }
+        } catch {}
+      }
+      // Fallback: try version:get IPC handler if app:getVersion didn't work
+      if (!versionLoaded && electronAPI?.version?.get) {
+        try {
+          const info = await electronAPI.version.get()
+          if (info?.currentVersion) setAppVersion(info.currentVersion)
         } catch {}
       }
       
@@ -931,7 +1007,7 @@ function App() {
     
     // Use AbortController for timeout
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout for validation
+    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30s timeout for validation (was 10s — too aggressive for slow networks)
     
     try {
       // Use API Gateway for quick validation (29s limit is fine for this)
@@ -1023,7 +1099,9 @@ function App() {
       
       // Don't show error on startup - just log it
       // User can still use the app, validation will retry on first message
-      console.log('[App] API validation skipped (network issue):', (err as Error).message)
+      const errMsg = (err as Error).message
+      const isTimeout = errMsg.includes('aborted') || errMsg.includes('abort')
+      console.log(`[App] API validation skipped (${isTimeout ? 'timeout after 30s' : 'network issue'}):`, errMsg)
       
       // Try to load cached credits
       // KAN-27 FIX: Check for undefined/null explicitly to handle 0 credits
@@ -1068,13 +1146,13 @@ function App() {
     }
   }, [showSettings])
 
-  const handleOpenFolder = async () => {
-    trackButtonClick('Open Folder', 'App')
-    addBreadcrumb('User clicked Open Folder', 'ui.click', { component: 'header' })
+  const handleOpenFolder = async (defaultPath?: string | null) => {
+    trackButtonClick(defaultPath ? 'Open Folder on Desktop' : 'Open Folder', 'App')
+    addBreadcrumb(defaultPath ? 'User clicked Open Folder (Desktop)' : 'User clicked Open Folder', 'ui.click', { component: 'header' })
     
     const electronAPI = (window as any).electronAPI
     if (electronAPI?.dialog?.openFolder) {
-      const path = await electronAPI.dialog.openFolder()
+      const path = await electronAPI.dialog.openFolder(defaultPath ?? undefined)
       if (path) {
         setWorkspacePath(path)
         // Save to recent
@@ -1206,14 +1284,22 @@ function App() {
     setApiKeyInput('')
   }
   
-  // Add terminal output helper
+  // Add terminal output helper -- caps at MAX_TERMINAL_LINES to prevent DOM bloat
   const addTerminalLine = (type: TerminalOutput['type'], text: string) => {
-    setTerminalOutput(prev => [...prev, { type, text, timestamp: Date.now() }])
+    setTerminalOutput(prev => {
+      const next = [...prev, { type, text, timestamp: Date.now() }]
+      if (next.length > MAX_TERMINAL_LINES) {
+        return next.slice(next.length - MAX_TERMINAL_LINES)
+      }
+      return next
+    })
   }
   
   // Clear terminal
   const clearTerminal = () => {
     setTerminalOutput([])
+    setTaskProgress(null)
+    setTerminalCollapsed(true)
   }
   
   // Image handling functions - using Electron native dialog
@@ -1809,7 +1895,7 @@ function App() {
     }
   }
   
-  // Execute commands with error recovery loop
+  // Execute commands with error recovery loop and task progress tracking
   const executeCommandsWithRecovery = async (
     commands: string[],
     originalRequest: string
@@ -1823,14 +1909,44 @@ function App() {
       return { results: [], needsMoreHelp: false, errorSummary: 'Terminal not available' }
     }
     
-    // Show terminal panel
     setShowTerminal(true)
     setIsExecutingCommands(true)
+
+    const describeCommand = (cmd: string): string => {
+      const c = cmd.trim().split(/\s+/)
+      const base = (c[0] || '').replace(/^.*\//, '')
+      if (['git', 'composer', 'npm', 'yarn', 'pnpm'].includes(base)) return `${base} ${c[1] || ''}`
+      if (base === 'phpunit' || cmd.includes('phpunit')) return 'Running tests'
+      if (base === 'pint' || cmd.includes('pint')) return 'Code style check'
+      if (base === 'php-cs-fixer' || cmd.includes('php-cs-fixer')) return 'Code style check'
+      if (base === 'python3' || base === 'python') return 'Running Python script'
+      if (base === 'cat' && cmd.includes('<<')) return 'Creating file'
+      if (base === 'cd') return `Changing directory`
+      if (base === 'mkdir') return 'Creating directory'
+      if (['ls', 'pwd', 'echo'].includes(base)) return base
+      return cmd.substring(0, 40)
+    }
+
+    const steps = commands.map(describeCommand)
+    setTaskProgress({
+      totalCommands: commands.length,
+      completedCommands: 0,
+      passedCommands: 0,
+      failedCommands: 0,
+      currentStep: steps[0] || '',
+      steps,
+    })
     
-    for (const command of commands) {
+    for (let idx = 0; idx < commands.length; idx++) {
+      const command = commands[idx]
       setCurrentCommand(command)
       addTerminalLine('command', `$ ${command}`)
-      toast.info(`⚡ Running: ${command.substring(0, 50)}...`)
+
+      setTaskProgress(prev => prev ? {
+        ...prev,
+        completedCommands: idx,
+        currentStep: steps[idx] || '',
+      } : prev)
       
       try {
         const result = await electronAPI.terminal.execute(command, workspacePath)
@@ -1843,22 +1959,17 @@ function App() {
           executed: true
         })
         
-        // Add output to terminal
-        if (result.stdout) {
-          addTerminalLine('stdout', result.stdout)
-        }
-        if (result.stderr) {
-          addTerminalLine('stderr', result.stderr)
-        }
+        if (result.stdout) addTerminalLine('stdout', result.stdout)
+        if (result.stderr) addTerminalLine('stderr', result.stderr)
         
         if (result.exitCode === 0) {
-          addTerminalLine('success', `✓ Command succeeded (exit code: 0)`)
-          toast.success(`✅ ${command.substring(0, 30)}... succeeded`)
+          addTerminalLine('success', `✓ ${describeCommand(command)} succeeded`)
+          setTaskProgress(prev => prev ? { ...prev, passedCommands: prev.passedCommands + 1, completedCommands: idx + 1 } : prev)
         } else {
           hasErrors = true
           errorSummary += `Command "${command}" failed with exit code ${result.exitCode}:\n${result.stderr || result.stdout}\n\n`
-          addTerminalLine('error', `✗ Command failed (exit code: ${result.exitCode})`)
-          toast.warning(`⚠️ ${command.substring(0, 30)}... failed`)
+          addTerminalLine('error', `✗ ${describeCommand(command)} failed (exit ${result.exitCode})`)
+          setTaskProgress(prev => prev ? { ...prev, failedCommands: prev.failedCommands + 1, completedCommands: idx + 1 } : prev)
         }
         
       } catch (execErr) {
@@ -1866,21 +1977,15 @@ function App() {
         const errMsg = (execErr as Error).message
         errorSummary += `Command "${command}" threw error: ${errMsg}\n\n`
         
-        results.push({
-          command,
-          stdout: '',
-          stderr: errMsg,
-          exitCode: -1,
-          executed: false
-        })
-        
+        results.push({ command, stdout: '', stderr: errMsg, exitCode: -1, executed: false })
         addTerminalLine('error', `✗ Error: ${errMsg}`)
-        toast.error(`❌ ${command.substring(0, 30)}... error`)
+        setTaskProgress(prev => prev ? { ...prev, failedCommands: prev.failedCommands + 1, completedCommands: idx + 1 } : prev)
       }
     }
     
     setCurrentCommand(null)
     setIsExecutingCommands(false)
+    setTaskProgress(prev => prev ? { ...prev, completedCommands: commands.length, currentStep: 'Done' } : prev)
     
     return { results, needsMoreHelp: hasErrors, errorSummary }
   }
@@ -2081,6 +2186,20 @@ Be concise and actionable. Focus on fixing the immediate problem.`
         chatMessages.push({ role: 'user', content: userMessage.content })
       }
 
+      // Load project handoff doc from workspace (e.g. CourtEdge-NCAA-System COMPLETE_SYSTEM_HANDOFF.md)
+      let handoffDoc: string | undefined
+      if (workspacePath && window.electronAPI?.fs?.readFileAsText) {
+        try {
+          const handoffPath = `${workspacePath.replace(/\/$/, '')}/COMPLETE_SYSTEM_HANDOFF.md`
+          handoffDoc = await window.electronAPI.fs.readFileAsText(handoffPath)
+          if (handoffDoc && handoffDoc.length > 45000) {
+            handoffDoc = handoffDoc.slice(0, 45000) + '\n\n...[truncated for context length]'
+          }
+        } catch {
+          // No handoff file or read failed – continue without it
+        }
+      }
+
       // Backend handles model selection via smart routing
       // We just indicate if images are present so backend can route to multimodal model
       const isExecutionTask = userWantsExecution !== null && !hasImages
@@ -2119,7 +2238,9 @@ Be concise and actionable. Focus on fixing the immediate problem.`
               projectType: workspacePath ? detectProjectType(workspacePath) : undefined,
               knowledgeContext: knowledgeContext || undefined,
               environmentSummary: environmentSummary || undefined,
-              hasImages
+              hasImages,
+              handoffDoc: handoffDoc || undefined,
+              platformContext: DESKTOP_PLATFORM_CONTEXT,
             })
           },
           ...chatMessages
@@ -2148,7 +2269,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
             'Content-Type': 'application/json',
             'X-AIBuddy-API-Key': apiKey || '',
             'X-Requested-With': 'AIBuddy-Desktop',
-            'User-Agent': 'AIBuddy-Desktop/1.4.29',
+            'User-Agent': `AIBuddy-Desktop/${appVersion || '1.5.63'}`,
           },
           body: JSON.stringify(requestBody),
           signal: controller.signal
@@ -2235,7 +2356,14 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       
       setStatus('generating')
       
-      const data = await response.json()
+      // Wrap response.json() with a timeout to prevent indefinite hangs
+      const JSON_PARSE_TIMEOUT = 60_000 // 60 seconds to parse response body
+      const data = await Promise.race([
+        response.json(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Response body parsing timed out after 60s')), JSON_PARSE_TIMEOUT)
+        )
+      ]) as any
       console.log('[App] API response data:', data)
 
       // KAN-31 FIX: Check for API-level errors in response body
@@ -2355,14 +2483,14 @@ Be concise and actionable. Focus on fixing the immediate problem.`
             workspacePath 
           })
           
-          // Collect all commands from all code blocks
           const allCommands: string[] = []
           for (const block of codeBlocks) {
             const commands = extractCommands(block.code)
-            allCommands.push(...commands)
+            allCommands.push(...commands.map(injectNoInteraction))
           }
           
-          // Execute commands with error recovery
+          addTerminalLine('info', `📋 Plan: ${allCommands.length} command(s) to execute`)
+
           let currentRetry = 0
           const MAX_ERROR_RETRIES = 3 // Allow retries for error recovery
           let commandsToRun = allCommands
@@ -2398,7 +2526,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
               const fixBlocks = parseCodeBlocks(fixResponse)
               const fixCommands: string[] = []
               for (const block of fixBlocks) {
-                fixCommands.push(...extractCommands(block.code))
+                fixCommands.push(...extractCommands(block.code).map(injectNoInteraction))
               }
               
               if (fixCommands.length > 0) {
@@ -2703,7 +2831,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                   color: 'white',
                 }}
               >
-                v{appVersion}
+                {appVersion ? `v${appVersion}` : ''}
               </span>
             </div>
           </div>
@@ -2877,6 +3005,15 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                   {workspacePath && <span className="ml-auto text-xs text-green-400">●</span>}
                 </button>
 
+                {/* Open Folder on Desktop — first step when user wants to "review folder on desktop" */}
+                <button
+                  onClick={() => { handleOpenFolder('~/Desktop'); setShowMoreMenu(false) }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors"
+                >
+                  <FolderOpen className="w-4 h-4 text-cyan-400" />
+                  <span>Open Folder on Desktop</span>
+                </button>
+
                 {/* Terminal */}
                 <button
                   onClick={() => { 
@@ -2947,15 +3084,20 @@ Be concise and actionable. Focus on fixing the immediate problem.`
         </div>
       </header>
 
-      {/* Folder Path */}
+      {/* Folder Path - clickable to switch */}
       {workspacePath && (
         <div 
-          className="px-4 py-1.5 text-xs flex items-center gap-2"
+          className="px-4 py-1.5 text-xs flex items-center gap-2 group cursor-pointer hover:bg-cyan-500/10 transition-colors"
           style={{ background: 'rgba(6, 182, 212, 0.05)', borderBottom: '1px solid #334155' }}
+          onClick={() => handleOpenFolder()}
+          title="Click to switch project folder"
         >
           <FolderOpen className="w-3 h-3 text-cyan-400" />
           <span className="text-slate-400">Working in:</span>
-          <span className="text-cyan-400 font-semibold">{workspacePath}</span>
+          <span className="text-cyan-400 font-semibold truncate flex-1">{workspacePath}</span>
+          <span className="text-[10px] text-slate-500 group-hover:text-cyan-400 transition-colors font-medium px-1.5 py-0.5 rounded bg-slate-800/50 group-hover:bg-cyan-500/10">
+            Switch
+          </span>
         </div>
       )}
 
@@ -3297,9 +3439,9 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                         {/* Model */}
                         {message.model && (
                           <span className="text-slate-600 text-[10px] bg-slate-800 px-1.5 py-0.5 rounded">
-                            {message.model.includes('deepseek') ? 'DeepSeek' : 
-                             message.model.includes('opus') ? 'Claude Opus' :
-                             message.model.includes('sonnet') ? 'Claude Sonnet' : 'AIBuddy'}
+                            {message.model.includes('deepseek') ? 'AIBuddy Reasoning' : 
+                             message.model.includes('opus') ? 'AIBuddy Pro' :
+                             message.model.includes('sonnet') ? 'AIBuddy Fast' : 'AIBuddy'}
                           </span>
                         )}
                       </div>
@@ -3473,7 +3615,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       )}
 
       {/* Input */}
-      <footer className="p-4" style={{ borderTop: '2px solid #334155' }}>
+      <footer className="p-4" style={{ borderTop: '2px solid #334155', paddingBottom: showTerminal ? (terminalCollapsed ? '130px' : '316px') : undefined }}>
         <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
           {/* Image Attachments Preview - Chip-style like ChatGPT */}
           {attachedImages.length > 0 && (
@@ -4065,7 +4207,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
             
             {/* Usage Limits */}
             <UsageLimitsPanel 
-              credits={credits} 
+              credits={credits ?? undefined} 
               sessionMessages={messages.length}
             />
           </div>
@@ -4077,81 +4219,135 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       {/* Terminal Output Panel - Slide up from bottom */}
       {showTerminal && (
         <div 
-          className="fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300"
+          className="fixed bottom-0 left-0 right-0 z-40 transition-all duration-300"
           style={{ 
-            height: '300px',
+            height: terminalCollapsed ? 'auto' : '300px',
+            maxHeight: terminalCollapsed ? '120px' : '300px',
             background: 'linear-gradient(180deg, #0c0c0c 0%, #1a1a1a 100%)',
             borderTop: '3px solid #334155',
             boxShadow: '0 -8px 32px rgba(0,0,0,0.5)'
           }}
         >
-          {/* Terminal Header */}
+          {/* Terminal Header with progress summary */}
           <div 
-            className="flex items-center justify-between px-4 py-2"
+            className="flex items-center justify-between px-4 py-2 cursor-pointer select-none"
             style={{ borderBottom: '1px solid #334155', background: 'rgba(0,0,0,0.3)' }}
+            onClick={() => setTerminalCollapsed(c => !c)}
           >
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1.5">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="flex gap-1.5 flex-shrink-0">
                 <div className="w-3 h-3 rounded-full bg-red-500" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500" />
                 <div className="w-3 h-3 rounded-full bg-green-500" />
               </div>
-              <span className="text-sm font-bold text-slate-300">
-                🖥️ Terminal Output
-              </span>
-              {isExecutingCommands && (
-                <span className="flex items-center gap-2 text-xs text-cyan-400 animate-pulse">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Running: {currentCommand?.substring(0, 40)}...
-                </span>
+
+              {taskProgress ? (
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  {isExecutingCommands ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400 flex-shrink-0" />
+                  ) : (
+                    <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                  )}
+                  <span className="text-xs text-slate-300 truncate">
+                    {isExecutingCommands 
+                      ? `Step ${taskProgress.completedCommands + 1}/${taskProgress.totalCommands}: ${taskProgress.currentStep}`
+                      : `Done — ${taskProgress.passedCommands} passed${taskProgress.failedCommands > 0 ? `, ${taskProgress.failedCommands} failed` : ''}`
+                    }
+                  </span>
+                  {/* Mini progress bar */}
+                  <div className="h-1.5 flex-1 max-w-[120px] rounded-full overflow-hidden flex-shrink-0" style={{ background: '#1e293b' }}>
+                    <div 
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${taskProgress.totalCommands > 0 ? (taskProgress.completedCommands / taskProgress.totalCommands) * 100 : 0}%`,
+                        background: taskProgress.failedCommands > 0 ? '#ef4444' : '#22c55e',
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <span className="text-sm font-bold text-slate-300">Terminal</span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center gap-2 flex-shrink-0">
               <button
-                onClick={clearTerminal}
-                className="px-3 py-1 rounded text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                onClick={(e) => { e.stopPropagation(); setTerminalCollapsed(c => !c) }}
+                className="px-2 py-0.5 rounded text-xs text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+              >
+                {terminalCollapsed ? 'Expand' : 'Collapse'}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); clearTerminal() }}
+                className="px-2 py-0.5 rounded text-xs text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
               >
                 Clear
               </button>
               <button
-                onClick={() => setShowTerminal(false)}
+                onClick={(e) => { e.stopPropagation(); setShowTerminal(false) }}
                 className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
           </div>
-          
-          {/* Terminal Content */}
-          <div 
-            id="terminal-output"
-            className="h-[calc(100%-40px)] overflow-y-auto p-4 font-mono text-sm"
-            style={{ background: '#0c0c0c' }}
-          >
-            {terminalOutput.length === 0 ? (
-              <div className="text-slate-500 text-center py-8">
-                Terminal output will appear here when commands are executed...
-              </div>
-            ) : (
-              terminalOutput.map((line, i) => (
-                <div 
-                  key={i}
-                  className={`whitespace-pre-wrap break-all ${
-                    line.type === 'command' ? 'text-cyan-400 font-bold mt-2' :
-                    line.type === 'stdout' ? 'text-green-400' :
-                    line.type === 'stderr' ? 'text-red-400' :
-                    line.type === 'info' ? 'text-blue-400' :
-                    line.type === 'success' ? 'text-green-500 font-bold' :
-                    line.type === 'error' ? 'text-red-500 font-bold' :
-                    'text-slate-300'
-                  }`}
-                >
-                  {line.text}
+
+          {/* Collapsed: show last few status lines only */}
+          {terminalCollapsed ? (
+            <div className="px-4 py-2 font-mono text-xs overflow-hidden" style={{ background: '#0c0c0c' }}>
+              {terminalOutput.length === 0 ? (
+                <span className="text-slate-500">Waiting for commands...</span>
+              ) : (
+                terminalOutput
+                  .filter(l => l.type === 'command' || l.type === 'success' || l.type === 'error' || l.type === 'info')
+                  .slice(-COLLAPSED_VISIBLE_LINES)
+                  .map((line, i) => (
+                    <div 
+                      key={i}
+                      className={`truncate ${
+                        line.type === 'command' ? 'text-cyan-400' :
+                        line.type === 'success' ? 'text-green-500' :
+                        line.type === 'error' ? 'text-red-500' :
+                        'text-blue-400'
+                      }`}
+                    >
+                      {line.text}
+                    </div>
+                  ))
+              )}
+            </div>
+          ) : (
+            /* Expanded: full scrollable output */
+            <div 
+              id="terminal-output"
+              className="overflow-y-auto p-4 font-mono text-sm"
+              style={{ background: '#0c0c0c', height: 'calc(100% - 40px)' }}
+            >
+              {terminalOutput.length === 0 ? (
+                <div className="text-slate-500 text-center py-8">
+                  Terminal output will appear here when commands are executed...
                 </div>
-              ))
-            )}
-            <div ref={terminalEndRef} />
-          </div>
+              ) : (
+                terminalOutput.map((line, i) => (
+                  <div 
+                    key={i}
+                    className={`whitespace-pre-wrap break-all ${
+                      line.type === 'command' ? 'text-cyan-400 font-bold mt-2' :
+                      line.type === 'stdout' ? 'text-green-400' :
+                      line.type === 'stderr' ? 'text-red-400' :
+                      line.type === 'info' ? 'text-blue-400' :
+                      line.type === 'success' ? 'text-green-500 font-bold' :
+                      line.type === 'error' ? 'text-red-500 font-bold' :
+                      'text-slate-300'
+                    }`}
+                  >
+                    {line.text}
+                  </div>
+                ))
+              )}
+              <div ref={terminalEndRef} />
+            </div>
+          )}
         </div>
       )}
 

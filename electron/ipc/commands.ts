@@ -24,9 +24,15 @@ export async function executeCommand(id: string, ...args: unknown[]): Promise<un
 }
 
 /**
- * Initialize command IPC handlers
+ * Initialize command IPC handlers.
+ * Safe to call multiple times (e.g. dev reload): removes existing handlers before registering.
  */
 export function initCommandHandlers(): void {
+  const channels = ['command:execute', 'command:list', 'command:exists', 'app:getVersion', 'app:getPath'] as const
+  for (const channel of channels) {
+    ipcMain.removeHandler(channel)
+  }
+
   // Execute a registered command
   ipcMain.handle('command:execute', async (_event, id: string, ...args: unknown[]) => {
     return executeCommand(id, ...args)

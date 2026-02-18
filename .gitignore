@@ -49,3 +49,7 @@ out/
 playwright-report/
 test-results/
 blob-report/
+build/AuthKey_*.p8
+build/embedded.provisionprofile
+Helper
+Login

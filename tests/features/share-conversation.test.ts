@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { formatAsText, formatAsMarkdown, sanitizeFilename } from '../../renderer/src/utils/share-formatting'
 
 /**
  * Share Conversation Tests - Issue #18
  * 
  * TDD Approach: Tests written FIRST before implementation
  * following Microsoft, Apple, and Google senior engineering standards.
+ * 
+ * RULE: Formatting functions imported from utils/share-formatting.ts.
+ *       NEVER duplicate source code in tests.
  * 
  * Feature Requirements (from Claude.ai reference):
  * 1. Share button in conversation header
@@ -822,40 +826,32 @@ describe('KAN-18: ShareModal Messages Prop Fix', () => {
   })
 
   describe('Copy as Text Functionality', () => {
-    it('should format conversation as readable text', () => {
+    it('should format conversation as readable text (uses real formatAsText)', () => {
       const messages: Message[] = [
         { role: 'user', content: 'What is TypeScript?' },
         { role: 'assistant', content: 'TypeScript is a typed superset of JavaScript.' }
       ]
-      const threadTitle = 'TypeScript Question'
       
-      // Format messages as readable text
-      const conversationText = messages.map((msg) => {
-        const role = msg.role === 'user' ? '👤 You' : '🤖 AIBuddy'
-        return `${role}:\n${msg.content}`
-      }).join('\n\n---\n\n')
-
-      const fullText = `# ${threadTitle}\n\n${conversationText}`
+      // Use the real formatAsText function from source
+      const fullText = formatAsText(messages, 'TypeScript Question')
       
-      expect(fullText).toContain('# TypeScript Question')
-      expect(fullText).toContain('👤 You:\nWhat is TypeScript?')
-      expect(fullText).toContain('🤖 AIBuddy:\nTypeScript is a typed superset')
+      expect(fullText).toContain('TypeScript Question')
+      expect(fullText).toContain('You:\nWhat is TypeScript?')
+      expect(fullText).toContain('AIBuddy:\nTypeScript is a typed superset')
       expect(fullText).toContain('---')
     })
 
-    it('should handle multiline message content', () => {
+    it('should handle multiline message content (uses real formatAsText)', () => {
       const messages: Message[] = [
         { role: 'user', content: 'Show me code' },
         { role: 'assistant', content: 'Here is code:\n```typescript\nconst x = 1;\n```' }
       ]
       
-      const conversationText = messages.map((msg) => {
-        const role = msg.role === 'user' ? '👤 You' : '🤖 AIBuddy'
-        return `${role}:\n${msg.content}`
-      }).join('\n\n---\n\n')
+      // Use the real formatAsText function from source
+      const fullText = formatAsText(messages, 'Code Example')
       
-      expect(conversationText).toContain('```typescript')
-      expect(conversationText).toContain('const x = 1;')
+      expect(fullText).toContain('```typescript')
+      expect(fullText).toContain('const x = 1;')
     })
 
     it('should show error when messages is undefined', async () => {

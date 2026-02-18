@@ -111,6 +111,13 @@ function getEnhancedEnvironment(): Record<string, string> {
  * Full PTY support will be added in a future release
  */
 export function initTerminalHandlers(): void {
+  // Remove any previously registered handlers to prevent "second handler" errors on dev reload
+  const channels = [
+    'terminal:create', 'terminal:write', 'terminal:resize', 'terminal:kill',
+    'terminal:getInfo', 'terminal:list', 'terminal:execute', 'terminal:executeStreaming',
+  ] as const
+  for (const ch of channels) { ipcMain.removeHandler(ch) }
+
   // Create a new terminal (simplified - just tracks state)
   ipcMain.handle('terminal:create', (_event, options?: { cwd?: string; shell?: string; env?: Record<string, string> }) => {
     const id = ++terminalIdCounter
@@ -273,8 +280,26 @@ export function initTerminalHandlers(): void {
     }))
   })
 
+  // Known prompt patterns that should be auto-answered with a newline (accept default)
+  const PROMPT_PATTERNS = [
+    /\?\s*\[?[Yy](es)?\/[Nn]o?\]?\s*[:>]?\s*$/,
+    /\(yes\/no\)\s*[:>]?\s*$/i,
+    /Enable .+\?\s*\[?\s*[Yy]es\s*\]?\s*[:>]?\s*$/i,
+    /Press Enter to continue/i,
+    /\[Y\/n\]\s*$/,
+    /\[y\/N\]\s*$/,
+    /Do you want to continue\?/i,
+    /Are you sure\?/i,
+    /password:/i,
+  ]
+
+  function looksLikePrompt(text: string): boolean {
+    const lastLine = text.split('\n').pop()?.trim() || ''
+    return PROMPT_PATTERNS.some(p => p.test(lastLine))
+  }
+
   // Execute command and wait for completion (with cwd support)
-  // Now with enhanced environment and real-time output streaming
+  // Auto-answers interactive prompts with defaults via stdin
   ipcMain.handle('terminal:execute', async (_event, command: string, cwd?: string, timeout = 120000): Promise<{
     stdout: string
     stderr: string
@@ -282,7 +307,6 @@ export function initTerminalHandlers(): void {
   }> => {
     return new Promise((resolve, reject) => {
       const shell = getDefaultShell()
-      // Use -l for login shell to load .zshrc/.bashrc, -i for interactive
       const shellArgs = process.platform === 'win32' 
         ? ['/c', command] 
         : ['-l', '-c', command]
@@ -298,13 +322,10 @@ export function initTerminalHandlers(): void {
         reject(new Error(`Command timed out after ${timeout/1000}s: ${command}`))
       }, timeout)
 
-      // Get enhanced environment with SDK paths
       const enhancedEnv = getEnhancedEnvironment()
       
       console.log('[Terminal] Executing command:', command)
       console.log('[Terminal] Working directory:', cwd || os.homedir())
-      console.log('[Terminal] ANDROID_HOME:', enhancedEnv.ANDROID_HOME || 'not set')
-      console.log('[Terminal] JAVA_HOME:', enhancedEnv.JAVA_HOME || 'not set')
 
       const child = spawn(shell, shellArgs, {
         cwd: cwd || os.homedir(),
@@ -312,46 +333,56 @@ export function initTerminalHandlers(): void {
         shell: false
       })
 
-      // Stream output to all windows in real-time
       const windows = BrowserWindow.getAllWindows()
+
+      // Track combined output for prompt detection
+      let recentOutput = ''
+      let promptTimer: ReturnType<typeof setTimeout> | null = null
+
+      const checkForPrompt = () => {
+        if (looksLikePrompt(recentOutput)) {
+          console.log('[Terminal] Auto-answering detected prompt')
+          try { child.stdin?.write('\n') } catch { /* stdin may be closed */ }
+          recentOutput = ''
+        }
+      }
+
+      const schedulePromptCheck = () => {
+        if (promptTimer) clearTimeout(promptTimer)
+        promptTimer = setTimeout(checkForPrompt, 500)
+      }
 
       child.stdout?.on('data', (chunk) => {
         const text = chunk.toString()
         stdout += text
-        // Send real-time output to renderer
+        recentOutput += text
+        schedulePromptCheck()
         windows.forEach((win) => {
-          win.webContents.send('terminal:output', { 
-            type: 'stdout', 
-            text,
-            command 
-          })
+          win.webContents.send('terminal:output', { type: 'stdout', text, command })
         })
       })
 
       child.stderr?.on('data', (chunk) => {
         const text = chunk.toString()
         stderr += text
-        // Send real-time output to renderer
+        recentOutput += text
+        schedulePromptCheck()
         windows.forEach((win) => {
-          win.webContents.send('terminal:output', { 
-            type: 'stderr', 
-            text,
-            command 
-          })
+          win.webContents.send('terminal:output', { type: 'stderr', text, command })
         })
       })
 
       child.on('close', (code) => {
+        if (promptTimer) clearTimeout(promptTimer)
         clearTimeout(timeoutId)
         exitCode = code || 0
         console.log('[Terminal] Command completed with exit code:', exitCode)
         
-        // Notify renderer that command completed
         windows.forEach((win) => {
           win.webContents.send('terminal:complete', { 
             command,
             exitCode,
-            stdout: stdout.substring(0, 5000), // Limit for IPC
+            stdout: stdout.substring(0, 5000),
             stderr: stderr.substring(0, 2000)
           })
         })
@@ -360,6 +391,7 @@ export function initTerminalHandlers(): void {
       })
 
       child.on('error', (err) => {
+        if (promptTimer) clearTimeout(promptTimer)
         clearTimeout(timeoutId)
         console.error('[Terminal] Command error:', err.message)
         reject(err)

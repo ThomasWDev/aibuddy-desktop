@@ -1,1 +1,1 @@
-AI,coding,IDE,developer tools,code editor,programming,terminal,git,Claude,GPT
+AI,coding,IDE,developer tools,code editor,programming,terminal,git,vibe coding

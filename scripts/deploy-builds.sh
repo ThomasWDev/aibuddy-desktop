@@ -190,13 +190,30 @@ find_build_files() {
     echo -e "${CYAN}📦 Checking build files in $DIST_DIR...${NC}"
     echo ""
     
-    MAC_ARM64_DMG=$(find "$DIST_DIR" -maxdepth 1 -name "*-arm64.dmg" 2>/dev/null | head -1)
-    MAC_X64_DMG=$(find "$DIST_DIR" -maxdepth 1 \( -name "*-x64.dmg" -o -name "*-intel.dmg" \) 2>/dev/null | head -1)
-    MAC_UNIVERSAL_DMG=$(find "$DIST_DIR" -maxdepth 1 -name "*-universal.dmg" 2>/dev/null | head -1)
-    WINDOWS_EXE=$(find "$DIST_DIR" -maxdepth 1 -name "*.exe" 2>/dev/null | head -1)
-    LINUX_APPIMAGE=$(find "$DIST_DIR" -maxdepth 1 -name "*.AppImage" 2>/dev/null | head -1)
-    LINUX_DEB=$(find "$DIST_DIR" -maxdepth 1 -name "*.deb" 2>/dev/null | head -1)
-    LINUX_RPM=$(find "$DIST_DIR" -maxdepth 1 -name "*.rpm" 2>/dev/null | head -1)
+    # When VERSION is set, match files for that specific version to avoid picking wrong builds
+    local ver_pattern="${VERSION:-*}"
+    
+    MAC_ARM64_DMG=$(find "$DIST_DIR" -maxdepth 1 -name "*${ver_pattern}-arm64.dmg" 2>/dev/null | head -1)
+    # Fallback: try generic pattern if version-specific match fails
+    [ -z "$MAC_ARM64_DMG" ] && MAC_ARM64_DMG=$(find "$DIST_DIR" -maxdepth 1 -name "*-arm64.dmg" 2>/dev/null | sort -V | tail -1)
+    
+    MAC_X64_DMG=$(find "$DIST_DIR" -maxdepth 1 \( -name "*${ver_pattern}-x64.dmg" -o -name "*${ver_pattern}-intel.dmg" -o -name "*${ver_pattern}.dmg" \) ! -name "*-arm64.dmg" ! -name "*-universal.dmg" 2>/dev/null | head -1)
+    [ -z "$MAC_X64_DMG" ] && MAC_X64_DMG=$(find "$DIST_DIR" -maxdepth 1 \( -name "*-x64.dmg" -o -name "*-intel.dmg" \) 2>/dev/null | sort -V | tail -1)
+    
+    MAC_UNIVERSAL_DMG=$(find "$DIST_DIR" -maxdepth 1 -name "*${ver_pattern}-universal.dmg" 2>/dev/null | head -1)
+    [ -z "$MAC_UNIVERSAL_DMG" ] && MAC_UNIVERSAL_DMG=$(find "$DIST_DIR" -maxdepth 1 -name "*-universal.dmg" 2>/dev/null | sort -V | tail -1)
+    
+    WINDOWS_EXE=$(find "$DIST_DIR" -maxdepth 1 -name "*${ver_pattern}*.exe" 2>/dev/null | head -1)
+    [ -z "$WINDOWS_EXE" ] && WINDOWS_EXE=$(find "$DIST_DIR" -maxdepth 1 -name "*.exe" 2>/dev/null | sort -V | tail -1)
+    
+    LINUX_APPIMAGE=$(find "$DIST_DIR" -maxdepth 1 -name "*${ver_pattern}*.AppImage" 2>/dev/null | head -1)
+    [ -z "$LINUX_APPIMAGE" ] && LINUX_APPIMAGE=$(find "$DIST_DIR" -maxdepth 1 -name "*.AppImage" 2>/dev/null | sort -V | tail -1)
+    
+    LINUX_DEB=$(find "$DIST_DIR" -maxdepth 1 -name "*${ver_pattern}*.deb" 2>/dev/null | head -1)
+    [ -z "$LINUX_DEB" ] && LINUX_DEB=$(find "$DIST_DIR" -maxdepth 1 -name "*.deb" 2>/dev/null | sort -V | tail -1)
+    
+    LINUX_RPM=$(find "$DIST_DIR" -maxdepth 1 -name "*${ver_pattern}*.rpm" 2>/dev/null | head -1)
+    [ -z "$LINUX_RPM" ] && LINUX_RPM=$(find "$DIST_DIR" -maxdepth 1 -name "*.rpm" 2>/dev/null | sort -V | tail -1)
     
     # Display found files
     echo "  Found build files:"

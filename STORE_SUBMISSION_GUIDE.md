@@ -254,13 +254,13 @@ WIN_CSC_KEY_PASSWORD=certificate-password
 ### App Description (use for all stores)
 
 **Short Description:**
-> AI-powered coding assistant with Claude Opus 4, Monaco Editor, and integrated terminal.
+> AI-powered coding assistant with the AIBuddy Vibe Coding API, Monaco Editor, and integrated terminal.
 
 **Full Description:**
 > AIBuddy Desktop IDE is your intelligent coding partner - a standalone desktop application that brings the power of AI directly to your development workflow.
 >
 > **Features:**
-> - 🤖 AI-Powered Coding with Claude Opus 4
+> - 🤖 AI-Powered Coding with the AIBuddy Vibe Coding API
 > - 📝 Monaco Editor (same as VS Code)
 > - 💻 Integrated Terminal
 > - 🔧 Git Integration
@@ -272,7 +272,7 @@ WIN_CSC_KEY_PASSWORD=certificate-password
 > - Internet connection for AI features
 
 ### Keywords
-`AI, coding, IDE, developer tools, Claude, code editor, programming, terminal, git`
+`AI, coding, IDE, developer tools, vibe coding, code editor, programming, terminal, git`
 
 ### Category
 - Mac: Developer Tools

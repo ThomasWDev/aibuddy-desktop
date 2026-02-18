@@ -97,7 +97,7 @@ export async function checkForUpdates(currentVersion: string): Promise<VersionIn
     // Parse version from tag (e.g., "v1.4.32" -> "1.4.32")
     const latestVersion = release.tag_name.replace(/^v/, '')
     versionInfo.latestVersion = latestVersion
-    versionInfo.releaseNotes = release.body
+    versionInfo.releaseNotes = filterReleaseNotes(release.body)
     versionInfo.releaseUrl = release.html_url
     
     // Extract download URLs for each platform
@@ -125,6 +125,71 @@ export async function checkForUpdates(currentVersion: string): Promise<VersionIn
   }
   
   return versionInfo
+}
+
+/**
+ * Filter release notes to only include user-testable items.
+ * Strips build system internals, signing details, and infrastructure changes
+ * that end users cannot verify or test.
+ */
+export function filterReleaseNotes(notes: string | null): string | null {
+  if (!notes) return null
+  
+  // Sections/headings to exclude (these are not testable by end users)
+  const excludePatterns = [
+    /^###?\s*Code-Signed.*$/gim,
+    /^###?\s*Build System.*$/gim,
+    /^###?\s*Sentry Noise.*$/gim,
+    /^###?\s*Deployment Checklist.*$/gim,
+    /^###?\s*Download Links.*$/gim,
+    /^###?\s*Test Coverage.*$/gim,
+  ]
+
+  // Line-level patterns to exclude
+  const excludeLinePatterns = [
+    /Developer ID Application/i,
+    /Certificate hash/i,
+    /Notarization pending/i,
+    /electron-builder.*upgraded/i,
+    /afterPack.*script/i,
+    /resource fork cleanup/i,
+    /publisherName.*field/i,
+    /^\s*-\s*\[x\]/i, // Deployment checklist items
+    /Git tag.*created/i,
+    /Submodule reference/i,
+    /VSIX packaged/i,
+    /^---\s*$/,
+  ]
+
+  const lines = notes.split('\n')
+  const result: string[] = []
+  let inExcludedSection = false
+
+  for (const line of lines) {
+    // Check if this line starts an excluded section
+    if (excludePatterns.some(p => p.test(line))) {
+      inExcludedSection = true
+      // Reset all regex lastIndex
+      excludePatterns.forEach(p => p.lastIndex = 0)
+      continue
+    }
+
+    // A new heading ends the excluded section
+    if (inExcludedSection && /^#{1,3}\s/.test(line)) {
+      inExcludedSection = false
+    }
+
+    if (inExcludedSection) continue
+
+    // Skip individual non-testable lines
+    if (excludeLinePatterns.some(p => p.test(line))) continue
+
+    result.push(line)
+  }
+
+  // Clean up: remove multiple consecutive empty lines
+  const cleaned = result.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+  return cleaned || null
 }
 
 /**

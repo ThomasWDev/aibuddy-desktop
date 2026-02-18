@@ -1,6 +1,6 @@
 {
   "name": "aibuddy-desktop",
-  "version": "1.5.58",
+  "version": "1.5.63",
   "description": "AIBuddy Desktop IDE - Your intelligent coding partner",
   "main": "out/main/index.js",
   "author": "AIBuddy Studio",
@@ -45,6 +45,7 @@
     "test:e2e:report": "npx playwright show-report",
     "test:e2e:debug": "npx playwright test --debug",
     "test:all": "vitest run && npx playwright test smoke.spec.ts",
+    "build:ci": "pnpm test:coverage && pnpm run build",
     "prepare": "echo 'Ready for development'"
   },
   "dependencies": {
@@ -176,7 +177,19 @@
       "hardenedRuntime": false,
       "provisioningProfile": "build/embedded.provisionprofile",
       "identity": "AI Buddy Inc (Apps) (S2237D23CB)",
-      "type": "distribution"
+      "type": "distribution",
+      "minimumSystemVersion": "12.0",
+      "extendInfo": {
+        "LSMinimumSystemVersion": "12.0"
+      },
+      "target": [
+        {
+          "target": "mas",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ]
     },
     "win": {
       "publisherName": "AIBuddy Studio",

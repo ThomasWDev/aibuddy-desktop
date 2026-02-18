@@ -22,6 +22,7 @@
 // Core exports
 export {
   AIBUDDY_SYSTEM_PROMPT,
+  DESKTOP_PLATFORM_CONTEXT,
   generateSystemPrompt,
   getIdentityPrompt,
   getTDDPrompt,
