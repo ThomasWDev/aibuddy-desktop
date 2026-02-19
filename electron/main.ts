@@ -205,6 +205,22 @@ function createWindow(): void {
     trackWindowEvent('focused')
   })
 
+  // Log renderer console messages to main process stdout for diagnostics
+  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    if (level >= 2) {
+      const levelStr = ['verbose', 'info', 'warn', 'error'][level] || 'info'
+      console.log(`[Renderer:${levelStr}] ${message} (${sourceId}:${line})`)
+    }
+  })
+
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[CRITICAL] Renderer process gone:', details.reason, details.exitCode)
+  })
+
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
+    console.error('[CRITICAL] Failed to load:', errorCode, errorDescription)
+  })
+
   mainWindow.on('focus', () => trackWindowEvent('focused'))
   mainWindow.on('blur', () => trackWindowEvent('blurred'))
   mainWindow.on('minimize', () => trackWindowEvent('minimized'))
@@ -222,6 +238,23 @@ function createWindow(): void {
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
+  })
+
+  // Grant microphone/audio permissions for Interview Mode
+  mainWindow.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
+    const allowedPermissions = ['media', 'microphone', 'audio-capture']
+    if (allowedPermissions.includes(permission)) {
+      console.log(`[Permissions] Granted: ${permission}`)
+      callback(true)
+    } else {
+      console.log(`[Permissions] Denied: ${permission}`)
+      callback(false)
+    }
+  })
+
+  mainWindow.webContents.session.setPermissionCheckHandler((_webContents, permission) => {
+    const allowedPermissions = ['media', 'microphone', 'audio-capture']
+    return allowedPermissions.includes(permission)
   })
 
   // Set CSP headers to allow API calls

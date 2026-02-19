@@ -10,7 +10,7 @@
 
 import { ipcMain } from 'electron'
 import { join } from 'path'
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, readdirSync, unlinkSync } from 'fs'
 import { createHash } from 'crypto'
 import { homedir } from 'os'
 
@@ -152,6 +152,7 @@ export function initWorkspaceHandlers(): void {
     'workspace:getPath', 'workspace:getRules', 'workspace:setRules', 'workspace:appendRule',
     'workspace:getTestPatterns', 'workspace:setTestPatterns', 'workspace:appendTestPattern',
     'workspace:getFixesLog', 'workspace:appendFix', 'workspace:getData', 'workspace:setData',
+    'workspace:getProjectRules', 'workspace:saveProjectRule', 'workspace:deleteProjectRule',
   ] as const
   for (const ch of channels) { ipcMain.removeHandler(ch) }
   // Get workspace storage path
@@ -203,6 +204,19 @@ export function initWorkspaceHandlers(): void {
     return writeJsonData(workspacePath, key, value)
   })
   
+  // Project-level rules (.aibuddy/rules/ in the project directory)
+  ipcMain.handle('workspace:getProjectRules', async (_event, workspacePath: string) => {
+    return getProjectRules(workspacePath)
+  })
+
+  ipcMain.handle('workspace:saveProjectRule', async (_event, workspacePath: string, filename: string, content: string) => {
+    return saveProjectRule(workspacePath, filename, content)
+  })
+
+  ipcMain.handle('workspace:deleteProjectRule', async (_event, workspacePath: string, filename: string) => {
+    return deleteProjectRule(workspacePath, filename)
+  })
+
   console.log('[Workspace] IPC handlers initialized')
 }
 
@@ -221,6 +235,141 @@ export function cleanupWorkspaceHandlers(): void {
   ipcMain.removeHandler('workspace:appendFix')
   ipcMain.removeHandler('workspace:getData')
   ipcMain.removeHandler('workspace:setData')
+  ipcMain.removeHandler('workspace:getProjectRules')
+  ipcMain.removeHandler('workspace:saveProjectRule')
+  ipcMain.removeHandler('workspace:deleteProjectRule')
   
   console.log('[Workspace] IPC handlers cleaned up')
+}
+
+// --------------- Project-level rules (.aibuddy/rules/) ---------------
+
+export interface ProjectRuleDTO {
+  filename: string
+  description?: string
+  alwaysApply?: boolean
+  content: string
+  builtin?: boolean
+}
+
+const BUILTIN_SENIOR_ENGINEERING = `# Senior Engineering Standards
+
+Do a full investigation before writing code. Use the best approach as if you are
+a Microsoft, Apple and Google Senior Engineer with over 20 years experience.
+
+Follow test driven development like you are the best TDD Developer in the world.
+Fix root causes not do any work arounds.
+
+- Check Sentry admin API for breadcrumbs on client side apps and API
+- Check SSH docs for server errors
+- Check Firebase Admin SDK if any issues in Firebase data
+- Check for any queue tasks before building
+- Check all issues found before building
+- Always run test coverage before building
+- Check to fix and prevent regressions`
+
+const BUILTIN_TDD = `# TDD and Documentation
+
+## Document Everything
+- Every fix gets a smoke test
+- Every new feature gets tests written FIRST (Red-Green-Refactor)
+- Update relevant docs (KNOWN_ISSUES.md, CHANGELOG, E2E_TESTING_KIT.md) after changes
+- Add lessons learned for non-obvious fixes
+
+## Testing Rules
+- NEVER duplicate code in tests — ALWAYS import real functions from source files
+- NEVER copy function code into test files — test the real implementation
+- Each test must be fast (< 100ms), have no network calls, and no side effects
+- Every fixed bug must get a regression test to prevent recurrence
+
+## Before Every Build
+1. Run full test suite — zero failures required
+2. Run TypeScript compilation — zero errors required
+3. Check Sentry for new unresolved errors
+4. Verify no hardcoded secrets, versions, or environment-specific values`
+
+const BUILTIN_CODE_QUALITY = `# Code Quality Standards
+
+- Read existing code and docs before writing new code
+- Prefer editing existing files over creating new ones
+- No comments that just narrate what the code does
+- Fix linter errors you introduce
+- Guard all entry points (check workspace state, null inputs, missing config)
+- Resolve promises gracefully — never reject with errors for expected abort paths
+- Use sentinel values instead of thrown errors for expected control flow`
+
+const DESKTOP_BUILTIN_RULES: ProjectRuleDTO[] = [
+  { filename: '_builtin_senior_engineering', description: 'Senior engineering standards', alwaysApply: true, content: BUILTIN_SENIOR_ENGINEERING, builtin: true },
+  { filename: '_builtin_tdd_and_documentation', description: 'TDD and documentation', alwaysApply: true, content: BUILTIN_TDD, builtin: true },
+  { filename: '_builtin_code_quality', description: 'Code quality standards', alwaysApply: true, content: BUILTIN_CODE_QUALITY, builtin: true },
+]
+
+function parseFrontmatter(raw: string): { description?: string; alwaysApply?: boolean; content: string } {
+  const fmRegex = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/
+  const match = raw.match(fmRegex)
+  if (!match) return { content: raw.trim() }
+
+  const yaml = match[1]
+  const content = match[2].trim()
+  let description: string | undefined
+  let alwaysApply: boolean | undefined
+
+  for (const line of yaml.split('\n')) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith('description:'))
+      description = trimmed.slice('description:'.length).trim().replace(/^["']|["']$/g, '')
+    if (trimmed.startsWith('alwaysApply:'))
+      alwaysApply = trimmed.slice('alwaysApply:'.length).trim().toLowerCase() === 'true'
+  }
+  return { description, alwaysApply, content }
+}
+
+function getProjectRules(workspacePath: string): ProjectRuleDTO[] {
+  const builtins = [...DESKTOP_BUILTIN_RULES]
+  if (!workspacePath) return builtins
+
+  const rulesDir = join(workspacePath, '.aibuddy', 'rules')
+  if (!existsSync(rulesDir)) return builtins
+
+  let files: string[]
+  try {
+    files = readdirSync(rulesDir).filter(f => f.endsWith('.md')).sort()
+  } catch { return builtins }
+
+  const userRules: ProjectRuleDTO[] = []
+  for (const file of files) {
+    try {
+      const raw = readFileSync(join(rulesDir, file), 'utf-8')
+      if (!raw.trim()) continue
+      const { description, alwaysApply, content } = parseFrontmatter(raw)
+      userRules.push({ filename: file, description, alwaysApply, content })
+    } catch { /* skip */ }
+  }
+
+  return [...builtins, ...userRules]
+}
+
+function saveProjectRule(workspacePath: string, filename: string, content: string): boolean {
+  if (!workspacePath || !filename) return false
+  try {
+    const rulesDir = join(workspacePath, '.aibuddy', 'rules')
+    mkdirSync(rulesDir, { recursive: true })
+    writeFileSync(join(rulesDir, filename), content, 'utf-8')
+    return true
+  } catch (e) {
+    console.error('[Workspace] Failed to save project rule:', e)
+    return false
+  }
+}
+
+function deleteProjectRule(workspacePath: string, filename: string): boolean {
+  if (!workspacePath || !filename) return false
+  try {
+    const filePath = join(workspacePath, '.aibuddy', 'rules', filename)
+    if (existsSync(filePath)) unlinkSync(filePath)
+    return true
+  } catch (e) {
+    console.error('[Workspace] Failed to delete project rule:', e)
+    return false
+  }
 }

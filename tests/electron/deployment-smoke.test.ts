@@ -149,9 +149,121 @@ describe('Version Deployment Consistency', () => {
     }
   })
 
-  it('User-Agent fallback should match package.json version', () => {
+  it('User-Agent should NOT have hardcoded version fallbacks', () => {
     const appTsxPath = path.join(ROOT, 'renderer/src/App.tsx')
     const content = fs.readFileSync(appTsxPath, 'utf-8')
-    expect(content).toContain(`'${VERSION}'`)
+    const userAgentMatch = content.match(/User-Agent.*\|\|\s*'([^']+)'/)
+    if (userAgentMatch) {
+      expect(userAgentMatch[1]).not.toMatch(/^\d+\.\d+\.\d+$/)
+    }
+  })
+
+  it('appVersion fallbacks should not contain hardcoded versions', () => {
+    const appTsxPath = path.join(ROOT, 'renderer/src/App.tsx')
+    const content = fs.readFileSync(appTsxPath, 'utf-8')
+    const versionFallbacks = content.match(/appVersion\s*\|\|\s*'(\d+\.\d+\.\d+)'/g)
+    expect(versionFallbacks).toBeNull()
+  })
+})
+
+describe('CI/CD Workflow', () => {
+  const workflowDir = path.resolve(ROOT, '../.github/workflows')
+
+  it('release-on-master.yml should exist', () => {
+    const wfPath = path.join(workflowDir, 'release-on-master.yml')
+    expect(fs.existsSync(wfPath)).toBe(true)
+  })
+
+  it('release workflow should trigger on master/main push', () => {
+    const wfPath = path.join(workflowDir, 'release-on-master.yml')
+    if (fs.existsSync(wfPath)) {
+      const content = fs.readFileSync(wfPath, 'utf-8')
+      expect(content).toContain('branches: [master, main]')
+    }
+  })
+
+  it('release workflow should have all deployment phases', () => {
+    const wfPath = path.join(workflowDir, 'release-on-master.yml')
+    if (fs.existsSync(wfPath)) {
+      const content = fs.readFileSync(wfPath, 'utf-8')
+      expect(content).toContain('publish-extension')
+      expect(content).toContain('deploy-servers')
+      expect(content).toContain('create-github-release')
+      expect(content).toContain('upload-app-store')
+    }
+  })
+
+  it('release workflow should reference required secrets', () => {
+    const wfPath = path.join(workflowDir, 'release-on-master.yml')
+    if (fs.existsSync(wfPath)) {
+      const content = fs.readFileSync(wfPath, 'utf-8')
+      expect(content).toContain('VSCE_PAT')
+      expect(content).toContain('MAC_CERTS_BASE64')
+      expect(content).toContain('DENVER_SSH_KEY')
+      expect(content).toContain('AIBUDDY_SSH_KEY')
+      expect(content).toContain('APP_STORE_AUTH_KEY')
+    }
+  })
+
+  it('ci.yml should exist for PR checks', () => {
+    const ciPath = path.join(workflowDir, 'ci.yml')
+    expect(fs.existsSync(ciPath)).toBe(true)
+  })
+})
+
+describe('Server Configuration', () => {
+  it('Denver server path should be consistent across deploy script and workflow', () => {
+    const scriptPath = path.join(ROOT, 'scripts/deploy-builds.sh')
+    const wfPath = path.resolve(ROOT, '../.github/workflows/release-on-master.yml')
+    const scriptContent = fs.readFileSync(scriptPath, 'utf-8')
+    expect(scriptContent).toContain('/var/www/deploy/denvermobileappdeveloper/current/public/downloads/aibuddy-desktop')
+    if (fs.existsSync(wfPath)) {
+      const wfContent = fs.readFileSync(wfPath, 'utf-8')
+      expect(wfContent).toContain('/var/www/deploy/denvermobileappdeveloper/current/public/downloads/aibuddy-desktop')
+    }
+  })
+
+  it('aibuddy.life path should be consistent', () => {
+    const scriptPath = path.join(ROOT, 'scripts/deploy-builds.sh')
+    const scriptContent = fs.readFileSync(scriptPath, 'utf-8')
+    expect(scriptContent).toContain('aibuddy.life/public_html/downloads')
+  })
+
+  it('App Store key should be referenced via secrets (not hardcoded)', () => {
+    const wfPath = path.resolve(ROOT, '../.github/workflows/release-on-master.yml')
+    if (fs.existsSync(wfPath)) {
+      const wfContent = fs.readFileSync(wfPath, 'utf-8')
+      expect(wfContent).toContain('secrets.APP_STORE_KEY_ID')
+      expect(wfContent).toContain('secrets.APP_STORE_ISSUER_ID')
+      expect(wfContent).toContain('secrets.APP_STORE_AUTH_KEY')
+    }
+  })
+})
+
+describe('Release Documentation', () => {
+  it('RELEASE_PROCESS.md should document CI/CD workflow', () => {
+    const relPath = path.resolve(ROOT, '../docs/RELEASE_PROCESS.md')
+    if (fs.existsSync(relPath)) {
+      const content = fs.readFileSync(relPath, 'utf-8')
+      expect(content).toContain('release-on-master.yml')
+      expect(content).toContain('Required GitHub Secrets')
+    }
+  })
+
+  it('KNOWN_ISSUES.md should reference current version', () => {
+    const kiPath = path.resolve(ROOT, '../KNOWN_ISSUES.md')
+    if (fs.existsSync(kiPath)) {
+      const content = fs.readFileSync(kiPath, 'utf-8')
+      expect(content).toContain(VERSION)
+    }
+  })
+
+  it('APPLE_APPSTORE_CONNECT_API.md should have TestFlight status', () => {
+    const asPath = path.resolve(ROOT, '../docs/APPLE_APPSTORE_CONNECT_API.md')
+    if (fs.existsSync(asPath)) {
+      const content = fs.readFileSync(asPath, 'utf-8')
+      expect(content).toContain('TestFlight Status')
+      expect(content).toContain('WL4HMQYALA')
+    }
   })
 })

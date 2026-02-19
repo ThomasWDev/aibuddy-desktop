@@ -4,6 +4,73 @@ All notable changes to AIBuddy Desktop will be documented in this file.
 
 ---
 
+## [1.5.65] - 2026-02-18
+
+### 🎙️ NEW: Interview Mode (Audio-Powered Interview Coach)
+- Full-screen Interview Mode panel (purple graduation cap button in header)
+- **Live Audio mode**: Continuous speech recognition via Web Speech API through the microphone
+- **Silence detection**: Accumulates speech, waits 3s of silence, auto-sends question to AI
+- **AI coaching format**: Every response has two sections:
+  - **Simple Explanation** — Layman's terms, analogies, 2-3 sentences
+  - **Expert Answer** — Interview-quality with terminology, code examples, STAR format
+- **Type Question mode**: Manual input fallback
+- **Split view UI**: Left = live transcript with timestamps; Right = AI responses with expand/collapse, regenerate, copy
+- **New component**: `renderer/src/components/InterviewPanel.tsx`
+
+### 🐛 CRITICAL FIX: Blank Screen on Production Build
+- **Symptom**: App launched but showed completely blank/dark window
+- **Root cause**: `img.name.substring(0, 20)` in JSX crashed React when restored messages had image attachments with `name: undefined`
+- **Fix**: Null-safe fallbacks on all JSX property accesses
+- **Debugging**: Added temporary `openDevTools()` + `console-message` forwarding to capture renderer errors from production build
+
+### 🔧 Renderer Crash Logging
+- Main process now forwards renderer `warn` and `error` console messages to stdout
+- Added `render-process-gone` and `did-fail-load` event handlers for crash detection
+- Launch from terminal (`/Applications/AIBuddy.app/Contents/MacOS/AIBuddy`) to see all logs
+
+### 🔒 macOS Audio Permissions
+- Added `com.apple.security.device.audio-input` to `entitlements.mac.plist`
+- Added `com.apple.security.device.microphone` to `entitlements.mac.plist`
+- Added same entitlements to `entitlements.mas.plist` for Mac App Store
+- Added Electron `setPermissionRequestHandler` for `media`/`microphone`/`audio-capture`
+
+### 📋 Testing Instructions Updated
+- `DESKTOP_APP_GUIDE.md` now includes standard install/test workflow
+- Testing checklist for every new build
+- How to view logs at runtime (Cmd+Option+I, terminal launch, Sentry)
+
+---
+
+## [1.5.64] - 2026-02-18
+
+### 🐛 Fixes
+- **User message whitespace preservation**: Added `whitespace-pre-wrap` to user message `<p>` tags so line breaks are preserved
+- **413 Request Entity Too Large**: Client-side image compression (max 1920px, JPEG 0.8 quality), payload size check before fetch, explicit 413 handling
+- **Content-Type guard**: Check `response.headers.get('content-type')` before `.json()` to prevent "unexpected token" errors on HTML error pages
+- **Investigation Protocol**: Added detailed investigation protocol to `AGENTIC_EXECUTION` system prompt
+- **Version consistency**: Synced User-Agent fallback version with package.json
+
+### 🧪 Tests
+- 85 new tests across 5 test files (whitespace, 413 payload, API error handling, build/install, investigation protocol)
+- Total: 1,911 desktop tests across 77 files
+
+---
+
+## [1.5.63] - 2026-02-18
+
+### 🔧 Major Fixes
+- **Credit drain protection**: Separated total counter from windowed timestamps, added 5-minute hard time limit and 25-request cap
+- **Git command safety**: Client-side `preprocessGitCommands` with auto-stash, status checks, and pull-before-push
+- **Typing performance**: React memoization (`useMemo`/`useCallback`) for markdown components, messages, and handlers
+- **Desktop app API URL**: Fixed stale ALB URL from v1.4.33 build
+- **Buddy Vibe Coding rebrand**: New logo across all platforms
+
+### 🧪 Tests
+- 47 new TDD + smoke tests for git safety and typing performance
+- Total: 1,826 desktop tests
+
+---
+
 ## [1.4.31] - 2026-01-25
 
 ### 🔧 API Endpoint Fix - ALB Migration

@@ -6,7 +6,9 @@
  */
 
 // Minimum supported version - versions below this will show urgent update notice
-export const MINIMUM_SUPPORTED_VERSION = '1.4.30'
+// v1.5.58 is the first version with the correct ALB URL (aibuddy-api-alb-90164252)
+// All versions before this use the decommissioned ALB (aibuddy-api-all-981625629) and cannot reach the API
+export const MINIMUM_SUPPORTED_VERSION = '1.5.58'
 
 // GitHub releases URL for AIBuddy Desktop
 export const GITHUB_RELEASES_URL = 'https://api.github.com/repos/ThomasWDev/aibuddy-desktop/releases/latest'

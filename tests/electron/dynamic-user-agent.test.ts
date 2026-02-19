@@ -63,20 +63,14 @@ describe('Dynamic User-Agent — No Hardcoded Versions', () => {
 })
 
 describe('User-Agent Fallback Version Match', () => {
-  it('User-Agent fallback should match package.json version', () => {
-    const fallbackMatch = appTsx.match(/\$\{appVersion\s*\|\|\s*['"](\d+\.\d+\.\d+)['"]/)
-    expect(fallbackMatch).not.toBeNull()
-    const fallbackVersion = fallbackMatch![1]
-    expect(fallbackVersion).toBe(packageJson.version)
+  it('User-Agent fallback should use "unknown" (no hardcoded version)', () => {
+    const unknownFallback = appTsx.match(/\$\{appVersion\s*\|\|\s*['"]unknown['"]/)
+    expect(unknownFallback).not.toBeNull()
   })
 
-  it('User-Agent fallback should not be more than 1 minor version behind', () => {
-    const fallbackMatch = appTsx.match(/\$\{appVersion\s*\|\|\s*['"](\d+\.\d+\.\d+)['"]/)
-    expect(fallbackMatch).not.toBeNull()
-    const [fMaj, fMin] = fallbackMatch![1].split('.').map(Number)
-    const [pMaj, pMin] = packageJson.version.split('.').map(Number)
-    expect(fMaj).toBe(pMaj)
-    expect(pMin - fMin).toBeLessThanOrEqual(1)
+  it('User-Agent fallback must NOT contain a hardcoded numeric version', () => {
+    const hardcoded = appTsx.match(/\$\{appVersion\s*\|\|\s*['"](\d+\.\d+\.\d+)['"]/)
+    expect(hardcoded).toBeNull()
   })
 })
 

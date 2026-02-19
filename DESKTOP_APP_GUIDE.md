@@ -1,7 +1,7 @@
 # AIBuddy Desktop IDE - Complete Guide
 
-**Version:** 1.0.0  
-**Last Updated:** January 22, 2026  
+**Version:** 1.5.65  
+**Last Updated:** February 18, 2026  
 **Repository:** https://github.com/ThomasWDev/aibuddy-desktop
 
 ---
@@ -107,13 +107,65 @@ pnpm dev
 
 Pre-built binaries are available:
 
-- **macOS (Apple Silicon M1/M2)**: `AIBuddy-{version}-arm64.dmg`
+- **macOS (Apple Silicon M1/M2/M3/M4)**: `AIBuddy-{version}-arm64.dmg`
 - **macOS (Intel)**: `AIBuddy-{version}.dmg`
 - **Windows**: Coming soon
 - **Linux**: Coming soon
 
 Also available on [GitHub Releases](https://github.com/ThomasWDev/aibuddy-desktop/releases)
-- **Linux**: `AIBuddy-Desktop-1.0.0.AppImage`
+
+### Installing a Production DMG (Local Testing)
+
+**This is the standard way to test every new desktop build.** After installing, you can use **Cmd+Option+I** to open DevTools and see console logs, network requests, and errors live.
+
+```bash
+# 1. Kill any running AIBuddy instance FIRST
+pkill -9 -f "AIBuddy" 2>/dev/null; sleep 2
+
+# 2. Remove the old installation
+rm -rf /Applications/AIBuddy.app
+
+# 3. Mount the DMG (use -nobrowse to skip Finder)
+#    Replace VERSION with the actual version (e.g. 1.5.65)
+hdiutil attach release/AIBuddy-VERSION-arm64.dmg -nobrowse
+
+# 4. Copy using ditto (preserves macOS extended attributes & code signatures)
+# IMPORTANT: Use ditto, NOT cp -R (cp may strip codesign attributes)
+ditto "/Volumes/AIBuddy VERSION-arm64/AIBuddy.app" "/Applications/AIBuddy.app"
+
+# 5. Verify the installed version
+plutil -p /Applications/AIBuddy.app/Contents/Info.plist | grep ShortVersion
+
+# 6. Eject the DMG
+hdiutil detach "/Volumes/AIBuddy VERSION-arm64"
+
+# 7. Launch
+open -a AIBuddy
+```
+
+### Testing Checklist (after every install)
+
+1. **Version badge** -- Top-left should show `v{VERSION}` (e.g. `v1.5.65`)
+2. **Open DevTools** -- Press **Cmd+Option+I** (or Menu → View → Toggle Developer Tools) to see console logs
+3. **API connection** -- Console should show `[App] API URL configured:` and `[Sentry Renderer] ✅ Initialized`
+4. **Credits loaded** -- Console should show `[App] Loaded cached credits:`
+5. **Send a message** -- Type and send a test message; verify the AI responds
+6. **Image paste** -- Paste an image (Cmd+V) and verify it compresses and attaches
+7. **Open folder** -- Use Open Folder to load a project; verify terminal/file access works
+8. **Check for crashes** -- If the window is blank/dark, check console for `TypeError` or other JS errors
+
+### Viewing Logs at Runtime
+
+| Method | How |
+|--------|-----|
+| **DevTools Console** | **Cmd+Option+I** → Console tab (shows renderer JS errors, API calls, breadcrumbs) |
+| **DevTools Network** | **Cmd+Option+I** → Network tab (shows API request/response payloads and timing) |
+| **Main process logs** | Launch from terminal: `/Applications/AIBuddy.app/Contents/MacOS/AIBuddy` (shows `[Renderer:warn]` and `[Renderer:error]` messages forwarded from the renderer) |
+| **Sentry** | Errors are automatically sent to Sentry with breadcrumbs for post-mortem analysis |
+
+**Common mistake:** If you `cp -R` while the old app is still running, macOS may silently keep the old binary. Always kill first, then remove, then copy.
+
+**Why `ditto` instead of `cp -R`:** `ditto` preserves extended attributes, resource forks, and code signing metadata. `cp -R` can strip these, causing "damaged app" or Gatekeeper warnings.
 
 ---
 
@@ -194,13 +246,36 @@ pnpm package:linux
 pnpm package:all
 ```
 
+### Build for Production (Full Pipeline)
+
+```bash
+# IMPORTANT: Always run tests before building
+cd /Users/thomaswoodfin/Documents/GitHub/AICodingVS/aibuddy-desktop
+
+# 1. Build the prompts package (dependency)
+cd .. && pnpm --filter @aibuddy/prompts build && cd aibuddy-desktop
+
+# 2. Run all tests (must pass)
+npx vitest run
+
+# 3. Build the renderer + main + preload
+pnpm build
+
+# 4. Package DMG (--publish never skips GitHub release upload)
+npx electron-builder --mac --config --publish never
+
+# Output: release/AIBuddy-{version}-arm64.dmg (Apple Silicon)
+#         release/AIBuddy-{version}.dmg (Intel)
+```
+
 ### Output Locations
 
 | Platform | Output |
 |----------|--------|
-| macOS | `dist/AIBuddy Desktop-1.0.0-arm64.dmg` |
-| Windows | `dist/AIBuddy Desktop Setup 1.0.0.exe` |
-| Linux | `dist/AIBuddy Desktop-1.0.0.AppImage` |
+| macOS (Apple Silicon) | `release/AIBuddy-{version}-arm64.dmg` |
+| macOS (Intel) | `release/AIBuddy-{version}.dmg` |
+| Windows | `release/AIBuddy-{version}.exe` |
+| Linux | `release/AIBuddy-{version}.AppImage` |
 
 ---
 

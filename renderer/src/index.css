@@ -272,8 +272,25 @@
 }
 
 .resize-handle-horizontal {
-  height: 4px;
+  height: 6px;
   cursor: row-resize;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.resize-handle-horizontal:hover {
+  background: rgba(236, 72, 153, 0.3);
+}
+
+.resize-handle-horizontal:active {
+  background: rgba(236, 72, 153, 0.6);
+}
+
+/* Terminal text selection */
+#terminal-output,
+#terminal-output * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
 /* File tree */

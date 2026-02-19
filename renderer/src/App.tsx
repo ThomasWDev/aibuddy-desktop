@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Toaster, toast } from 'sonner'
 import { 
   Send, 
@@ -37,12 +37,14 @@ import {
   Share2,
   FileCode, // KAN-6 FIX
   Menu, // KAN-42 FIX: Hamburger menu icon
-  Square // KAN-35 FIX: Stop button icon
+  Square, // KAN-35 FIX: Stop button icon
+  GraduationCap // Interview Mode icon
 } from 'lucide-react'
 import { CloudKnowledgePanel } from './components/knowledge'
 import { HistorySidebar } from './components/HistorySidebar'
 import { ShareModal } from './components/ShareModal'
 import { UsageLimitsPanel } from './components/UsageLimitsPanel'
+import { InterviewPanel } from './components/InterviewPanel'
 import { useTheme, type Theme, type FontSize } from './hooks/useTheme'
 import { useVoiceInput } from './hooks/useVoiceInput'
 import type { ChatThread } from '../../src/history/types'
@@ -195,6 +197,42 @@ interface ImageAttachment {
   mimeType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
   name: string
   size: number
+}
+
+const MAX_IMAGE_DIMENSION = 1920
+const JPEG_QUALITY = 0.8
+const MAX_PAYLOAD_BYTES = 900 * 1024 // 900KB — ALB→Lambda sync invocation limit is ~1MB
+
+function compressImageFromSrc(src: string): Promise<{ base64: string; mimeType: ImageAttachment['mimeType'] }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      let { width, height } = img
+      if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+        const scale = MAX_IMAGE_DIMENSION / Math.max(width, height)
+        width = Math.round(width * scale)
+        height = Math.round(height * scale)
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0, width, height)
+      const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY)
+      const base64 = dataUrl.split(',')[1]
+      resolve({ base64, mimeType: 'image/jpeg' })
+    }
+    img.onerror = () => reject(new Error('Failed to load image for compression'))
+    img.src = src
+  })
+}
+
+function compressImage(file: File): Promise<{ base64: string; mimeType: ImageAttachment['mimeType'] }> {
+  return compressImageFromSrc(URL.createObjectURL(file))
+}
+
+function compressBase64Image(base64: string, mimeType: string): Promise<{ base64: string; mimeType: ImageAttachment['mimeType'] }> {
+  return compressImageFromSrc(`data:${mimeType};base64,${base64}`)
 }
 
 // KAN-6 FIX: Add code file attachment support
@@ -402,6 +440,52 @@ function injectNoInteraction(command: string): string {
     }
   }
   return command
+}
+
+// ============================================================================
+// GIT SAFETY — Pre-validate git commands to prevent cascading failures
+// ============================================================================
+
+const GIT_COMMANDS_NEEDING_CLEAN_WORKTREE = ['git pull', 'git rebase', 'git merge', 'git checkout', 'git switch']
+const GIT_PUSH_PREFIXES = ['git push']
+
+function isGitMutatingCommand(cmd: string): boolean {
+  const trimmed = cmd.trim()
+  return [...GIT_COMMANDS_NEEDING_CLEAN_WORKTREE, ...GIT_PUSH_PREFIXES].some(p => trimmed.startsWith(p))
+}
+
+function needsCleanWorktree(cmd: string): boolean {
+  return GIT_COMMANDS_NEEDING_CLEAN_WORKTREE.some(p => cmd.trim().startsWith(p))
+}
+
+function preprocessGitCommands(commands: string[]): string[] {
+  const hasGitMutating = commands.some(isGitMutatingCommand)
+  if (!hasGitMutating) return commands
+
+  const result: string[] = []
+  let stashInserted = false
+
+  if (commands.some(needsCleanWorktree)) {
+    result.push('git status --porcelain')
+    result.push('git stash --include-untracked -m "aibuddy-auto-stash"')
+    stashInserted = true
+  }
+
+  const hasPush = commands.some(c => c.trim().startsWith('git push'))
+  const hasPullOrFetch = commands.some(c =>
+    c.trim().startsWith('git pull') || c.trim().startsWith('git fetch') || c.trim().startsWith('git rebase')
+  )
+  if (hasPush && !hasPullOrFetch && !commands.some(c => c.includes('rev-parse'))) {
+    result.push('git rev-parse --abbrev-ref HEAD')
+  }
+
+  result.push(...commands)
+
+  if (stashInserted) {
+    result.push('git stash pop 2>/dev/null || true')
+  }
+
+  return result
 }
 
 // Status steps for visual feedback
@@ -645,6 +729,8 @@ function App() {
   const [currentCommand, setCurrentCommand] = useState<string | null>(null)
   const [terminalCollapsed, setTerminalCollapsed] = useState(true)
   const [taskProgress, setTaskProgress] = useState<TaskProgress | null>(null)
+  const [terminalHeight, setTerminalHeight] = useState(300)
+  const terminalDragRef = useRef<{ startY: number; startH: number } | null>(null)
   
   // Error recovery state
   const [deepSeekRetryCount, setDeepSeekRetryCount] = useState(0)
@@ -668,6 +754,9 @@ function App() {
   
   // KAN-42 FIX: Hamburger menu state for secondary actions
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+  
+  // Interview Mode
+  const [showInterviewMode, setShowInterviewMode] = useState(false)
   const moreMenuRef = useRef<HTMLDivElement>(null)
   
   // Model selection removed - backend uses smart AI routing
@@ -1301,6 +1390,30 @@ function App() {
     setTaskProgress(null)
     setTerminalCollapsed(true)
   }
+
+  // Drag-to-resize terminal (Cursor-style)
+  const handleTerminalDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    terminalDragRef.current = { startY: e.clientY, startH: terminalHeight }
+    const onMove = (ev: MouseEvent) => {
+      if (!terminalDragRef.current) return
+      const delta = terminalDragRef.current.startY - ev.clientY
+      const next = Math.max(120, Math.min(window.innerHeight * 0.75, terminalDragRef.current.startH + delta))
+      setTerminalHeight(next)
+      setTerminalCollapsed(false)
+    }
+    const onUp = () => {
+      terminalDragRef.current = null
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    document.body.style.cursor = 'row-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }, [terminalHeight])
   
   // Image handling functions - using Electron native dialog
   // KAN-6/KAN-12 FIX: Added defensive checks and better error handling with detailed logging
@@ -1422,22 +1535,25 @@ function App() {
         return
       }
       
+      const compressed = await compressBase64Image(base64, mimeType)
+      
       const newImage = {
         id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        base64,
-        mimeType,
+        base64: compressed.base64,
+        mimeType: compressed.mimeType,
         name: fileName,
-        size: fileSize
+        size: compressed.base64.length
       }
       
       setAttachedImages(prev => [...prev, newImage])
-      console.log('[ImageSelect] SUCCESS: Image attached:', fileName)
+      console.log('[ImageSelect] SUCCESS: Image attached:', fileName, 'compressed from', base64.length, 'to', compressed.base64.length)
       
       toast.success(`📷 Added: ${fileName}`)
       addBreadcrumb('Image attached via dialog', 'chat.image', { 
         name: fileName, 
-        size: fileSize,
-        type: mimeType 
+        originalSize: fileSize,
+        compressedSize: compressed.base64.length,
+        type: compressed.mimeType 
       })
     } catch (error) {
       const errorMessage = (error as Error).message || 'Unknown error'
@@ -1645,28 +1761,26 @@ function App() {
         continue
       }
       
-      // Convert to base64
-      const reader = new FileReader()
-      reader.onload = () => {
-        const base64 = (reader.result as string).split(',')[1]
-        const mimeType = file.type as ImageAttachment['mimeType']
-        
+      try {
+        const { base64, mimeType } = await compressImage(file)
         setAttachedImages(prev => [...prev, {
           id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           base64,
           mimeType,
           name: file.name,
-          size: file.size
+          size: base64.length
         }])
-        
         toast.success(`📷 Added: ${file.name}`)
         addBreadcrumb('Image attached', 'chat.image', { 
           name: file.name, 
-          size: file.size,
+          originalSize: file.size,
+          compressedSize: base64.length,
           type: mimeType 
         })
+      } catch (err) {
+        console.error('[App] Image compression failed:', err)
+        toast.error(`Failed to process ${file.name}`)
       }
-      reader.readAsDataURL(file)
     }
     
     // Reset input
@@ -1675,7 +1789,7 @@ function App() {
     }
   }
   
-  const handlePasteImage = async (e: React.ClipboardEvent) => {
+  const handlePasteImage = useCallback(async (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items
     if (!items) return
     
@@ -1685,29 +1799,28 @@ function App() {
         const file = item.getAsFile()
         if (!file) continue
         
-        const reader = new FileReader()
-        reader.onload = () => {
-          const base64 = (reader.result as string).split(',')[1]
-          const mimeType = file.type as ImageAttachment['mimeType']
-          
+        try {
+          const { base64, mimeType } = await compressImage(file)
           setAttachedImages(prev => [...prev, {
             id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             base64,
             mimeType,
-            name: `pasted-image-${Date.now()}.${mimeType.split('/')[1]}`,
-            size: file.size
+            name: `pasted-image-${Date.now()}.jpeg`,
+            size: base64.length
           }])
-          
           toast.success('📷 Image pasted from clipboard!')
           addBreadcrumb('Image pasted', 'chat.image', { 
-            size: file.size,
+            originalSize: file.size,
+            compressedSize: base64.length,
             type: mimeType 
           })
+        } catch (err) {
+          console.error('[App] Paste image compression failed:', err)
+          toast.error('Failed to process pasted image')
         }
-        reader.readAsDataURL(file)
       }
     }
-  }
+  }, [])
   
   const removeImage = (id: string) => {
     setAttachedImages(prev => prev.filter(img => img.id !== id))
@@ -1758,61 +1871,21 @@ function App() {
       }
       
       try {
-        // In Electron, dropped files have a 'path' property
-        const filePath = (file as File & { path?: string }).path
-        
-        if (filePath && window.electronAPI?.fs) {
-          // KAN-7 FIX: Use readFileAsBase64 to avoid "Buffer is not defined" error
-          // Buffer is not available in renderer with contextIsolation: true
-          const base64 = await window.electronAPI.fs.readFileAsBase64(filePath)
-          
-          const mimeTypes: Record<string, ImageAttachment['mimeType']> = {
-            'png': 'image/png',
-            'jpg': 'image/jpeg',
-            'jpeg': 'image/jpeg',
-            'gif': 'image/gif',
-            'webp': 'image/webp'
-          }
-          const mimeType = mimeTypes[extension] || 'image/png'
-          
-          setAttachedImages(prev => [...prev, {
-            id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            base64,
-            mimeType,
-            name: file.name,
-            size: file.size
-          }])
-          
-          addBreadcrumb('Image dropped (Electron)', 'chat.image', { 
-            name: file.name, 
-            size: file.size,
-            type: mimeType 
-          })
-          addedCount++
-        } else {
-          // Fallback to FileReader API
-          const reader = new FileReader()
-          reader.onload = () => {
-            const base64 = (reader.result as string).split(',')[1]
-            const mimeType = file.type as ImageAttachment['mimeType']
-            
-            setAttachedImages(prev => [...prev, {
-              id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              base64,
-              mimeType,
-              name: file.name,
-              size: file.size
-            }])
-            
-            addBreadcrumb('Image dropped (FileReader)', 'chat.image', { 
-              name: file.name, 
-              size: file.size,
-              type: mimeType 
-            })
-          }
-          reader.readAsDataURL(file)
-          addedCount++
-        }
+        const { base64, mimeType } = await compressImage(file)
+        setAttachedImages(prev => [...prev, {
+          id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          base64,
+          mimeType,
+          name: file.name,
+          size: base64.length
+        }])
+        addBreadcrumb('Image dropped', 'chat.image', { 
+          name: file.name, 
+          originalSize: file.size,
+          compressedSize: base64.length,
+          type: mimeType 
+        })
+        addedCount++
       } catch (error) {
         console.error('Failed to process dropped file:', error)
         toast.error(`Failed to process ${file.name}`)
@@ -1924,7 +1997,7 @@ function App() {
       if (base === 'cd') return `Changing directory`
       if (base === 'mkdir') return 'Creating directory'
       if (['ls', 'pwd', 'echo'].includes(base)) return base
-      return cmd.substring(0, 40)
+      return (cmd || '').substring(0, 40)
     }
 
     const steps = commands.map(describeCommand)
@@ -2006,12 +2079,19 @@ ${environmentSummary || 'Not available'}
 
 WORKSPACE: ${workspacePath}
 
-Analyze these errors and provide:
+Analyze these errors and provide a DIFFERENT approach (do NOT retry the same failing commands):
 1. A brief explanation of what went wrong
 2. The EXACT commands to fix the issue (in bash code blocks)
 3. If it's a version/compatibility issue, suggest the specific fix
 
-Be concise and actionable. Focus on fixing the immediate problem.`
+GIT-SPECIFIC RULES:
+- If a git command failed, ALWAYS run \`git status\` first to check repository state
+- If there are uncommitted changes, run \`git stash --include-untracked\` before pull/rebase/merge
+- If push was rejected (non-fast-forward), run \`git pull --rebase origin <branch>\` first
+- NEVER blindly retry the same git command that already failed — diagnose the state first
+- After fixing, run \`git stash pop\` to restore stashed changes
+
+Be concise and actionable. Use an alternative approach, not the same commands that failed.`
 
     try {
       const result = await callAIWithRouting(
@@ -2263,15 +2343,67 @@ Be concise and actionable. Focus on fixing the immediate problem.`
         const preProcessMs = fetchStartTime - startTime
         console.log(`[Perf] Pre-processing took ${preProcessMs}ms`)
         
+        let serializedBody = JSON.stringify(requestBody)
+        let payloadSize = new Blob([serializedBody]).size
+        console.log(`[Perf] Request payload size: ${(payloadSize / 1024 / 1024).toFixed(2)}MB`)
+
+        // Auto-truncate conversation history if payload exceeds server limit
+        if (payloadSize > MAX_PAYLOAD_BYTES) {
+          console.log(`[App] Payload ${(payloadSize / 1024).toFixed(0)}KB exceeds limit ${(MAX_PAYLOAD_BYTES / 1024).toFixed(0)}KB — auto-truncating...`)
+
+          // Strategy: keep system prompt + strip images from old messages + trim oldest messages
+          const systemMsg = requestBody.messages[0]
+          let conversationMsgs = requestBody.messages.slice(1)
+
+          // Step 1: Strip base64 images from all messages except the latest user message
+          conversationMsgs = conversationMsgs.map((msg: any, idx: number) => {
+            if (idx < conversationMsgs.length - 1 && msg.content && Array.isArray(msg.content)) {
+              return { ...msg, content: msg.content.filter((part: any) => part.type !== 'image_url') }
+            }
+            return msg
+          })
+
+          // Step 2: Truncate long message content in history (keep first 2000 chars)
+          conversationMsgs = conversationMsgs.map((msg: any, idx: number) => {
+            if (idx < conversationMsgs.length - 1 && typeof msg.content === 'string' && msg.content.length > 2000) {
+              return { ...msg, content: msg.content.substring(0, 2000) + '\n\n...[truncated for context length]' }
+            }
+            return msg
+          })
+
+          requestBody.messages = [systemMsg, ...conversationMsgs]
+          serializedBody = JSON.stringify(requestBody)
+          payloadSize = new Blob([serializedBody]).size
+          console.log(`[Perf] After image strip + truncation: ${(payloadSize / 1024).toFixed(0)}KB`)
+
+          // Step 3: If still too large, progressively remove oldest messages (keep last 4 turns)
+          while (payloadSize > MAX_PAYLOAD_BYTES && conversationMsgs.length > 2) {
+            conversationMsgs.shift()
+            requestBody.messages = [systemMsg, ...conversationMsgs]
+            serializedBody = JSON.stringify(requestBody)
+            payloadSize = new Blob([serializedBody]).size
+          }
+          console.log(`[Perf] Final payload: ${(payloadSize / 1024).toFixed(0)}KB (${conversationMsgs.length} messages)`)
+
+          if (payloadSize > MAX_PAYLOAD_BYTES) {
+            toast.error(`📦 Message too large (${(payloadSize / 1024).toFixed(0)}KB). Try starting a new chat or removing images.`)
+            addBreadcrumb('Payload too large after truncation', 'api.error', { payloadSize, max: MAX_PAYLOAD_BYTES })
+            setStatus('error')
+            return
+          }
+
+          toast.info(`📋 Trimmed conversation history to fit server limits (${conversationMsgs.length} messages kept)`)
+        }
+
         response = await fetch(AIBUDDY_API_INFERENCE_URL, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'X-AIBuddy-API-Key': apiKey || '',
             'X-Requested-With': 'AIBuddy-Desktop',
-            'User-Agent': `AIBuddy-Desktop/${appVersion || '1.5.63'}`,
+            'User-Agent': `AIBuddy-Desktop/${appVersion || 'unknown'}`,
           },
-          body: JSON.stringify(requestBody),
+          body: serializedBody,
           signal: controller.signal
         })
 
@@ -2350,6 +2482,23 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       if (response.status === 500 || response.status === 502 || response.status === 503) {
         toast.error('🔧 Server error. AIBuddy is having issues. Please try again in a moment.')
         addBreadcrumb('Server error', 'api.error', { status: response.status })
+        setStatus('error')
+        return
+      }
+
+      if (response.status === 413) {
+        toast.error('📦 Message too large for server. Try starting a new chat (Cmd+N) or removing images.')
+        addBreadcrumb('Payload too large (server 413)', 'api.error', { status: 413, payloadSize: new Blob([serializedBody]).size })
+        setStatus('error')
+        return
+      }
+
+      const contentType = response.headers.get('content-type')
+      if (!contentType?.includes('application/json')) {
+        const text = await response.text()
+        console.error('[App] Non-JSON response:', response.status, text.substring(0, 200))
+        toast.error(`Server returned an unexpected response (${response.status}). Please try again.`)
+        addBreadcrumb('Non-JSON response', 'api.error', { status: response.status, contentType, body: text.substring(0, 200) })
         setStatus('error')
         return
       }
@@ -2489,11 +2638,15 @@ Be concise and actionable. Focus on fixing the immediate problem.`
             allCommands.push(...commands.map(injectNoInteraction))
           }
           
-          addTerminalLine('info', `📋 Plan: ${allCommands.length} command(s) to execute`)
+          const gitSafeCommands = preprocessGitCommands(allCommands)
+          if (gitSafeCommands.length !== allCommands.length) {
+            addTerminalLine('info', `🔒 Git safety: added pre-checks (${gitSafeCommands.length - allCommands.length} extra)`)
+          }
+          addTerminalLine('info', `📋 Plan: ${gitSafeCommands.length} command(s) to execute`)
 
           let currentRetry = 0
-          const MAX_ERROR_RETRIES = 3 // Allow retries for error recovery
-          let commandsToRun = allCommands
+          const MAX_ERROR_RETRIES = 3
+          let commandsToRun = gitSafeCommands
           
           while (commandsToRun.length > 0 && currentRetry <= MAX_ERROR_RETRIES) {
             addTerminalLine('info', currentRetry > 0 
@@ -2530,7 +2683,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
               }
               
               if (fixCommands.length > 0) {
-                commandsToRun = fixCommands
+                commandsToRun = preprocessGitCommands(fixCommands)
                 addTerminalLine('info', `📝 AI suggested ${fixCommands.length} fix command(s)`)
                 
                 // Add fix response to output
@@ -2556,25 +2709,22 @@ Be concise and actionable. Focus on fixing the immediate problem.`
         }
       }
 
-      // Build execution output to append to response
+      // Build a concise execution summary for chat (full output stays in terminal panel)
       let executionOutput = ''
       if (executionResults.length > 0) {
-        executionOutput = '\n\n---\n\n## 🖥️ Execution Results\n\n'
-        for (const result of executionResults) {
-          const statusIcon = result.exitCode === 0 ? '✅' : '❌'
-          executionOutput += `### ${statusIcon} \`${result.command}\`\n\n`
-          if (result.stdout) {
-            executionOutput += `**Output:**\n\`\`\`\n${result.stdout.substring(0, 2000)}\n\`\`\`\n\n`
+        const passed = executionResults.filter(r => r.exitCode === 0).length
+        const failed = executionResults.filter(r => r.exitCode !== 0).length
+        executionOutput = '\n\n---\n'
+        executionOutput += `\n**${passed + failed} command(s) executed** — ${passed} passed`
+        if (failed > 0) executionOutput += `, ${failed} failed`
+        executionOutput += '. See Terminal panel for full output.\n'
+        if (failed > 0) {
+          executionOutput += '\nFailed commands:\n'
+          for (const result of executionResults.filter(r => r.exitCode !== 0)) {
+            executionOutput += `- \`${result.command}\` (exit ${result.exitCode})`
+            if (result.stderr) executionOutput += `: ${result.stderr.split('\n')[0].substring(0, 120)}`
+            executionOutput += '\n'
           }
-          if (result.stderr) {
-            executionOutput += `**Errors:**\n\`\`\`\n${result.stderr.substring(0, 1000)}\n\`\`\`\n\n`
-          }
-          executionOutput += `**Exit Code:** ${result.exitCode}\n\n`
-        }
-        
-        // Add any fix attempt outputs
-        if (totalExecutionOutput) {
-          executionOutput += totalExecutionOutput
         }
       }
 
@@ -2706,55 +2856,54 @@ Be concise and actionable. Focus on fixing the immediate problem.`
     }
   }
 
-  const copyToClipboard = async (text: string, id: string) => {
+  const copyToClipboard = useCallback(async (text: string, id: string) => {
     await navigator.clipboard.writeText(text)
     setCopiedId(id)
     toast.success('Copied!')
     setTimeout(() => setCopiedId(null), 2000)
-  }
+  }, [])
   
-  // Copy entire response to clipboard
-  const copyResponse = async (content: string, messageId: string) => {
+  const copyResponse = useCallback(async (content: string, messageId: string) => {
     await navigator.clipboard.writeText(content)
     setCopiedId(messageId + '-response')
     toast.success('📋 Response copied!')
     addBreadcrumb('Response copied', 'chat.action', { messageId })
     setTimeout(() => setCopiedId(null), 2000)
-  }
+  }, [])
   
   // Handle message feedback (thumbs up/down) - KAN-28 fixed
-  const handleFeedback = async (messageId: string, feedback: 'up' | 'down') => {
-    const currentFeedback = messageFeedback[messageId]
-    const newFeedback = currentFeedback === feedback ? null : feedback
-    
-    // Update local state first for immediate UI response
-    setMessageFeedback(prev => ({ ...prev, [messageId]: newFeedback }))
-    
-    // Persist feedback to disk via IPC
-    if (activeThreadId) {
-      try {
-        await window.electronAPI.history.updateMessageFeedback(activeThreadId, messageId, newFeedback)
-        console.log('[Feedback] Persisted to disk:', { threadId: activeThreadId, messageId, feedback: newFeedback })
-      } catch (error) {
-        console.error('[Feedback] Failed to persist:', error)
-        // Revert on failure
-        setMessageFeedback(prev => ({ ...prev, [messageId]: currentFeedback }))
-        toast.error('Failed to save feedback')
-        return
+  const handleFeedback = useCallback(async (messageId: string, feedback: 'up' | 'down') => {
+    setMessageFeedback(prev => {
+      const currentFeedback = prev[messageId]
+      const newFeedback = currentFeedback === feedback ? null : feedback
+      
+      const persistFeedback = async () => {
+        if (activeThreadId) {
+          try {
+            await window.electronAPI.history.updateMessageFeedback(activeThreadId, messageId, newFeedback)
+            console.log('[Feedback] Persisted to disk:', { threadId: activeThreadId, messageId, feedback: newFeedback })
+          } catch (error) {
+            console.error('[Feedback] Failed to persist:', error)
+            setMessageFeedback(p => ({ ...p, [messageId]: currentFeedback }))
+            toast.error('Failed to save feedback')
+            return
+          }
+        }
+        
+        if (newFeedback) {
+          toast.success(newFeedback === 'up' ? '👍 Thanks for the feedback!' : '👎 Thanks for letting us know!')
+          addBreadcrumb('Message feedback', 'chat.feedback', { messageId, feedback: newFeedback })
+        }
       }
-    }
-    
-    if (newFeedback) {
-      toast.success(newFeedback === 'up' ? '👍 Thanks for the feedback!' : '👎 Thanks for letting us know!')
-      addBreadcrumb('Message feedback', 'chat.feedback', { messageId, feedback: newFeedback })
-    }
-  }
+      persistFeedback()
+      
+      return { ...prev, [messageId]: newFeedback }
+    })
+  }, [activeThreadId])
   
-  // Regenerate the last response
-  const handleRegenerate = async () => {
+  const handleRegenerate = useCallback(async () => {
     if (isLoading) return
     
-    // Find the last user message
     const lastUserIdx = [...messages].reverse().findIndex(m => m.role === 'user')
     if (lastUserIdx === -1) {
       toast.error('No message to regenerate')
@@ -2764,13 +2913,9 @@ Be concise and actionable. Focus on fixing the immediate problem.`
     const actualIdx = messages.length - 1 - lastUserIdx
     const lastUser = messages[actualIdx]
     
-    // KAN-36 FIX: Remove BOTH the user message AND the assistant response
-    // Then re-submit. handleSubmit will re-add the user message exactly once,
-    // preventing the duplicate text issue.
     const newMessages = messages.slice(0, actualIdx)
     setMessages(newMessages)
     
-    // Set input to the last user's content so handleSubmit can re-add it
     const contentToResubmit = lastUser.content === '📷 [Image attached - please analyze]' ? '' : lastUser.content
     setInput(contentToResubmit)
     if (lastUser.images) {
@@ -2780,16 +2925,236 @@ Be concise and actionable. Focus on fixing the immediate problem.`
     toast.info('🔄 Regenerating response...')
     addBreadcrumb('Regenerating response', 'chat.action', { messageId: lastUser.id })
     
-    // Trigger submit after state updates - handleSubmit will add user message fresh
     setTimeout(() => {
       const form = document.querySelector('form')
       if (form) {
         form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
       }
     }, 100)
-  }
+  }, [isLoading, messages])
 
   const currentStatus = statusConfig[status]
+
+  const markdownComponents = useMemo(() => ({
+    code({ node, inline, className, children, ...props }: any) {
+      const match = /language-(\w+)/.exec(className || '')
+      const codeString = String(children).replace(/\n$/, '')
+      
+      if (!inline && match) {
+        return (
+          <div className="relative group my-2">
+            <button
+              onClick={() => copyToClipboard(codeString, className)}
+              className="absolute right-2 top-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: 'rgba(255,255,255,0.1)' }}
+            >
+              <Copy className="w-3 h-3 text-slate-400" />
+            </button>
+            <SyntaxHighlighter
+              style={vscDarkPlus as any}
+              language={match[1]}
+              PreTag="div"
+              customStyle={{ borderRadius: '8px', fontSize: '12px' }}
+              {...props}
+            >
+              {codeString}
+            </SyntaxHighlighter>
+          </div>
+        )
+      }
+      return (
+        <code 
+          className="px-1 py-0.5 rounded text-xs"
+          style={{ background: 'rgba(236, 72, 153, 0.2)', color: '#f472b6' }}
+          {...props}
+        >
+          {children}
+        </code>
+      )
+    }
+  }), [copyToClipboard])
+
+  const renderedMessages = useMemo(() => messages.map(message => (
+    <div
+      key={message.id}
+      className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : ''}`}
+    >
+      {message.role === 'assistant' && (
+        <div 
+          className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+          style={{ 
+            background: 'linear-gradient(135deg, #ec4899, #f97316)',
+            boxShadow: '0 4px 16px rgba(236, 72, 153, 0.4)'
+          }}
+        >
+          <Bot className="w-7 h-7 text-white" />
+        </div>
+      )}
+      
+      <div
+        className="max-w-[85%] rounded-3xl p-5"
+        style={message.role === 'user' 
+          ? { 
+              background: 'linear-gradient(135deg, #06b6d4, #0891b2)', 
+              color: 'white',
+              boxShadow: '0 4px 16px rgba(6, 182, 212, 0.3)'
+            }
+          : { 
+              background: 'linear-gradient(135deg, #1e293b, #0f172a)', 
+              border: '2px solid #334155',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+            }
+        }
+      >
+        {message.role === 'assistant' ? (
+          <div className="prose prose-invert prose-sm max-w-none text-slate-200 overflow-x-auto">
+            <ReactMarkdown components={markdownComponents}>
+              {message.content}
+            </ReactMarkdown>
+          </div>
+        ) : (
+          <div>
+            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+            
+            {message.images && message.images.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {message.images.map(img => (
+                  <div key={img.id} className="relative">
+                    <img 
+                      src={`data:${img.mimeType};base64,${img.base64}`}
+                      alt={img.name || 'image'}
+                      className="max-w-[200px] max-h-[150px] object-contain rounded-lg border-2 border-cyan-400/50 cursor-pointer hover:border-cyan-400 transition-colors"
+                      onClick={() => {
+                        const win = window.open()
+                        if (win) {
+                          win.document.write(`<img src="data:${img.mimeType};base64,${img.base64}" style="max-width:100%;max-height:100vh;margin:auto;display:block;background:#1e293b;" />`)
+                          win.document.title = img.name || 'image'
+                        }
+                      }}
+                    />
+                    <span className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-2 py-0.5 rounded">
+                      {(img.name || 'image').substring(0, 20)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        
+        {message.role === 'assistant' && (message.cost || message.tokensIn || message.tokensOut) && (
+          <div className="mt-3 pt-2 border-t border-slate-700">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+              {message.cost && (
+                <div className="flex items-center gap-1 text-green-400/80">
+                  <Coins className="w-3 h-3" />
+                  <span className="font-medium">${message.cost.toFixed(4)}</span>
+                </div>
+              )}
+              
+              {(message.tokensIn || message.tokensOut) && (
+                <div className="flex items-center gap-2 text-slate-500">
+                  {message.tokensIn && (
+                    <span className="flex items-center gap-1">
+                      <span className="text-blue-400">↑</span>
+                      <span>{message.tokensIn.toLocaleString()} in</span>
+                    </span>
+                  )}
+                  {message.tokensOut && (
+                    <span className="flex items-center gap-1">
+                      <span className="text-purple-400">↓</span>
+                      <span>{message.tokensOut.toLocaleString()} out</span>
+                    </span>
+                  )}
+                </div>
+              )}
+              
+              {message.model && (
+                <span className="text-slate-600 text-[10px] bg-slate-800 px-1.5 py-0.5 rounded">
+                  {message.model.includes('deepseek') ? 'AIBuddy Reasoning' : 
+                   message.model.includes('opus') ? 'AIBuddy Pro' :
+                   message.model.includes('sonnet') ? 'AIBuddy Fast' : 'AIBuddy'}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {message.role === 'assistant' && (
+          <div className="mt-3 pt-2 border-t border-slate-700/50 flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
+            <Tooltip text="Copy response">
+              <button
+                onClick={() => copyResponse(message.content, message.id)}
+                className="p-1.5 rounded-lg hover:bg-slate-700/50 transition-colors"
+              >
+                {copiedId === message.id + '-response' ? (
+                  <Check className="w-4 h-4 text-green-400" />
+                ) : (
+                  <Copy className="w-4 h-4 text-slate-400" />
+                )}
+              </button>
+            </Tooltip>
+            
+            {messages[messages.length - 1]?.id === message.id && (
+              <Tooltip text="Regenerate response">
+                <button
+                  onClick={handleRegenerate}
+                  disabled={isLoading}
+                  className="p-1.5 rounded-lg hover:bg-slate-700/50 transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 text-slate-400 ${isLoading ? 'animate-spin' : ''}`} />
+                </button>
+              </Tooltip>
+            )}
+            
+            <div className="w-px h-4 bg-slate-700 mx-1" />
+            
+            <Tooltip text="Good response">
+              <button
+                onClick={() => handleFeedback(message.id, 'up')}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  messageFeedback[message.id] === 'up' 
+                    ? 'bg-green-500/20 text-green-400' 
+                    : 'hover:bg-slate-700/50 text-slate-400'
+                }`}
+              >
+                <ThumbsUp className="w-4 h-4" />
+              </button>
+            </Tooltip>
+            
+            <Tooltip text="Poor response">
+              <button
+                onClick={() => handleFeedback(message.id, 'down')}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  messageFeedback[message.id] === 'down' 
+                    ? 'bg-red-500/20 text-red-400' 
+                    : 'hover:bg-slate-700/50 text-slate-400'
+                }`}
+              >
+                <ThumbsDown className="w-4 h-4" />
+              </button>
+            </Tooltip>
+          </div>
+        )}
+      </div>
+
+      {message.role === 'user' && (
+        <div 
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)' }}
+        >
+          <User className="w-5 h-5 text-white" />
+        </div>
+      )}
+    </div>
+  )), [messages, copiedId, messageFeedback, isLoading, markdownComponents, copyToClipboard, copyResponse, handleFeedback, handleRegenerate])
+
+  const collapsedTerminalLines = useMemo(() =>
+    terminalOutput
+      .filter(l => l.type === 'command' || l.type === 'success' || l.type === 'error' || l.type === 'info')
+      .slice(-COLLAPSED_VISIBLE_LINES),
+    [terminalOutput]
+  )
 
   return (
     <div 
@@ -2946,6 +3311,23 @@ Be concise and actionable. Focus on fixing the immediate problem.`
               }}
             >
               <History className="w-4 h-4 text-cyan-400" />
+            </button>
+          </Tooltip>
+
+          {/* Interview Mode */}
+          <Tooltip text="Interview Mode - AI coaching with audio" position="bottom">
+            <button
+              onClick={() => {
+                trackButtonClick('Interview Mode', 'App')
+                setShowInterviewMode(true)
+              }}
+              className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:scale-105"
+              style={{ 
+                background: showInterviewMode ? 'rgba(168, 85, 247, 0.3)' : 'rgba(168, 85, 247, 0.1)',
+                border: '1px solid rgba(168, 85, 247, 0.4)',
+              }}
+            >
+              <GraduationCap className="w-4 h-4 text-purple-400" />
             </button>
           </Tooltip>
 
@@ -3290,237 +3672,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
           </div>
         ) : (
           <div className="max-w-4xl mx-auto space-y-6">
-            {messages.map(message => (
-              <div
-                key={message.id}
-                className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : ''}`}
-              >
-                {/* AI Avatar - Big & Friendly */}
-                {message.role === 'assistant' && (
-                  <div 
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-                    style={{ 
-                      background: 'linear-gradient(135deg, #ec4899, #f97316)',
-                      boxShadow: '0 4px 16px rgba(236, 72, 153, 0.4)'
-                    }}
-                  >
-                    <Bot className="w-7 h-7 text-white" />
-                  </div>
-                )}
-                
-                {/* Message Bubble - Bigger & More Readable */}
-                <div
-                  className="max-w-[85%] rounded-3xl p-5"
-                  style={message.role === 'user' 
-                    ? { 
-                        background: 'linear-gradient(135deg, #06b6d4, #0891b2)', 
-                        color: 'white',
-                        boxShadow: '0 4px 16px rgba(6, 182, 212, 0.3)'
-                      }
-                    : { 
-                        background: 'linear-gradient(135deg, #1e293b, #0f172a)', 
-                        border: '2px solid #334155',
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
-                      }
-                  }
-                >
-                  {message.role === 'assistant' ? (
-                    <div className="prose prose-invert prose-sm max-w-none text-slate-200 overflow-x-auto">
-                      <ReactMarkdown
-                        components={{
-                          code({ node, inline, className, children, ...props }: any) {
-                            const match = /language-(\w+)/.exec(className || '')
-                            const codeString = String(children).replace(/\n$/, '')
-                            
-                            if (!inline && match) {
-                              return (
-                                <div className="relative group my-2">
-                                  <button
-                                    onClick={() => copyToClipboard(codeString, message.id + className)}
-                                    className="absolute right-2 top-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                                    style={{ background: 'rgba(255,255,255,0.1)' }}
-                                  >
-                                    {copiedId === message.id + className ? (
-                                      <Check className="w-3 h-3 text-green-400" />
-                                    ) : (
-                                      <Copy className="w-3 h-3 text-slate-400" />
-                                    )}
-                                  </button>
-                                  <SyntaxHighlighter
-                                    style={vscDarkPlus as any}
-                                    language={match[1]}
-                                    PreTag="div"
-                                    customStyle={{ borderRadius: '8px', fontSize: '12px' }}
-                                    {...props}
-                                  >
-                                    {codeString}
-                                  </SyntaxHighlighter>
-                                </div>
-                              )
-                            }
-                            return (
-                              <code 
-                                className="px-1 py-0.5 rounded text-xs"
-                                style={{ background: 'rgba(236, 72, 153, 0.2)', color: '#f472b6' }}
-                                {...props}
-                              >
-                                {children}
-                              </code>
-                            )
-                          }
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
-                    </div>
-                  ) : (
-                    <div>
-                      {/* User message text */}
-                      <p className="text-sm">{message.content}</p>
-                      
-                      {/* User attached images */}
-                      {message.images && message.images.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {message.images.map(img => (
-                            <div key={img.id} className="relative">
-                              <img 
-                                src={`data:${img.mimeType};base64,${img.base64}`}
-                                alt={img.name}
-                                className="max-w-[200px] max-h-[150px] object-contain rounded-lg border-2 border-cyan-400/50 cursor-pointer hover:border-cyan-400 transition-colors"
-                                onClick={() => {
-                                  // Open image in new window for full view
-                                  const win = window.open()
-                                  if (win) {
-                                    win.document.write(`<img src="data:${img.mimeType};base64,${img.base64}" style="max-width:100%;max-height:100vh;margin:auto;display:block;background:#1e293b;" />`)
-                                    win.document.title = img.name
-                                  }
-                                }}
-                              />
-                              <span className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-2 py-0.5 rounded">
-                                📷 {img.name.substring(0, 20)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Token Usage & Cost Display for assistant messages */}
-                  {message.role === 'assistant' && (message.cost || message.tokensIn || message.tokensOut) && (
-                    <div className="mt-3 pt-2 border-t border-slate-700">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                        {/* Cost */}
-                        {message.cost && (
-                          <div className="flex items-center gap-1 text-green-400/80">
-                            <Coins className="w-3 h-3" />
-                            <span className="font-medium">${message.cost.toFixed(4)}</span>
-                          </div>
-                        )}
-                        
-                        {/* Token Usage */}
-                        {(message.tokensIn || message.tokensOut) && (
-                          <div className="flex items-center gap-2 text-slate-500">
-                            {message.tokensIn && (
-                              <span className="flex items-center gap-1">
-                                <span className="text-blue-400">↑</span>
-                                <span>{message.tokensIn.toLocaleString()} in</span>
-                              </span>
-                            )}
-                            {message.tokensOut && (
-                              <span className="flex items-center gap-1">
-                                <span className="text-purple-400">↓</span>
-                                <span>{message.tokensOut.toLocaleString()} out</span>
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        
-                        {/* Model */}
-                        {message.model && (
-                          <span className="text-slate-600 text-[10px] bg-slate-800 px-1.5 py-0.5 rounded">
-                            {message.model.includes('deepseek') ? 'AIBuddy Reasoning' : 
-                             message.model.includes('opus') ? 'AIBuddy Pro' :
-                             message.model.includes('sonnet') ? 'AIBuddy Fast' : 'AIBuddy'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Message Controls for assistant messages */}
-                  {message.role === 'assistant' && (
-                    <div className="mt-3 pt-2 border-t border-slate-700/50 flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
-                      {/* Copy Response */}
-                      <Tooltip text="Copy response">
-                        <button
-                          onClick={() => copyResponse(message.content, message.id)}
-                          className="p-1.5 rounded-lg hover:bg-slate-700/50 transition-colors"
-                        >
-                          {copiedId === message.id + '-response' ? (
-                            <Check className="w-4 h-4 text-green-400" />
-                          ) : (
-                            <Copy className="w-4 h-4 text-slate-400" />
-                          )}
-                        </button>
-                      </Tooltip>
-                      
-                      {/* Regenerate (only show on last assistant message) */}
-                      {messages[messages.length - 1]?.id === message.id && (
-                        <Tooltip text="Regenerate response">
-                          <button
-                            onClick={handleRegenerate}
-                            disabled={isLoading}
-                            className="p-1.5 rounded-lg hover:bg-slate-700/50 transition-colors disabled:opacity-50"
-                          >
-                            <RefreshCw className={`w-4 h-4 text-slate-400 ${isLoading ? 'animate-spin' : ''}`} />
-                          </button>
-                        </Tooltip>
-                      )}
-                      
-                      <div className="w-px h-4 bg-slate-700 mx-1" />
-                      
-                      {/* Thumbs Up */}
-                      <Tooltip text="Good response">
-                        <button
-                          onClick={() => handleFeedback(message.id, 'up')}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            messageFeedback[message.id] === 'up' 
-                              ? 'bg-green-500/20 text-green-400' 
-                              : 'hover:bg-slate-700/50 text-slate-400'
-                          }`}
-                        >
-                          <ThumbsUp className="w-4 h-4" />
-                        </button>
-                      </Tooltip>
-                      
-                      {/* Thumbs Down */}
-                      <Tooltip text="Poor response">
-                        <button
-                          onClick={() => handleFeedback(message.id, 'down')}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            messageFeedback[message.id] === 'down' 
-                              ? 'bg-red-500/20 text-red-400' 
-                              : 'hover:bg-slate-700/50 text-slate-400'
-                          }`}
-                        >
-                          <ThumbsDown className="w-4 h-4" />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  )}
-                </div>
-
-                {message.role === 'user' && (
-                  <div 
-                    className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)' }}
-                  >
-                    <User className="w-5 h-5 text-white" />
-                  </div>
-                )}
-              </div>
-            ))}
+            {renderedMessages}
 
             {/* Loading */}
             {/* Enhanced Loading/Streaming Indicator */}
@@ -3615,7 +3767,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
       )}
 
       {/* Input */}
-      <footer className="p-4" style={{ borderTop: '2px solid #334155', paddingBottom: showTerminal ? (terminalCollapsed ? '130px' : '316px') : undefined }}>
+      <footer className="p-4" style={{ borderTop: '2px solid #334155', paddingBottom: showTerminal ? (terminalCollapsed ? '130px' : `${terminalHeight + 16}px`) : undefined }}>
         <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
           {/* Image Attachments Preview - Chip-style like ChatGPT */}
           {attachedImages.length > 0 && (
@@ -4216,22 +4368,34 @@ Be concise and actionable. Focus on fixing the immediate problem.`
 
       <Toaster position="top-right" theme="dark" richColors />
 
-      {/* Terminal Output Panel - Slide up from bottom */}
+      {/* Terminal Output Panel - Cursor-style resizable bottom panel */}
       {showTerminal && (
         <div 
-          className="fixed bottom-0 left-0 right-0 z-40 transition-all duration-300"
+          className="fixed bottom-0 left-0 right-0 z-40 flex flex-col"
           style={{ 
-            height: terminalCollapsed ? 'auto' : '300px',
-            maxHeight: terminalCollapsed ? '120px' : '300px',
+            height: terminalCollapsed ? 'auto' : `${terminalHeight}px`,
+            maxHeight: terminalCollapsed ? '120px' : `${terminalHeight}px`,
             background: 'linear-gradient(180deg, #0c0c0c 0%, #1a1a1a 100%)',
-            borderTop: '3px solid #334155',
-            boxShadow: '0 -8px 32px rgba(0,0,0,0.5)'
+            borderTop: '1px solid #334155',
+            boxShadow: '0 -4px 24px rgba(0,0,0,0.4)'
           }}
         >
+          {/* Drag handle - Cursor-style resize bar */}
+          {!terminalCollapsed && (
+            <div
+              className="resize-handle-horizontal w-full flex-shrink-0 group"
+              style={{ height: '6px', cursor: 'row-resize', background: 'transparent' }}
+              onMouseDown={handleTerminalDragStart}
+            >
+              <div className="mx-auto mt-1 rounded-full transition-colors group-hover:bg-pink-500/60"
+                style={{ width: '40px', height: '3px', background: 'rgba(100,116,139,0.4)' }} />
+            </div>
+          )}
+
           {/* Terminal Header with progress summary */}
           <div 
-            className="flex items-center justify-between px-4 py-2 cursor-pointer select-none"
-            style={{ borderBottom: '1px solid #334155', background: 'rgba(0,0,0,0.3)' }}
+            className="flex items-center justify-between px-4 py-1.5 cursor-pointer select-none flex-shrink-0"
+            style={{ borderBottom: '1px solid #1e293b', background: 'rgba(0,0,0,0.3)' }}
             onClick={() => setTerminalCollapsed(c => !c)}
           >
             <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -4254,7 +4418,6 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                       : `Done — ${taskProgress.passedCommands} passed${taskProgress.failedCommands > 0 ? `, ${taskProgress.failedCommands} failed` : ''}`
                     }
                   </span>
-                  {/* Mini progress bar */}
                   <div className="h-1.5 flex-1 max-w-[120px] rounded-full overflow-hidden flex-shrink-0" style={{ background: '#1e293b' }}>
                     <div 
                       className="h-full rounded-full transition-all duration-300"
@@ -4271,6 +4434,18 @@ Be concise and actionable. Focus on fixing the immediate problem.`
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const text = terminalOutput.map(l => l.text).join('\n')
+                  navigator.clipboard.writeText(text)
+                  toast.success('Terminal output copied')
+                }}
+                className="px-2 py-0.5 rounded text-xs text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                title="Copy all terminal output"
+              >
+                Copy
+              </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setTerminalCollapsed(c => !c) }}
                 className="px-2 py-0.5 rounded text-xs text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
@@ -4294,34 +4469,31 @@ Be concise and actionable. Focus on fixing the immediate problem.`
 
           {/* Collapsed: show last few status lines only */}
           {terminalCollapsed ? (
-            <div className="px-4 py-2 font-mono text-xs overflow-hidden" style={{ background: '#0c0c0c' }}>
+            <div className="px-4 py-2 font-mono text-xs overflow-hidden" style={{ background: '#0c0c0c', userSelect: 'text' }}>
               {terminalOutput.length === 0 ? (
                 <span className="text-slate-500">Waiting for commands...</span>
               ) : (
-                terminalOutput
-                  .filter(l => l.type === 'command' || l.type === 'success' || l.type === 'error' || l.type === 'info')
-                  .slice(-COLLAPSED_VISIBLE_LINES)
-                  .map((line, i) => (
-                    <div 
-                      key={i}
-                      className={`truncate ${
-                        line.type === 'command' ? 'text-cyan-400' :
-                        line.type === 'success' ? 'text-green-500' :
-                        line.type === 'error' ? 'text-red-500' :
-                        'text-blue-400'
-                      }`}
-                    >
-                      {line.text}
-                    </div>
-                  ))
+                collapsedTerminalLines.map((line, i) => (
+                  <div 
+                    key={i}
+                    className={`truncate ${
+                      line.type === 'command' ? 'text-cyan-400' :
+                      line.type === 'success' ? 'text-green-500' :
+                      line.type === 'error' ? 'text-red-500' :
+                      'text-blue-400'
+                    }`}
+                  >
+                    {line.text}
+                  </div>
+                ))
               )}
             </div>
           ) : (
-            /* Expanded: full scrollable output */
+            /* Expanded: full scrollable output with text selection enabled */
             <div 
               id="terminal-output"
-              className="overflow-y-auto p-4 font-mono text-sm"
-              style={{ background: '#0c0c0c', height: 'calc(100% - 40px)' }}
+              className="overflow-y-auto p-4 font-mono text-sm flex-1 min-h-0"
+              style={{ background: '#0c0c0c', userSelect: 'text' }}
             >
               {terminalOutput.length === 0 ? (
                 <div className="text-slate-500 text-center py-8">
@@ -4340,6 +4512,7 @@ Be concise and actionable. Focus on fixing the immediate problem.`
                       line.type === 'error' ? 'text-red-500 font-bold' :
                       'text-slate-300'
                     }`}
+                    style={{ userSelect: 'text' }}
                   >
                     {line.text}
                   </div>
@@ -4440,9 +4613,18 @@ Be concise and actionable. Focus on fixing the immediate problem.`
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         threadId={activeThreadId || 'temp-' + Date.now()}
-        threadTitle={messages.length > 0 ? messages[0].content.slice(0, 50) + (messages[0].content.length > 50 ? '...' : '') : undefined}
+        threadTitle={messages.length > 0 && messages[0].content ? messages[0].content.slice(0, 50) + (messages[0].content.length > 50 ? '...' : '') : undefined}
         messageCount={messages.length}
         messages={messages.map(({ role, content }) => ({ role, content }))}
+      />
+
+      {/* Interview Mode Panel */}
+      <InterviewPanel
+        isOpen={showInterviewMode}
+        onClose={() => setShowInterviewMode(false)}
+        apiKey={apiKey}
+        apiUrl={AIBUDDY_API_INFERENCE_URL}
+        appVersion={appVersion || 'unknown'}
       />
     </div>
   )

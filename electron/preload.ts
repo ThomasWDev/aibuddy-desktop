@@ -140,6 +140,10 @@ export interface ElectronAPI {
     // Generic workspace data
     getData: (workspacePath: string, key: string) => Promise<unknown>
     setData: (workspacePath: string, key: string, value: unknown) => Promise<boolean>
+    // Project rules (.aibuddy/rules/ in project directory)
+    getProjectRules: (workspacePath: string) => Promise<Array<{ filename: string; description?: string; alwaysApply?: boolean; content: string; builtin?: boolean }>>
+    saveProjectRule: (workspacePath: string, filename: string, content: string) => Promise<boolean>
+    deleteProjectRule: (workspacePath: string, filename: string) => Promise<boolean>
   }
 
   // Generic invoke for backwards compatibility
@@ -338,6 +342,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     appendFix: (workspacePath: string, fix: string) => ipcRenderer.invoke('workspace:appendFix', workspacePath, fix),
     getData: (workspacePath: string, key: string) => ipcRenderer.invoke('workspace:getData', workspacePath, key),
     setData: (workspacePath: string, key: string, value: unknown) => ipcRenderer.invoke('workspace:setData', workspacePath, key, value),
+    getProjectRules: (workspacePath: string) => ipcRenderer.invoke('workspace:getProjectRules', workspacePath),
+    saveProjectRule: (workspacePath: string, filename: string, content: string) => ipcRenderer.invoke('workspace:saveProjectRule', workspacePath, filename, content),
+    deleteProjectRule: (workspacePath: string, filename: string) => ipcRenderer.invoke('workspace:deleteProjectRule', workspacePath, filename),
   },
 
   // Generic invoke for backwards compatibility

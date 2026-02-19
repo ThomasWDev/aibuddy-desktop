@@ -1,13 +1,20 @@
+# ⚠️ REFERENCE ONLY — This file is NOT used by electron-builder.
+# The active config is in package.json under the "build" key.
+# electron-builder only auto-discovers YAML configs in the project root,
+# not in subdirectories like build/.
+
 appId: com.aibuddy.desktop
 productName: AIBuddy
 copyright: Copyright © 2026 AIBuddy Studio
+
+afterPack: build/afterPack.js
 
 directories:
   output: release
   buildResources: build
 
 files:
-  - dist/**/*
+  - out/**/*
   - package.json
 
 extraResources:
@@ -47,6 +54,22 @@ mac:
     - target: zip
       arch:
         - x64
+        - arm64
+
+mas:
+  category: public.app-category.developer-tools
+  identity: "AI Buddy Inc (Apps) (S2237D23CB)"
+  type: distribution
+  hardenedRuntime: false
+  provisioningProfile: build/embedded.provisionprofile
+  entitlements: build/entitlements.mas.plist
+  entitlementsInherit: build/entitlements.mas.inherit.plist
+  minimumSystemVersion: "12.0"
+  extendInfo:
+    LSMinimumSystemVersion: "12.0"
+  target:
+    - target: mas
+      arch:
         - arm64
 
 dmg:

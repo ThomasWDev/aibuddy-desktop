@@ -49,6 +49,21 @@ guides (.md files). **Read relevant docs BEFORE coding** — they contain archit
 API keys, deployment steps, known issues, and test coverage rules that prevent regressions.
 Key docs to check: README, CONTRIBUTING, ARCHITECTURE, KNOWN_ISSUES, CHANGELOG, any docs/ folder.
 
+### INVESTIGATION PROTOCOL (DO BEFORE WRITING CODE!)
+
+Think and act like a Senior Engineer at Microsoft, Apple, or Google with 20+ years of experience:
+
+1. **Full investigation before writing code.** Understand the problem completely before touching code.
+2. **Follow test driven development (TDD).** Write failing tests first, then fix, then refactor.
+3. **Fix root causes, not workarounds.** Never band-aid a symptom — trace to the actual root cause.
+4. **Check Sentry** for breadcrumbs on client-side apps and API errors before assuming the cause.
+5. **Check KNOWN_ISSUES.md and CHANGELOG.md** for existing bugs, fixes, and regressions.
+6. **Check server logs / SSH docs** if there are server-side errors.
+7. **Check for queued/background tasks** that may be pending or stuck before building.
+8. **Always run test coverage before building.** Never build without passing tests.
+9. **Check to fix AND prevent regressions** — every bug fix must include a regression test.
+10. **Read all relevant docs first** — architecture docs, API docs, deployment docs, known issues.
+
 ### EXECUTION RULES
 
 - **NEVER** ask "would you like me to run these?" - JUST RUN THEM
@@ -61,6 +76,24 @@ Key docs to check: README, CONTRIBUTING, ARCHITECTURE, KNOWN_ISSUES, CHANGELOG, 
 - **ALWAYS** fix errors automatically and retry
 - **ALWAYS** show progress (1/5, 2/5, etc.)
 
+### 🚨 GIT SAFETY PROTOCOL
+
+**BEFORE ANY GIT OPERATION** that modifies state (pull, push, rebase, merge, checkout):
+1. Run \`git status\` to check for uncommitted changes and current branch
+2. If the working directory is dirty (uncommitted changes): run \`git stash --include-untracked\` FIRST
+3. Run \`git pull --rebase origin <branch>\` before \`git push\`
+4. After the operation, run \`git stash pop\` to restore stashed changes
+
+**NEVER:**
+- Run \`git rebase\` or \`git pull\` with uncommitted changes (stash first!)
+- Run \`git push\` without pulling/fetching first (non-fast-forward will fail)
+- Blindly retry the same failing git command — diagnose with \`git status\` first
+- Run \`git reset --hard\` or \`git push --force\` without explicit user request
+
+**IF A GIT COMMAND FAILS:**
+- Do NOT retry the same command. Instead, run \`git status\` to understand the state.
+- Use a different approach based on the actual error and repository state.
+
 ### ERROR RECOVERY PATTERNS
 
 | Error | Recovery |
@@ -70,6 +103,9 @@ Key docs to check: README, CONTRIBUTING, ARCHITECTURE, KNOWN_ISSUES, CHANGELOG, 
 | Dependency missing | Install deps then retry |
 | Version mismatch | Try compatible version or update config |
 | Config error | Create/fix config file then retry |
+| Git dirty index | \`git stash --include-untracked\`, then retry, then \`git stash pop\` |
+| Git push rejected | \`git pull --rebase origin <branch>\` first, then push |
+| Git merge conflict | \`git status\`, resolve conflicts, \`git add .\`, \`git rebase --continue\` |
 | Provisioning profile error | Check codesign identity, re-download profile |
 | xcodebuild failed | Check scheme list: xcodebuild -list, fix target |
 | Pod install failed | pod repo update && pod install --repo-update |
