@@ -62,20 +62,19 @@ describe('Desktop Version Checker', () => {
 
   describe('isVersionOutdated', () => {
     it('should identify versions below minimum as outdated', () => {
-      expect(isVersionOutdated('1.4.29')).toBe(true)
-      expect(isVersionOutdated('1.4.0')).toBe(true)
+      expect(isVersionOutdated('1.5.57')).toBe(true)
+      expect(isVersionOutdated('1.4.30')).toBe(true)
       expect(isVersionOutdated('1.3.99')).toBe(true)
     })
 
     it('should not flag current or newer versions as outdated', () => {
-      expect(isVersionOutdated('1.4.30')).toBe(false)
-      expect(isVersionOutdated('1.4.31')).toBe(false)
-      expect(isVersionOutdated('1.5.0')).toBe(false)
+      expect(isVersionOutdated('1.5.58')).toBe(false)
+      expect(isVersionOutdated('1.5.67')).toBe(false)
       expect(isVersionOutdated('2.0.0')).toBe(false)
     })
 
     it('should use correct minimum supported version', () => {
-      expect(MINIMUM_SUPPORTED_VERSION).toBe('1.4.30')
+      expect(MINIMUM_SUPPORTED_VERSION).toBe('1.5.58')
     })
   })
 

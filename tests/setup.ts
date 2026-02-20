@@ -3,6 +3,20 @@ import { vi } from 'vitest'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 
+vi.mock('electron', () => ({
+  ipcMain: {
+    handle: vi.fn(),
+    removeHandler: vi.fn(),
+    on: vi.fn(),
+  },
+  app: {
+    getPath: vi.fn().mockReturnValue('/tmp'),
+    getVersion: vi.fn().mockReturnValue('1.5.67'),
+  },
+  BrowserWindow: vi.fn(),
+  shell: { openExternal: vi.fn() },
+}))
+
 const pkg = JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 'utf-8'))
 
 // Mock scrollIntoView which is not available in jsdom

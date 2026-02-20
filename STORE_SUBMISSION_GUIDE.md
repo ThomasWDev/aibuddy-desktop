@@ -42,12 +42,31 @@ This guide covers submitting AIBuddy Desktop to:
    - Bundle ID: `com.aibuddy.desktop`
    - Enable capabilities: (none required for basic app)
 
-4. **Create Provisioning Profile**:
+4. **Create Provisioning Profile (main app)**:
    - Go to Profiles → **+**
    - Select **Mac App Store**
-   - Select your App ID
+   - Select your App ID (`com.aibuddy.desktop`)
    - Select your Distribution Certificate
    - Download and save as `build/embedded.provisionprofile`
+
+5. **Create Provisioning Profile (Electron helpers — fixes ITMS-90885)**:
+
+   Electron apps have 5 nested helper `.app` bundles that each need their own
+   provisioning profile for TestFlight. Use the automated script:
+
+   ```bash
+   cd /Users/thomaswoodfin/Documents/GitHub/AICodingVS/aibuddy-desktop
+   ./scripts/create-helper-profile.sh
+   ```
+
+   This registers a wildcard App ID (`com.aibuddy.desktop.*`) and creates a
+   provisioning profile covering all helpers. Saves to `build/embedded-helpers.provisionprofile`.
+
+   If the script prerequisites aren't installed: `pip3 install PyJWT cryptography requests`
+
+   Or manually:
+   - Register wildcard App ID: `com.aibuddy.desktop.*` (Identifiers → **+** → App IDs → Wildcard)
+   - Create Mac App Store profile for that wildcard → save as `build/embedded-helpers.provisionprofile`
 
 ### Step 3: Build for Mac App Store
 
@@ -58,10 +77,11 @@ cd /Users/thomaswoodfin/Documents/GitHub/AICodingVS/aibuddy-desktop
 pnpm build
 
 # Package for Mac App Store (creates .pkg file)
-pnpm package:mas
+# MAS_BUILD=true ensures afterPack.js embeds helper provisioning profiles
+MAS_BUILD=true pnpm package:mas
 ```
 
-Output will be in: `release/mas/AIBuddy-1.0.0.pkg`
+Output will be in: `release/mas-arm64/AIBuddy-{VERSION}.pkg`
 
 ### Step 4: Upload to App Store Connect
 
@@ -286,18 +306,27 @@ WIN_CSC_KEY_PASSWORD=certificate-password
 ### Mac App Store
 - [x] Code signing with Developer ID Application (notarized) ✅
 - [x] 3rd Party Mac Developer Application cert installed ✅
-- [x] MAS config in package.json (identity, entitlements) ✅
+- [x] 3rd Party Mac Developer Installer cert installed ✅
+- [x] MAS config in package.json and electron-builder.yml ✅
 - [x] MAS entitlements (sandbox, network, file access) ✅
 - [x] Notarization credentials stored in Keychain ✅
 - [x] App ID `com.aibuddy.desktop` registered with Apple ✅
+- [x] Wildcard App ID `com.aibuddy.desktop.*` registered (for helpers) ✅
+- [x] Main provisioning profile → `build/embedded.provisionprofile` ✅
+- [x] Helper provisioning profile → `build/embedded-helpers.provisionprofile` ✅
+- [x] `afterPack.js` embeds helper profiles automatically ✅
+- [x] CI secrets set (`MAS_PROVISION_PROFILE`, `MAS_HELPERS_PROVISION_PROFILE`) ✅
 - [x] App Store metadata prepared (`metadata/en-US/`) ✅
-- [ ] Create Mac Installer Distribution cert (see `metadata/APP_STORE_SUBMISSION_CHECKLIST.md`)
-- [ ] Create provisioning profile → save to `build/embedded.provisionprofile`
-- [ ] Run `./scripts/complete-mas-setup.sh`
+- [x] App created in App Store Connect (Buddy Vibe Coding, ID: 6759168007) ✅
+- [x] Upload to TestFlight via `xcrun altool` or CI ✅
 - [ ] Take screenshots (1280x800 minimum)
-- [ ] Create app in App Store Connect
-- [ ] Upload via Transporter
-- [ ] Submit for review
+- [ ] Submit for App Store review
+
+### Troubleshooting MAS Builds
+- **ITMS-90885 error**: Helper bundles missing provisioning profiles. Run
+  `./scripts/create-helper-profile.sh` and rebuild with `MAS_BUILD=true pnpm package:mas`
+- **Profile expired**: Re-run `./scripts/create-helper-profile.sh` and update CI secret
+- **Verify helpers have profiles**: See `docs/SIGNING_GUIDE.md` → "Verify Profiles Are Embedded"
 
 ### Microsoft Store
 - [ ] Create app in Partner Center

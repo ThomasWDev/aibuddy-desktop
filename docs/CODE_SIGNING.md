@@ -268,27 +268,75 @@ base64 -i certificate.p12 | pbcopy
 
 | File | Purpose |
 |------|---------|
-| `build/electron-builder.yml` | Main build config |
-| `build/entitlements.mac.plist` | macOS entitlements (DMG) |
-| `build/entitlements.mas.plist` | Mac App Store entitlements |
-| `build/entitlements.mas.inherit.plist` | MAS child process entitlements |
+| `build/electron-builder.yml` | Main build config (DMG + MAS targets) |
+| `build/entitlements.mac.plist` | macOS entitlements for Developer ID (DMG) distribution |
+| `build/entitlements.mas.plist` | Mac App Store entitlements (sandbox + team/app IDs) |
+| `build/entitlements.mas.inherit.plist` | MAS child process entitlements (sandbox inherit) |
+| `build/afterPack.js` | Post-pack hook: cleans xattrs + embeds helper provisioning profiles |
+| `build/embedded.provisionprofile` | MAS provisioning profile for main app (gitignored) |
+| `build/embedded-helpers.provisionprofile` | Wildcard provisioning profile for helper bundles (gitignored) |
+| `build/sign-app.sh` | Manual signing script for app components |
+
+### Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/create-helper-profile.sh` | Regenerate wildcard provisioning profile for helpers (fixes ITMS-90885) |
+| `scripts/upload-testflight.sh` | Build MAS .pkg and upload to TestFlight |
+| `scripts/build-signed.sh` | Build signed DMGs with optional notarization |
+| `scripts/setup-mas-profile.sh` | Validate MAS provisioning profile setup |
+| `scripts/complete-mas-setup.sh` | Full MAS setup verification |
+
+---
+
+## 🔧 ITMS-90885 Fix — Electron Helper Provisioning
+
+Electron apps have nested helper `.app` bundles (GPU, Plugin, Renderer, Helper,
+Login Helper) that Apple requires to each have their own `embedded.provisionprofile`
+for TestFlight / Mac App Store distribution.
+
+**Solution:** A wildcard App ID `com.aibuddy.desktop.*` covers all helper bundle
+IDs. The provisioning profile is embedded by `build/afterPack.js` during MAS builds.
+
+**To regenerate if profile expires:**
+```bash
+./scripts/create-helper-profile.sh
+base64 -i build/embedded-helpers.provisionprofile | \
+  gh secret set MAS_HELPERS_PROVISION_PROFILE --repo Thomas-Woodfin/AICodingVS
+```
+
+See `docs/SIGNING_GUIDE.md` → "ITMS-90885 Fix" for full details.
 
 ---
 
 ## ✅ Signing Checklist
 
-### For Local Signing:
-- [ ] Certificate in Keychain Access
+### For Local Signing (DMG):
+- [ ] `Developer ID Application` certificate in Keychain Access
 - [ ] Private key accessible (not locked)
 - [ ] `CSC_NAME` or `identity` configured correctly
-- [ ] Entitlements files exist
+- [ ] Entitlements file `build/entitlements.mac.plist` exists
 
 ### For Notarization:
 - [ ] Apple Developer account active
 - [ ] App-specific password generated
 - [ ] Using "Developer ID Application" certificate
 - [ ] `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` set
-- [ ] `notarize: true` or `notarize: { teamId: "..." }` in config
+- [ ] `notarize: { teamId: "S2237D23CB" }` in config
+
+### For Mac App Store / TestFlight:
+- [ ] `3rd Party Mac Developer Application` cert in Keychain
+- [ ] `3rd Party Mac Developer Installer` cert in Keychain
+- [ ] `build/embedded.provisionprofile` exists (main app)
+- [ ] `build/embedded-helpers.provisionprofile` exists (helper wildcard)
+- [ ] Build with `MAS_BUILD=true pnpm package:mas`
+- [ ] Verify all 5 helpers have profiles (see SIGNING_GUIDE.md)
+
+### For CI/CD:
+- [ ] `MAS_PROVISION_PROFILE` secret set in GitHub
+- [ ] `MAS_HELPERS_PROVISION_PROFILE` secret set in GitHub
+- [ ] `MAC_CERTS_BASE64` secret contains all 3 certs (Developer ID + 3rd Party App + Installer)
+- [ ] See `docs/CI_CD_SECRETS_REFERENCE.md` for all secrets
 
 ### For Windows:
 - [ ] EV or OV code signing certificate

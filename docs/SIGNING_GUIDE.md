@@ -53,8 +53,8 @@ AWS Signer only supports Lambda and IoT code signing, NOT desktop applications (
 
 ---
 
-**Last Updated:** January 29, 2026  
-**Current Version:** 1.4.33
+**Last Updated:** January 28, 2026  
+**Current Version:** 1.5.63
 
 ---
 
@@ -400,6 +400,133 @@ cd aibuddy-desktop
 ### Electron
 - [electron-builder Code Signing](https://www.electron.build/code-signing)
 - [electron-builder Configuration](https://www.electron.build/configuration/configuration)
+
+---
+
+## Mac App Store (MAS) / TestFlight Signing
+
+### ITMS-90885 Fix — Helper Provisioning Profiles
+
+Electron apps contain nested helper `.app` bundles that Apple requires to each
+have their own `embedded.provisionprofile` for TestFlight and Mac App Store.
+Without this, you get ITMS-90885 errors after upload.
+
+**Affected helpers (inside `AIBuddy.app`):**
+
+| Helper Bundle | Bundle ID | Location |
+|---------------|-----------|----------|
+| AIBuddy Helper | `com.aibuddy.desktop.helper` | `Contents/Frameworks/` |
+| AIBuddy Helper (GPU) | `com.aibuddy.desktop.helper.GPU` | `Contents/Frameworks/` |
+| AIBuddy Helper (Plugin) | `com.aibuddy.desktop.helper.Plugin` | `Contents/Frameworks/` |
+| AIBuddy Helper (Renderer) | `com.aibuddy.desktop.helper.Renderer` | `Contents/Frameworks/` |
+| AIBuddy Login Helper | `com.aibuddy.desktop.loginhelper` | `Contents/Library/LoginItems/` |
+
+### How It Works
+
+1. A **wildcard App ID** `com.aibuddy.desktop.*` is registered in Apple Developer Portal
+   (Apple resource ID: `AZB8369VSX`)
+2. A **Mac App Store Distribution provisioning profile** is created for that wildcard
+   (Apple profile ID: `283CXD9R74`, name: "AIBuddy Desktop Helpers MAS Distribution")
+3. The profile is saved to `build/embedded-helpers.provisionprofile`
+4. **`build/afterPack.js`** automatically copies this profile into each helper's
+   `Contents/embedded.provisionprofile` during MAS builds
+5. MAS detection: the hook checks `appOutDir` path (contains `mas-`),
+   CLI args (contains `mas`), or `MAS_BUILD=true` env var
+
+### Provisioning Profile Files
+
+| File | App ID | Purpose |
+|------|--------|---------|
+| `build/embedded.provisionprofile` | `S2237D23CB.com.aibuddy.desktop` | Main app bundle |
+| `build/embedded-helpers.provisionprofile` | `S2237D23CB.com.aibuddy.desktop.*` | All 5 helper bundles |
+
+Both files are **gitignored**. In CI, they are decoded from GitHub secrets
+(`MAS_PROVISION_PROFILE` and `MAS_HELPERS_PROVISION_PROFILE`).
+
+### Regenerating the Helper Profile (if expired)
+
+```bash
+cd aibuddy-desktop
+
+# Run the automated script (uses App Store Connect API)
+./scripts/create-helper-profile.sh
+
+# Then update the CI secret
+base64 -i build/embedded-helpers.provisionprofile | \
+  gh secret set MAS_HELPERS_PROVISION_PROFILE --repo Thomas-Woodfin/AICodingVS
+```
+
+**Prerequisites for the script:**
+```bash
+pip3 install PyJWT cryptography requests
+```
+
+The script (`scripts/create-helper-profile.sh`) uses the App Store Connect API
+(key at `~/.private_keys/AuthKey_WL4HMQYALA.p8`) to:
+1. Register `com.aibuddy.desktop.*` wildcard App ID (idempotent — skips if exists)
+2. Find the MAS distribution certificate
+3. Create or reuse the provisioning profile
+4. Save to `build/embedded-helpers.provisionprofile`
+5. Verify the profile content
+
+### MAS Build Process (local)
+
+```bash
+cd aibuddy-desktop
+pnpm build
+MAS_BUILD=true pnpm package:mas
+# afterPack.js embeds profiles in all helpers automatically
+```
+
+### MAS Build Process (CI)
+
+The CI workflow (`release-on-master.yml`) handles this automatically:
+1. Decodes both provisioning profiles from secrets
+2. Writes them to `build/embedded.provisionprofile` and `build/embedded-helpers.provisionprofile`
+3. Runs `pnpm package:mas` with `MAS_BUILD=true`
+4. `afterPack.js` embeds the helper profile in all 5 helpers
+5. Verifies each helper has a profile before proceeding
+
+### Verify Profiles Are Embedded
+
+After a MAS build, check all helpers:
+```bash
+for helper in \
+  "release/mas-arm64/AIBuddy.app/Contents/Frameworks/AIBuddy Helper.app" \
+  "release/mas-arm64/AIBuddy.app/Contents/Frameworks/AIBuddy Helper (GPU).app" \
+  "release/mas-arm64/AIBuddy.app/Contents/Frameworks/AIBuddy Helper (Plugin).app" \
+  "release/mas-arm64/AIBuddy.app/Contents/Frameworks/AIBuddy Helper (Renderer).app" \
+  "release/mas-arm64/AIBuddy.app/Contents/Library/LoginItems/AIBuddy Login Helper.app"; do
+  if [ -f "$helper/Contents/embedded.provisionprofile" ]; then
+    echo "✓ $(basename "$helper")"
+  else
+    echo "✗ $(basename "$helper") MISSING"
+  fi
+done
+```
+
+### Entitlements Files
+
+| File | Used For | Key Entitlements |
+|------|----------|------------------|
+| `build/entitlements.mac.plist` | Developer ID (DMG) distribution | JIT, network, file access, microphone |
+| `build/entitlements.mas.plist` | MAS main app | Sandbox + network + file access + team/app IDs |
+| `build/entitlements.mas.inherit.plist` | MAS helper processes | Sandbox inherit from parent |
+
+---
+
+## Scripts Reference
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `scripts/create-helper-profile.sh` | Create/regenerate wildcard provisioning profile for helpers | `./scripts/create-helper-profile.sh` |
+| `scripts/upload-testflight.sh` | Build MAS .pkg and upload to TestFlight | `./scripts/upload-testflight.sh` |
+| `scripts/upload-testflight.sh --setup` | Store Apple ID credentials in Keychain | `./scripts/upload-testflight.sh --setup` |
+| `scripts/build-signed.sh` | Build signed DMGs (Developer ID) | `./scripts/build-signed.sh` |
+| `scripts/setup-mas-profile.sh` | Validate MAS profile setup | `./scripts/setup-mas-profile.sh` |
+| `scripts/complete-mas-setup.sh` | Full MAS setup verification | `./scripts/complete-mas-setup.sh` |
+| `build/afterPack.js` | Clean xattrs + embed helper provisioning profiles | Runs automatically during `electron-builder` |
+| `build/sign-app.sh` | Manual signing of app components | `./build/sign-app.sh` |
 
 ---
 

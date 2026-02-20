@@ -29,7 +29,7 @@ describe('v1.5.65 — Interview Mode', () => {
   it('InterviewPanel is rendered with required props', () => {
     expect(appContent).toContain('<InterviewPanel')
     expect(appContent).toContain('isOpen={showInterviewMode}')
-    expect(appContent).toContain('apiKey={apiKey}')
+    expect(appContent).toContain("apiKey={apiKey || ''}")
     expect(appContent).toContain('apiUrl={AIBUDDY_API_INFERENCE_URL}')
   })
 
