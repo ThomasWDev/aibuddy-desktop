@@ -9,21 +9,25 @@
 
 export {
   AutoModeManager,
+  getAutoModeManager,
+  resetAutoModeManager
+} from './auto-mode-manager'
+export type {
   AutoModeLevel,
   AutoModeConfig,
   CommandSafetyResult,
-  getAutoModeManager,
-  resetAutoModeManager
 } from './auto-mode-manager'
 
 export {
   SmartAgent,
+  getSmartAgent,
+  resetSmartAgent
+} from './smart-agent'
+export type {
   FileInfo,
   ProjectAnalysis,
   CodeBlock,
   ExecutionPlan,
   ExecutionStep,
-  getSmartAgent,
-  resetSmartAgent
 } from './smart-agent'
 

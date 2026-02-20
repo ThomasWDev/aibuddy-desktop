@@ -2329,6 +2329,8 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         temperature: 0.7,
       }
 
+      let serializedBody = JSON.stringify(requestBody)
+
       try {
         toast.info(`🚀 Sending to AI...`)
         const controller = new AbortController()
@@ -2343,7 +2345,6 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         const preProcessMs = fetchStartTime - startTime
         console.log(`[Perf] Pre-processing took ${preProcessMs}ms`)
         
-        let serializedBody = JSON.stringify(requestBody)
         let payloadSize = new Blob([serializedBody]).size
         console.log(`[Perf] Request payload size: ${(payloadSize / 1024 / 1024).toFixed(2)}MB`)
 
@@ -4622,7 +4623,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       <InterviewPanel
         isOpen={showInterviewMode}
         onClose={() => setShowInterviewMode(false)}
-        apiKey={apiKey}
+        apiKey={apiKey || ''}
         apiUrl={AIBUDDY_API_INFERENCE_URL}
         appVersion={appVersion || 'unknown'}
       />

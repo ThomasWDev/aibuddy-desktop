@@ -9,6 +9,11 @@
 
 export {
   WebResearchService,
+  getWebResearchService,
+  resetWebResearchService,
+  parseWebCommand,
+} from './web-research'
+export type {
   TavilySearchOptions,
   TavilySearchResult,
   TavilySearchResponse,
@@ -18,9 +23,6 @@ export {
   TavilyCrawlOptions,
   TavilyCrawlResult,
   TavilyCrawlResponse,
-  getWebResearchService,
-  resetWebResearchService,
-  parseWebCommand,
 } from './web-research'
 
 export {

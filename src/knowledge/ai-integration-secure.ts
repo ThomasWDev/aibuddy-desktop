@@ -174,7 +174,7 @@ ${safeDescriptions.join('\n\n')}
   }
 
   private getProviderEmoji(type: CloudProviderType): string {
-    const emojis: Record<CloudProviderType, string> = {
+    const emojis: Record<string, string> = {
       aws: '🔶',
       digitalocean: '🌊',
       gcp: '🔵',
@@ -193,7 +193,7 @@ ${safeDescriptions.join('\n\n')}
   }
 
   private getProviderDisplayName(type: CloudProviderType): string {
-    const names: Record<CloudProviderType, string> = {
+    const names: Record<string, string> = {
       aws: 'Amazon Web Services',
       digitalocean: 'DigitalOcean',
       gcp: 'Google Cloud Platform',

@@ -384,13 +384,13 @@ export class AutoModeManager {
 
     switch (this.config.level) {
       case 'conservative':
-        return operation === 'read'
+        return false
 
       case 'balanced':
-        return operation === 'read' || operation === 'write'
+        return operation === 'write'
 
       case 'aggressive':
-        return true // Allow all file operations
+        return true
 
       default:
         return false

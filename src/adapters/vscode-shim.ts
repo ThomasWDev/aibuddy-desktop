@@ -7,8 +7,8 @@
 
 import { EventEmitter } from 'events'
 
-// Get the Electron API from the preload script
-const electronAPI = typeof window !== 'undefined' ? (window as any).electronAPI : null
+// Get the Electron API from the preload script (use globalThis to avoid shadowing by local 'window' object)
+const electronAPI = typeof globalThis !== 'undefined' && typeof (globalThis as any).window !== 'undefined' ? ((globalThis as any).window as any).electronAPI : null
 
 // ============================================================================
 // Types
@@ -655,7 +655,7 @@ const env = {
     if (electronAPI) {
       return electronAPI.shell.openExternal(target.toString())
     }
-    window.open(target.toString(), '_blank')
+    ;(globalThis as any).open(target.toString(), '_blank')
     return true
   },
 
