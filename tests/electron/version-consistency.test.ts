@@ -118,8 +118,7 @@ describe('Build Configuration', () => {
   })
 
   it('mac build should have notarize configuration', () => {
-    expect(pkg.build?.mac?.notarize).toBeDefined()
-    expect(pkg.build?.mac?.notarize?.teamId).toBe('S2237D23CB')
+    expect(pkg.build?.mac?.notarize).toBe(true)
   })
 
   it('mac build should have entitlements configured', () => {
