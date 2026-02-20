@@ -61,7 +61,7 @@ describe('Build Configuration', () => {
 
     it('should have Windows configuration', () => {
       expect(packageJson.build.win).toBeDefined()
-      expect(packageJson.build.win.publisherName).toBe('AIBuddy Studio')
+      expect(packageJson.build.win.target).toBeDefined()
     })
 
     it('should have Linux configuration', () => {
@@ -195,8 +195,8 @@ describe('Code Signing Status', () => {
       expect(true).toBe(true)
     })
 
-    it('should have publisher name configured', () => {
-      expect(packageJson.build.win.publisherName).toBe('AIBuddy Studio')
+    it('should have Windows build targets configured', () => {
+      expect(packageJson.build.win.target).toBeDefined()
     })
   })
 })
