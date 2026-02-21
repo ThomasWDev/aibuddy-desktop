@@ -18,6 +18,10 @@ const HELPER_BUNDLES = [
 	"Contents/Library/LoginItems/AIBuddy Login Helper.app",
 ]
 
+exports.XATTR_NAMES = XATTR_NAMES
+exports.HELPER_BUNDLES = HELPER_BUNDLES
+
+exports.walkSync = walkSync
 function walkSync(dir) {
 	const results = [dir]
 	try {
@@ -37,6 +41,7 @@ function walkSync(dir) {
 	return results
 }
 
+exports.embedHelperProfiles = embedHelperProfiles
 function embedHelperProfiles(appPath, buildDir) {
 	const isMAS = appPath.includes("mas-")
 		|| process.argv.some(a => a.includes("mas"))
@@ -86,6 +91,22 @@ function embedHelperProfiles(appPath, buildDir) {
 	console.log(`Embedded provisioning profile in ${embedded} helper bundle(s)`)
 }
 
+exports.stripQuarantine = stripQuarantine
+function stripQuarantine(filePath) {
+	for (const attr of XATTR_NAMES) {
+		try {
+			execSync(`xattr -d "${attr}" "${filePath}"`, { stdio: "pipe" })
+		} catch (_) {}
+	}
+}
+
+exports.stripQuarantineRecursive = stripQuarantineRecursive
+function stripQuarantineRecursive(dir) {
+	try {
+		execSync(`xattr -cr "${dir}"`, { stdio: "pipe" })
+	} catch (_) {}
+}
+
 exports.default = async function afterPack(context) {
 	const appOutDir = context.appOutDir
 	const appPath = path.join(appOutDir, `${context.packager.appInfo.productFilename}.app`)
@@ -93,7 +114,20 @@ exports.default = async function afterPack(context) {
 
 	console.log(`afterPack: ${appPath}`)
 
-	// Phase 1 — Clean resource forks & extended attributes
+	// Phase 0 — Strip quarantine from SOURCE provisioning profiles in build/
+	// This prevents electron-builder from copying quarantined files into the bundle
+	const sourceProfiles = [
+		path.join(buildDir, "embedded.provisionprofile"),
+		path.join(buildDir, "embedded-helpers.provisionprofile"),
+	]
+	for (const p of sourceProfiles) {
+		if (fs.existsSync(p)) {
+			stripQuarantine(p)
+			console.log(`Stripped xattrs from source: ${path.basename(p)}`)
+		}
+	}
+
+	// Phase 1 — Clean resource forks & extended attributes from entire .app
 	let cleaned = 0
 	const allPaths = walkSync(appPath)
 	for (const p of allPaths) {
@@ -106,20 +140,30 @@ exports.default = async function afterPack(context) {
 	}
 	console.log(`Removed ${cleaned} extended attributes from ${allPaths.length} paths`)
 
-	try {
-		execSync(`xattr -cr "${appPath}"`, { stdio: "pipe" })
-	} catch (_) {}
-
-	const gpuHelper = path.join(appPath, "Contents/Frameworks/AIBuddy Helper (GPU).app")
-	try {
-		const remaining = execSync(`xattr -lr "${gpuHelper}" 2>&1`, { encoding: "utf-8" })
-		if (remaining.trim()) {
-			execSync(`xattr -cr "${gpuHelper}"`, { stdio: "pipe" })
-		}
-	} catch (_) {}
+	stripQuarantineRecursive(appPath)
 
 	// Phase 2 — Embed provisioning profiles in helper bundles (MAS only)
 	embedHelperProfiles(appPath, buildDir)
+
+	// Phase 3 — Final quarantine sweep on ALL provisioning profiles in the bundle
+	// Catches any profiles copied in Phase 2 or by electron-builder
+	const profilePaths = allPaths.filter(p => p.endsWith(".provisionprofile"))
+	for (const rel of HELPER_BUNDLES) {
+		const helperProfile = path.join(appPath, rel, "Contents", "embedded.provisionprofile")
+		if (fs.existsSync(helperProfile)) profilePaths.push(helperProfile)
+	}
+	const mainProfile = path.join(appPath, "Contents", "embedded.provisionprofile")
+	if (fs.existsSync(mainProfile)) profilePaths.push(mainProfile)
+
+	for (const p of profilePaths) {
+		stripQuarantine(p)
+	}
+	if (profilePaths.length > 0) {
+		console.log(`Phase 3: stripped xattrs from ${profilePaths.length} provisioning profile(s)`)
+	}
+
+	// Final recursive sweep of entire bundle
+	stripQuarantineRecursive(appPath)
 
 	console.log("afterPack complete — ready for signing")
 }
