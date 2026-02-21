@@ -23,6 +23,18 @@ export interface ElectronAPI {
     showItemInFolder: (path: string) => Promise<boolean>
   }
 
+  // KAN-59: Native clipboard (reliable fallback for navigator.clipboard)
+  clipboard: {
+    writeText: (text: string) => Promise<boolean>
+    readText: () => Promise<string>
+  }
+
+  // KAN-62: Microphone permission (macOS system-level)
+  microphone: {
+    getStatus: () => Promise<string>
+    requestAccess: () => Promise<boolean>
+  }
+
   // File system operations
   // KAN-7: readFile returns Buffer when no encoding, string when encoding is specified
   fs: {
@@ -191,6 +203,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
     showItemInFolder: (path: string) => ipcRenderer.invoke('shell:showItemInFolder', path)
+  },
+
+  // KAN-59: Native clipboard (reliable fallback for navigator.clipboard)
+  clipboard: {
+    writeText: (text: string) => ipcRenderer.invoke('clipboard:writeText', text),
+    readText: () => ipcRenderer.invoke('clipboard:readText')
+  },
+
+  // KAN-62: Microphone permission (macOS system-level)
+  microphone: {
+    getStatus: () => ipcRenderer.invoke('microphone:getStatus'),
+    requestAccess: () => ipcRenderer.invoke('microphone:requestAccess')
   },
 
   // File system operations

@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Twój Kumpel od Kodowania!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Cześć!",
+      "subtitle": "Jestem AIBuddy, Twój kumpel od kodowania!\nPowiedz mi, co chcesz zbudować!",
+      "typeWhat": "Wpisz, czego chcesz",
+      "illDoWork": "Ja wykonam pracę",
+      "watchCredits": "Obserwuj swoje kredyty"
+    },
+    "returningUser": {
+      "greeting": "Witaj ponownie!",
+      "subtitle": "Nad czym chciałbyś dziś popracować?",
+      "recentChats": "Ostatnie Czaty",
+      "viewAllHistory": "Zobacz całą historię"
+    }
+  },
+  "chat": {
+    "placeholder": "Co chcesz dziś zbudować?",
+    "placeholderImage": "Opisz, z czym potrzebujesz pomocy...",
+    "sendButton": "Wyślij",
+    "stopButton": "Zatrzymaj",
+    "newChat": "Nowy czat",
+    "cancelledRequest": "Żądanie anulowane",
+    "sending": "Wysyłanie do AI...",
+    "thinking": "Myślę...",
+    "copyResponse": "Kopiuj odpowiedź",
+    "regenerate": "Wygeneruj ponownie",
+    "goodResponse": "Dobra odpowiedź",
+    "poorResponse": "Słaba odpowiedź",
+    "copied": "Odpowiedź skopiowana",
+    "startedNewChat": "Rozpoczęto nowy czat",
+    "requestInProgress": "Żądanie w toku - naciśnij ponownie, aby wymusić nowy czat"
+  },
+  "actions": {
+    "debugCode": "Debuguj kod",
+    "quickFix": "Szybka poprawka",
+    "explain": "Wyjaśnij",
+    "refactor": "Refaktoryzuj",
+    "debugPrompt": "Pomóż mi zdebugować ten kod:",
+    "quickFixPrompt": "Napraw ten błąd:",
+    "explainPrompt": "Wyjaśnij ten kod:",
+    "refactorPrompt": "Zrefaktoryzuj ten kod, aby był czystszy:"
+  },
+  "header": {
+    "credits": "Kredyty: {{amount}}",
+    "buyCredits": "Kup Kredyty",
+    "new": "Nowy",
+    "openFolder": "Otwórz Folder",
+    "terminal": "Terminal",
+    "knowledge": "Baza Wiedzy",
+    "share": "Udostępnij",
+    "history": "Historia Czatów",
+    "key": "Klucz API",
+    "settings": "Ustawienia",
+    "interview": "Tryb Rozmowy Kwalifikacyjnej",
+    "moreActions": "Więcej działań"
+  },
+  "workspace": {
+    "workingIn": "Pracujesz w:",
+    "switch": "Zmień",
+    "openFolderFirst": "Proszę najpierw otworzyć ten folder przez Plik → Otwórz Folder"
+  },
+  "apiKey": {
+    "title": "Wymagany Klucz API",
+    "description": "Dodaj swój klucz API AIBuddy, aby rozpocząć czat z AI",
+    "addKey": "Dodaj Klucz",
+    "configured": "Klucz API skonfigurowany",
+    "notConfigured": "Dodaj swój klucz API",
+    "placeholder": "Wprowadź swój klucz API AIBuddy...",
+    "save": "Zapisz Klucz API",
+    "saved": "Zapisano!",
+    "securityNote": "Twój klucz API jest bezpiecznie przechowywany na Twoim urządzeniu",
+    "getKey": "Zdobądź go tutaj!"
+  },
+  "status": {
+    "ready": "Gotowy",
+    "loading": "Ładowanie...",
+    "validating": "Walidacja...",
+    "sending": "Wysyłanie...",
+    "thinking": "Myślę...",
+    "error": "Błąd"
+  },
+  "voice": {
+    "startDictation": "Rozpocznij dyktowanie głosowe",
+    "stopDictation": "Zatrzymaj dyktowanie",
+    "notAvailable": "Wejście głosowe niedostępne w tym środowisku"
+  },
+  "attachments": {
+    "attachImage": "Dołącz obraz",
+    "attachCode": "Dołącz plik z kodem",
+    "imageRemoved": "Obraz usunięty"
+  },
+  "historySidebar": {
+    "title": "Historia Czatów",
+    "newChat": "Nowy Czat",
+    "search": "Szukaj czatów...",
+    "loading": "Ładowanie...",
+    "noHistory": "Brak historii czatów",
+    "startNew": "Rozpocznij nowy czat, aby zacząć",
+    "pinned": "Przypięte",
+    "today": "Dzisiaj",
+    "yesterday": "Wczoraj",
+    "thisWeek": "Ten Tydzień",
+    "thisMonth": "Ten Miesiąc",
+    "older": "Starsze",
+    "messages": "wiadomości",
+    "deleteConfirm": "Usunąć ten wątek czatu?",
+    "pinChat": "Przypnij czat",
+    "unpinChat": "Odepnij czat",
+    "renameChat": "Zmień nazwę czatu",
+    "deleteChat": "Usuń czat",
+    "chatsSaved": "czatów zapisanych"
+  },
+  "interview": {
+    "typeQuestion": "Wpisz pytanie rekrutacyjne...",
+    "askAI": "Zapytaj AI",
+    "speechNotAvailable": "Rozpoznawanie mowy niedostępne. Użyj trybu \"Wpisz Pytanie\" zamiast tego.",
+    "noTranscript": "Brak transkrypcji",
+    "clickMic": "Kliknij przycisk mikrofonu, aby zacząć słuchać rozmowy kwalifikacyjnej",
+    "typeBelow": "Wpisz pytanie poniżej, aby uzyskać coaching od AI"
+  },
+  "usage": {
+    "title": "Twoje limity użytkowania",
+    "currentSession": "Bieżąca sesja",
+    "startsWhen": "Zaczyna się po wysłaniu wiadomości",
+    "allModels": "Wszystkie modele",
+    "premiumModels": "Modele premium",
+    "resetsIn": "Resetuje się za {{days}}d {{hours}}g",
+    "justNow": "właśnie teraz",
+    "secondsAgo": "{{seconds}}s temu",
+    "minutesAgo": "{{minutes}}m temu",
+    "resetting": "Resetowanie...",
+    "noPremiumYet": "Nie korzystałeś jeszcze z modeli premium",
+    "sessionUsage": "Użycie sesji"
+  },
+  "menu": {
+    "file": "Plik",
+    "openFolder": "Otwórz Folder...",
+    "openFile": "Otwórz Plik...",
+    "save": "Zapisz",
+    "saveAll": "Zapisz Wszystko",
+    "edit": "Edycja",
+    "view": "Widok",
+    "terminal": "Terminal",
+    "newTerminal": "Nowy Terminal",
+    "clearTerminal": "Wyczyść Terminal",
+    "ai": "AI",
+    "newChat": "Nowy Czat",
+    "toggleAI": "Przełącz Panel AI",
+    "settingsMenu": "Ustawienia...",
+    "help": "Pomoc",
+    "checkUpdates": "Sprawdź Aktualizacje...",
+    "documentation": "Dokumentacja",
+    "reportIssue": "Zgłoś Problem",
+    "about": "O AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Wybierz Swój Język",
+    "subtitle": "Wybierz preferowany język, aby rozpocząć",
+    "continue": "Kontynuuj",
+    "searchPlaceholder": "Szukaj języków..."
+  }
+}

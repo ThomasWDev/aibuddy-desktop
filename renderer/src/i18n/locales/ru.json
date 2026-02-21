@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Твой Друг-Программист!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Привет!",
+      "subtitle": "Я AIBuddy, твой друг-программист!\nРасскажи мне, что ты хочешь создать!",
+      "typeWhat": "Напиши, что ты хочешь",
+      "illDoWork": "Я сделаю работу",
+      "watchCredits": "Следи за своими кредитами"
+    },
+    "returningUser": {
+      "greeting": "С возвращением!",
+      "subtitle": "Над чем хочешь поработать сегодня?",
+      "recentChats": "Недавние Чаты",
+      "viewAllHistory": "Посмотреть всю историю"
+    }
+  },
+  "chat": {
+    "placeholder": "Что ты хочешь создать сегодня?",
+    "placeholderImage": "Опиши, с чем тебе нужна помощь...",
+    "sendButton": "Отправить",
+    "stopButton": "Стоп",
+    "newChat": "Новый чат",
+    "cancelledRequest": "Запрос отменён",
+    "sending": "Отправка в AI...",
+    "thinking": "Думаю...",
+    "copyResponse": "Копировать ответ",
+    "regenerate": "Сгенерировать заново",
+    "goodResponse": "Хороший ответ",
+    "poorResponse": "Плохой ответ",
+    "copied": "Ответ скопирован",
+    "startedNewChat": "Новый чат начат",
+    "requestInProgress": "Запрос обрабатывается — нажми ещё раз, чтобы начать новый чат"
+  },
+  "actions": {
+    "debugCode": "Отладить код",
+    "quickFix": "Быстрое исправление",
+    "explain": "Объяснить",
+    "refactor": "Рефакторинг",
+    "debugPrompt": "Помоги мне отладить этот код:",
+    "quickFixPrompt": "Исправь эту ошибку:",
+    "explainPrompt": "Объясни этот код:",
+    "refactorPrompt": "Отрефактори этот код, чтобы он стал чище:"
+  },
+  "header": {
+    "credits": "Кредиты: {{amount}}",
+    "buyCredits": "Купить Кредиты",
+    "new": "Новый",
+    "openFolder": "Открыть Папку",
+    "terminal": "Terminal",
+    "knowledge": "База Знаний",
+    "share": "Поделиться",
+    "history": "История Чатов",
+    "key": "Ключ API",
+    "settings": "Настройки",
+    "interview": "Режим Собеседования",
+    "moreActions": "Ещё действия"
+  },
+  "workspace": {
+    "workingIn": "Работа в:",
+    "switch": "Сменить",
+    "openFolderFirst": "Сначала откройте эту папку через Файл → Открыть Папку"
+  },
+  "apiKey": {
+    "title": "Требуется Ключ API",
+    "description": "Добавь свой ключ API AIBuddy, чтобы начать общение с AI",
+    "addKey": "Добавить Ключ",
+    "configured": "Ключ API настроен",
+    "notConfigured": "Добавь свой ключ API",
+    "placeholder": "Введи свой ключ API AIBuddy...",
+    "save": "Сохранить Ключ API",
+    "saved": "Сохранено!",
+    "securityNote": "Твой ключ API надёжно хранится на твоём устройстве",
+    "getKey": "Получи его здесь!"
+  },
+  "status": {
+    "ready": "Готов",
+    "loading": "Загрузка...",
+    "validating": "Проверка...",
+    "sending": "Отправка...",
+    "thinking": "Думаю...",
+    "error": "Ошибка"
+  },
+  "voice": {
+    "startDictation": "Начать голосовой ввод",
+    "stopDictation": "Остановить диктовку",
+    "notAvailable": "Голосовой ввод недоступен в этой среде"
+  },
+  "attachments": {
+    "attachImage": "Прикрепить изображение",
+    "attachCode": "Прикрепить файл с кодом",
+    "imageRemoved": "Изображение удалено"
+  },
+  "historySidebar": {
+    "title": "История Чатов",
+    "newChat": "Новый Чат",
+    "search": "Поиск чатов...",
+    "loading": "Загрузка...",
+    "noHistory": "Пока нет истории чатов",
+    "startNew": "Начни новый чат",
+    "pinned": "Закреплённые",
+    "today": "Сегодня",
+    "yesterday": "Вчера",
+    "thisWeek": "На Этой Неделе",
+    "thisMonth": "В Этом Месяце",
+    "older": "Ранее",
+    "messages": "сообщений",
+    "deleteConfirm": "Удалить эту переписку?",
+    "pinChat": "Закрепить чат",
+    "unpinChat": "Открепить чат",
+    "renameChat": "Переименовать чат",
+    "deleteChat": "Удалить чат",
+    "chatsSaved": "чатов сохранено"
+  },
+  "interview": {
+    "typeQuestion": "Напиши вопрос для собеседования...",
+    "askAI": "Спросить AI",
+    "speechNotAvailable": "Распознавание речи недоступно. Используйте режим \"Ввод вопроса\" вместо этого.",
+    "noTranscript": "Транскрипции пока нет",
+    "clickMic": "Нажми на кнопку микрофона, чтобы начать слушать собеседование",
+    "typeBelow": "Напиши вопрос ниже, чтобы получить помощь от AI"
+  },
+  "usage": {
+    "title": "Твои лимиты использования",
+    "currentSession": "Текущая сессия",
+    "startsWhen": "Начинается при отправке сообщения",
+    "allModels": "Все модели",
+    "premiumModels": "Премиум модели",
+    "resetsIn": "Сброс через {{days}}д {{hours}}ч",
+    "justNow": "только что",
+    "secondsAgo": "{{seconds}}с назад",
+    "minutesAgo": "{{minutes}}м назад",
+    "resetting": "Сброс...",
+    "noPremiumYet": "Ты ещё не использовал премиум модели",
+    "sessionUsage": "Использование за сессию"
+  },
+  "menu": {
+    "file": "Файл",
+    "openFolder": "Открыть Папку...",
+    "openFile": "Открыть Файл...",
+    "save": "Сохранить",
+    "saveAll": "Сохранить Всё",
+    "edit": "Редактировать",
+    "view": "Вид",
+    "terminal": "Terminal",
+    "newTerminal": "Новый Terminal",
+    "clearTerminal": "Очистить Terminal",
+    "ai": "AI",
+    "newChat": "Новый Чат",
+    "toggleAI": "Переключить Панель AI",
+    "settingsMenu": "Настройки...",
+    "help": "Помощь",
+    "checkUpdates": "Проверить Обновления...",
+    "documentation": "Документация",
+    "reportIssue": "Сообщить о Проблеме",
+    "about": "О AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Выбери Свой Язык",
+    "subtitle": "Выбери предпочтительный язык, чтобы начать",
+    "continue": "Продолжить",
+    "searchPlaceholder": "Поиск языков..."
+  }
+}

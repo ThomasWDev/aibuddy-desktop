@@ -6,6 +6,7 @@
  */
 
 import { EventEmitter } from 'events'
+import path from 'path'
 import { vscode } from '../adapters/vscode-shim'
 import { terminalManager, ExecutionResult } from '../adapters/terminal-adapter'
 
@@ -183,12 +184,19 @@ export class ToolExecutor {
           return `Unknown tool: ${name}`
       }
     } catch (error) {
-      return `Error executing ${name}: ${(error as Error).message}`
+      return `[ERROR] Failed to execute ${name}: ${(error as Error).message}`
     }
   }
 
-  private async readFile(path: string): Promise<string> {
-    const fullPath = this.resolvePath(path)
+  private enforceWorkspaceBoundary(fullPath: string): void {
+    if (this.workspacePath && !path.normalize(fullPath).startsWith(path.normalize(this.workspacePath))) {
+      throw new Error(`[ERROR] Path "${fullPath}" is outside the current workspace "${this.workspacePath}". Please use the Open Folder button to load the target directory first.`)
+    }
+  }
+
+  private async readFile(filePath: string): Promise<string> {
+    const fullPath = this.resolvePath(filePath)
+    this.enforceWorkspaceBoundary(fullPath)
     
     if (electronAPI) {
       const content = await electronAPI.fs.readFile(fullPath, 'utf-8')
@@ -198,19 +206,25 @@ export class ToolExecutor {
     throw new Error('File system not available')
   }
 
-  private async writeFile(path: string, content: string): Promise<string> {
-    const fullPath = this.resolvePath(path)
+  private async writeFile(filePath: string, content: string): Promise<string> {
+    const fullPath = this.resolvePath(filePath)
+    this.enforceWorkspaceBoundary(fullPath)
     
     if (electronAPI) {
       await electronAPI.fs.writeFile(fullPath, content)
-      return `Successfully wrote to ${path}`
+      const exists = await electronAPI.fs.exists(fullPath)
+      if (!exists) {
+        throw new Error(`[ERROR] File write failed to verify — file does not exist at: ${fullPath}. Check folder permissions or macOS sandbox restrictions.`)
+      }
+      return `Successfully wrote to ${filePath}`
     }
     
     throw new Error('File system not available')
   }
 
-  private async listFiles(path: string, recursive = false): Promise<string> {
-    const fullPath = this.resolvePath(path)
+  private async listFiles(filePath: string, recursive = false): Promise<string> {
+    const fullPath = this.resolvePath(filePath)
+    this.enforceWorkspaceBoundary(fullPath)
     
     if (electronAPI) {
       if (recursive) {
@@ -238,6 +252,7 @@ export class ToolExecutor {
 
   private async executeCommand(command: string, cwd?: string): Promise<string> {
     const workingDir = cwd ? this.resolvePath(cwd) : this.workspacePath
+    if (workingDir) this.enforceWorkspaceBoundary(workingDir)
     
     const result = await terminalManager.executeCommand(command, {
       cwd: workingDir,
@@ -247,9 +262,9 @@ export class ToolExecutor {
     return `Exit code: ${result.exitCode}\n\nOutput:\n${result.output}`
   }
 
-  private async searchFiles(pattern: string, path?: string): Promise<string> {
-    // Simple implementation - in production, use a proper search library
-    const searchPath = path ? this.resolvePath(path) : this.workspacePath
+  private async searchFiles(pattern: string, filePath?: string): Promise<string> {
+    const searchPath = filePath ? this.resolvePath(filePath) : this.workspacePath
+    if (searchPath) this.enforceWorkspaceBoundary(searchPath)
     
     if (electronAPI) {
       const tree = await electronAPI.fs.readTree?.(searchPath, 5) || []
@@ -277,11 +292,15 @@ export class ToolExecutor {
     return results
   }
 
-  private resolvePath(path: string): string {
-    if (path.startsWith('/') || path.startsWith('~')) {
-      return path
+  private resolvePath(filePath: string): string {
+    if (filePath.startsWith('/') || filePath.startsWith('~')) {
+      return filePath
     }
-    return `${this.workspacePath}/${path}`
+    // KAN-45: Reject empty workspacePath — prevents writing to invalid locations
+    if (!this.workspacePath) {
+      throw new Error('[ERROR] Workspace path not set. Please open a folder first before creating files.')
+    }
+    return path.join(this.workspacePath, filePath)
   }
 }
 
@@ -471,16 +490,26 @@ export class AIAgent extends EventEmitter {
 
     const systemPrompt = this.config.systemPrompt || this.getDefaultSystemPrompt()
 
+    // KAN-54: Sliding window — limit conversation tokens sent to API
+    const MAX_AGENT_CONTEXT_TOKENS = 40_000
+    let agentMessages = this.state.messages.map(m => ({
+      role: m.role,
+      content: m.content
+    }))
+    const estimateChars = (msg: any) => typeof msg.content === 'string' ? msg.content.length : JSON.stringify(msg.content).length
+    let totalChars = agentMessages.reduce((sum, m) => sum + estimateChars(m), 0) + systemPrompt.length
+    while (Math.ceil(totalChars / 3.5) > MAX_AGENT_CONTEXT_TOKENS && agentMessages.length > 2) {
+      totalChars -= estimateChars(agentMessages[0])
+      agentMessages = agentMessages.slice(1)
+    }
+
     const requestBody = {
       model: this.config.model || 'claude-opus-4-20250514',
       max_tokens: this.config.maxTokens || 8192,
       temperature: this.config.temperature || 0.7,
       system: systemPrompt,
       tools: AVAILABLE_TOOLS,
-      messages: this.state.messages.map(m => ({
-        role: m.role,
-        content: m.content
-      }))
+      messages: agentMessages
     }
 
     // Use AIBuddy API endpoint
@@ -566,7 +595,14 @@ Guidelines:
 5. Test changes when appropriate
 6. Provide clear summaries of what you've done
 
-Current workspace: ${this.config.workspacePath || 'Not set'}`
+Current workspace: ${this.config.workspacePath || 'Not set'}
+
+IMPORTANT — Workspace Boundaries:
+- You can ONLY access files within the current workspace directory shown above.
+- If a workspace path is "Not set", tell the user to open a folder first using the "Open Folder" button.
+- If the user asks you to review or modify files outside the current workspace, tell them: "The folder you mentioned is outside the currently loaded workspace. Please use the Open Folder button to load that directory first, then ask me again."
+- Do NOT try to access paths outside the workspace — those operations will fail.
+- Relative paths are resolved relative to the workspace root.`
   }
 }
 

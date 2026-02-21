@@ -79,6 +79,10 @@ export interface SystemPromptContext {
   /** Project handoff doc (e.g. COMPLETE_SYSTEM_HANDOFF.md) - injected so the AI understands the project */
   handoffDoc?: string
   
+  /** User's chosen UI language (ISO code, e.g. "es", "ja", "zh-Hans").
+   *  When set, the AI MUST reply in this language. */
+  uiLanguage?: string
+  
   /** User preferences */
   userPreferences?: {
     preferredLanguage?: string
@@ -168,6 +172,21 @@ export function generateSystemPrompt(context?: SystemPromptContext): string {
     // Add image analysis capabilities when images are present
     if (context.hasImages) {
       prompt += `\n\n${IMAGE_ANALYSIS_PROMPT}`
+    }
+
+    if (context.uiLanguage && context.uiLanguage !== 'en') {
+      const langNames: Record<string, string> = {
+        es: 'Spanish', fr: 'French', de: 'German', ja: 'Japanese', ko: 'Korean',
+        'zh-Hans': 'Simplified Chinese', 'zh-Hant': 'Traditional Chinese',
+        'pt-BR': 'Brazilian Portuguese', 'pt-PT': 'European Portuguese',
+        it: 'Italian', nl: 'Dutch', ru: 'Russian', ar: 'Arabic', hi: 'Hindi',
+        tr: 'Turkish', pl: 'Polish', sv: 'Swedish', th: 'Thai', da: 'Danish',
+        fi: 'Finnish', no: 'Norwegian', cs: 'Czech', el: 'Greek', he: 'Hebrew',
+        hu: 'Hungarian', id: 'Indonesian', ms: 'Malay', ro: 'Romanian',
+        sk: 'Slovak', uk: 'Ukrainian', hr: 'Croatian', vi: 'Vietnamese', ca: 'Catalan',
+      }
+      const langName = langNames[context.uiLanguage] ?? context.uiLanguage
+      prompt += `\n\n### 🌍 LANGUAGE INSTRUCTION\n**The user's UI language is ${langName} (\`${context.uiLanguage}\`).** You MUST reply in **${langName}** unless the user explicitly writes in English or asks you to use a different language. Keep code, terminal commands, file paths, and technical identifiers in English/ASCII, but all explanations, comments to the user, questions, and conversational text MUST be in ${langName}.`
     }
   }
   

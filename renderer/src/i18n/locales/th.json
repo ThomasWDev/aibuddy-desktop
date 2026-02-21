@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "เพื่อนเขียนโค้ดของคุณ!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "สวัสดี!",
+      "subtitle": "ฉันคือ AIBuddy เพื่อนเขียนโค้ดของคุณ!\nบอกฉันสิว่าคุณอยากสร้างอะไร!",
+      "typeWhat": "พิมพ์สิ่งที่คุณต้องการ",
+      "illDoWork": "ฉันจะทำงานให้",
+      "watchCredits": "ดูเครดิตของคุณ"
+    },
+    "returningUser": {
+      "greeting": "ยินดีต้อนรับกลับมา!",
+      "subtitle": "วันนี้คุณอยากทำอะไร?",
+      "recentChats": "แชทล่าสุด",
+      "viewAllHistory": "ดูประวัติทั้งหมด"
+    }
+  },
+  "chat": {
+    "placeholder": "วันนี้คุณอยากสร้างอะไร?",
+    "placeholderImage": "อธิบายสิ่งที่คุณต้องการความช่วยเหลือ...",
+    "sendButton": "ส่ง",
+    "stopButton": "หยุด",
+    "newChat": "แชทใหม่",
+    "cancelledRequest": "ยกเลิกคำขอแล้ว",
+    "sending": "กำลังส่งไปยัง AI...",
+    "thinking": "กำลังคิด...",
+    "copyResponse": "คัดลอกคำตอบ",
+    "regenerate": "สร้างคำตอบใหม่",
+    "goodResponse": "คำตอบดี",
+    "poorResponse": "คำตอบไม่ดี",
+    "copied": "คัดลอกคำตอบแล้ว",
+    "startedNewChat": "เริ่มแชทใหม่แล้ว",
+    "requestInProgress": "คำขอกำลังดำเนินการ - กดอีกครั้งเพื่อเริ่มแชทใหม่"
+  },
+  "actions": {
+    "debugCode": "ดีบักโค้ด",
+    "quickFix": "แก้ไขด่วน",
+    "explain": "อธิบาย",
+    "refactor": "รีแฟคเตอร์",
+    "debugPrompt": "ช่วยฉันดีบักโค้ดนี้:",
+    "quickFixPrompt": "แก้ไขข้อผิดพลาดนี้:",
+    "explainPrompt": "อธิบายโค้ดนี้:",
+    "refactorPrompt": "รีแฟคเตอร์โค้ดนี้ให้สะอาดขึ้น:"
+  },
+  "header": {
+    "credits": "เครดิต: {{amount}}",
+    "buyCredits": "ซื้อเครดิต",
+    "new": "ใหม่",
+    "openFolder": "เปิดโฟลเดอร์",
+    "terminal": "Terminal",
+    "knowledge": "ฐานความรู้",
+    "share": "แชร์",
+    "history": "ประวัติแชท",
+    "key": "คีย์ API",
+    "settings": "ตั้งค่า",
+    "interview": "โหมดสัมภาษณ์",
+    "moreActions": "การดำเนินการเพิ่มเติม"
+  },
+  "workspace": {
+    "workingIn": "กำลังทำงานใน:",
+    "switch": "เปลี่ยน",
+    "openFolderFirst": "กรุณาเปิดโฟลเดอร์นั้นก่อนผ่าน ไฟล์ → เปิดโฟลเดอร์"
+  },
+  "apiKey": {
+    "title": "ต้องมีคีย์ API",
+    "description": "เพิ่มคีย์ API ของ AIBuddy เพื่อเริ่มแชทกับ AI",
+    "addKey": "เพิ่มคีย์",
+    "configured": "คีย์ API ถูกตั้งค่าแล้ว",
+    "notConfigured": "เพิ่มคีย์ API ของคุณ",
+    "placeholder": "ป้อนคีย์ API ของ AIBuddy...",
+    "save": "บันทึกคีย์ API",
+    "saved": "บันทึกแล้ว!",
+    "securityNote": "คีย์ API ของคุณถูกเก็บอย่างปลอดภัยบนอุปกรณ์ของคุณ",
+    "getKey": "รับได้ที่นี่!"
+  },
+  "status": {
+    "ready": "พร้อม",
+    "loading": "กำลังโหลด...",
+    "validating": "กำลังตรวจสอบ...",
+    "sending": "กำลังส่ง...",
+    "thinking": "กำลังคิด...",
+    "error": "ข้อผิดพลาด"
+  },
+  "voice": {
+    "startDictation": "เริ่มการป้อนด้วยเสียง",
+    "stopDictation": "หยุดการป้อนด้วยเสียง",
+    "notAvailable": "การป้อนด้วยเสียงไม่สามารถใช้งานได้ในสภาพแวดล้อมนี้"
+  },
+  "attachments": {
+    "attachImage": "แนบรูปภาพ",
+    "attachCode": "แนบไฟล์โค้ด",
+    "imageRemoved": "ลบรูปภาพแล้ว"
+  },
+  "historySidebar": {
+    "title": "ประวัติแชท",
+    "newChat": "แชทใหม่",
+    "search": "ค้นหาแชท...",
+    "loading": "กำลังโหลด...",
+    "noHistory": "ยังไม่มีประวัติแชท",
+    "startNew": "เริ่มแชทใหม่เพื่อเริ่มต้น",
+    "pinned": "ปักหมุด",
+    "today": "วันนี้",
+    "yesterday": "เมื่อวาน",
+    "thisWeek": "สัปดาห์นี้",
+    "thisMonth": "เดือนนี้",
+    "older": "เก่ากว่า",
+    "messages": "ข้อความ",
+    "deleteConfirm": "ลบการสนทนานี้หรือไม่?",
+    "pinChat": "ปักหมุดแชท",
+    "unpinChat": "เลิกปักหมุดแชท",
+    "renameChat": "เปลี่ยนชื่อแชท",
+    "deleteChat": "ลบแชท",
+    "chatsSaved": "แชทที่บันทึก"
+  },
+  "interview": {
+    "typeQuestion": "พิมพ์คำถามสัมภาษณ์...",
+    "askAI": "ถาม AI",
+    "speechNotAvailable": "การรู้จำเสียงไม่พร้อมใช้งาน ใช้โหมด \"พิมพ์คำถาม\" แทน",
+    "noTranscript": "ยังไม่มีการถอดเสียง",
+    "clickMic": "คลิกปุ่มไมค์เพื่อเริ่มฟังการสัมภาษณ์",
+    "typeBelow": "พิมพ์คำถามด้านล่างเพื่อรับคำแนะนำจาก AI"
+  },
+  "usage": {
+    "title": "ขีดจำกัดการใช้งานของคุณ",
+    "currentSession": "เซสชันปัจจุบัน",
+    "startsWhen": "เริ่มเมื่อส่งข้อความ",
+    "allModels": "ทุกโมเดล",
+    "premiumModels": "โมเดลพรีเมียม",
+    "resetsIn": "รีเซ็ตใน {{days}}ว {{hours}}ชม",
+    "justNow": "เมื่อกี้",
+    "secondsAgo": "{{seconds}}วิ ที่แล้ว",
+    "minutesAgo": "{{minutes}}นาที ที่แล้ว",
+    "resetting": "กำลังรีเซ็ต...",
+    "noPremiumYet": "คุณยังไม่ได้ใช้โมเดลพรีเมียม",
+    "sessionUsage": "การใช้งานเซสชัน"
+  },
+  "menu": {
+    "file": "ไฟล์",
+    "openFolder": "เปิดโฟลเดอร์...",
+    "openFile": "เปิดไฟล์...",
+    "save": "บันทึก",
+    "saveAll": "บันทึกทั้งหมด",
+    "edit": "แก้ไข",
+    "view": "มุมมอง",
+    "terminal": "Terminal",
+    "newTerminal": "Terminal ใหม่",
+    "clearTerminal": "ล้าง Terminal",
+    "ai": "AI",
+    "newChat": "แชทใหม่",
+    "toggleAI": "สลับแผง AI",
+    "settingsMenu": "ตั้งค่า...",
+    "help": "ช่วยเหลือ",
+    "checkUpdates": "ตรวจสอบอัปเดต...",
+    "documentation": "เอกสาร",
+    "reportIssue": "รายงานปัญหา",
+    "about": "เกี่ยวกับ AIBuddy"
+  },
+  "languageSelector": {
+    "title": "เลือกภาษาของคุณ",
+    "subtitle": "เลือกภาษาที่ต้องการเพื่อเริ่มต้น",
+    "continue": "ดำเนินการต่อ",
+    "searchPlaceholder": "ค้นหาภาษา..."
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Koodauskaveri!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Hei!",
+      "subtitle": "Olen AIBuddy, koodauskaveri!\nKerro mitä haluat rakentaa!",
+      "typeWhat": "Kirjoita mitä haluat",
+      "illDoWork": "Minä teen työn",
+      "watchCredits": "Seuraa krediittejäsi"
+    },
+    "returningUser": {
+      "greeting": "Tervetuloa takaisin!",
+      "subtitle": "Mitä haluaisit tehdä tänään?",
+      "recentChats": "Viimeisimmät Keskustelut",
+      "viewAllHistory": "Näytä koko historia"
+    }
+  },
+  "chat": {
+    "placeholder": "Mitä haluat rakentaa tänään?",
+    "placeholderImage": "Kuvaile mihin tarvitset apua...",
+    "sendButton": "Lähetä",
+    "stopButton": "Pysäytä",
+    "newChat": "Uusi keskustelu",
+    "cancelledRequest": "Pyyntö peruutettu",
+    "sending": "Lähetetään AI:lle...",
+    "thinking": "Mietitään...",
+    "copyResponse": "Kopioi vastaus",
+    "regenerate": "Luo vastaus uudelleen",
+    "goodResponse": "Hyvä vastaus",
+    "poorResponse": "Heikko vastaus",
+    "copied": "Vastaus kopioitu",
+    "startedNewChat": "Uusi keskustelu aloitettu",
+    "requestInProgress": "Pyyntö käynnissä - paina uudelleen pakottaaksesi uuden keskustelun"
+  },
+  "actions": {
+    "debugCode": "Virheenjäljitys",
+    "quickFix": "Pikakorjaus",
+    "explain": "Selitä",
+    "refactor": "Refaktoroi",
+    "debugPrompt": "Auta minua virheenjäljityksessä tämän koodin kanssa:",
+    "quickFixPrompt": "Korjaa tämä virhe:",
+    "explainPrompt": "Selitä tämä koodi:",
+    "refactorPrompt": "Refaktoroi tämä koodi siistimmäksi:"
+  },
+  "header": {
+    "credits": "Krediitit: {{amount}}",
+    "buyCredits": "Osta Krediittejä",
+    "new": "Uusi",
+    "openFolder": "Avaa Kansio",
+    "terminal": "Terminal",
+    "knowledge": "Tietopankki",
+    "share": "Jaa",
+    "history": "Keskusteluhistoria",
+    "key": "API-avain",
+    "settings": "Asetukset",
+    "interview": "Haastattelutila",
+    "moreActions": "Lisää toimintoja"
+  },
+  "workspace": {
+    "workingIn": "Työskentelyssä:",
+    "switch": "Vaihda",
+    "openFolderFirst": "Avaa ensin tuo kansio kohdasta Tiedosto → Avaa Kansio"
+  },
+  "apiKey": {
+    "title": "API-avain Vaaditaan",
+    "description": "Lisää AIBuddy API-avaimesi aloittaaksesi keskustelun AI:n kanssa",
+    "addKey": "Lisää Avain",
+    "configured": "API-avain määritetty",
+    "notConfigured": "Lisää API-avaimesi",
+    "placeholder": "Syötä AIBuddy API-avaimesi...",
+    "save": "Tallenna API-avain",
+    "saved": "Tallennettu!",
+    "securityNote": "API-avaimesi on tallennettu turvallisesti laitteellesi",
+    "getKey": "Hanki sellainen täältä!"
+  },
+  "status": {
+    "ready": "Valmis",
+    "loading": "Ladataan...",
+    "validating": "Vahvistetaan...",
+    "sending": "Lähetetään...",
+    "thinking": "Mietitään...",
+    "error": "Virhe"
+  },
+  "voice": {
+    "startDictation": "Aloita äänitunnistus",
+    "stopDictation": "Lopeta sanelu",
+    "notAvailable": "Äänisyöttö ei ole käytettävissä tässä ympäristössä"
+  },
+  "attachments": {
+    "attachImage": "Liitä kuva",
+    "attachCode": "Liitä kooditiedosto",
+    "imageRemoved": "Kuva poistettu"
+  },
+  "historySidebar": {
+    "title": "Keskusteluhistoria",
+    "newChat": "Uusi Keskustelu",
+    "search": "Hae keskusteluja...",
+    "loading": "Ladataan...",
+    "noHistory": "Ei keskusteluhistoriaa vielä",
+    "startNew": "Aloita uusi keskustelu päästäksesi alkuun",
+    "pinned": "Kiinnitetyt",
+    "today": "Tänään",
+    "yesterday": "Eilen",
+    "thisWeek": "Tämä Viikko",
+    "thisMonth": "Tämä Kuukausi",
+    "older": "Vanhemmat",
+    "messages": "viestiä",
+    "deleteConfirm": "Poista tämä keskustelu?",
+    "pinChat": "Kiinnitä keskustelu",
+    "unpinChat": "Irrota keskustelu",
+    "renameChat": "Nimeä keskustelu uudelleen",
+    "deleteChat": "Poista keskustelu",
+    "chatsSaved": "keskustelua tallennettu"
+  },
+  "interview": {
+    "typeQuestion": "Kirjoita haastattelukysymys...",
+    "askAI": "Kysy AI:lta",
+    "speechNotAvailable": "Puheentunnistus ei ole käytettävissä. Käytä sen sijaan \"Kirjoita Kysymys\" -tilaa.",
+    "noTranscript": "Ei transkriptiota vielä",
+    "clickMic": "Klikkaa mikrofoninappia aloittaaksesi haastattelun kuuntelun",
+    "typeBelow": "Kirjoita kysymys alle saadaksesi AI-valmennusta"
+  },
+  "usage": {
+    "title": "Käyttörajasi",
+    "currentSession": "Nykyinen istunto",
+    "startsWhen": "Alkaa kun viesti lähetetään",
+    "allModels": "Kaikki mallit",
+    "premiumModels": "Premium-mallit",
+    "resetsIn": "Nollautuu {{days}}pv {{hours}}t kuluttua",
+    "justNow": "juuri nyt",
+    "secondsAgo": "{{seconds}}s sitten",
+    "minutesAgo": "{{minutes}}m sitten",
+    "resetting": "Nollataan...",
+    "noPremiumYet": "Et ole vielä käyttänyt premium-malleja",
+    "sessionUsage": "Istunnon käyttö"
+  },
+  "menu": {
+    "file": "Tiedosto",
+    "openFolder": "Avaa Kansio...",
+    "openFile": "Avaa Tiedosto...",
+    "save": "Tallenna",
+    "saveAll": "Tallenna Kaikki",
+    "edit": "Muokkaa",
+    "view": "Näytä",
+    "terminal": "Terminal",
+    "newTerminal": "Uusi Terminal",
+    "clearTerminal": "Tyhjennä Terminal",
+    "ai": "AI",
+    "newChat": "Uusi Keskustelu",
+    "toggleAI": "Vaihda AI-paneeli",
+    "settingsMenu": "Asetukset...",
+    "help": "Ohje",
+    "checkUpdates": "Tarkista Päivitykset...",
+    "documentation": "Dokumentaatio",
+    "reportIssue": "Ilmoita Ongelmasta",
+    "about": "Tietoja AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Valitse Kielesi",
+    "subtitle": "Valitse haluamasi kieli aloittaaksesi",
+    "continue": "Jatka",
+    "searchPlaceholder": "Hae kieliä..."
+  }
+}

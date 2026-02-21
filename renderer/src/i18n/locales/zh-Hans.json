@@ -1,0 +1,17 @@
+{
+  "app": { "name": "AIBuddy", "tagline": "你的编程伙伴！", "version": "v{{version}}" },
+  "welcome": { "newUser": { "greeting": "你好！", "subtitle": "我是AIBuddy，你的编程伙伴！\n告诉我你想做什么！", "typeWhat": "输入你想要的", "illDoWork": "我来做", "watchCredits": "留意你的积分" }, "returningUser": { "greeting": "欢迎回来！", "subtitle": "今天你想做什么？", "recentChats": "最近的聊天", "viewAllHistory": "查看全部历史" } },
+  "chat": { "placeholder": "今天想做什么？", "placeholderImage": "描述你需要帮助的内容...", "sendButton": "发送", "stopButton": "停止", "newChat": "新对话", "cancelledRequest": "请求已取消", "sending": "正在发送给AI...", "thinking": "思考中...", "copyResponse": "复制回复", "regenerate": "重新生成", "goodResponse": "好的回复", "poorResponse": "差的回复", "copied": "回复已复制", "startedNewChat": "已开始新对话", "requestInProgress": "请求进行中——再次按下可强制开始新对话" },
+  "actions": { "debugCode": "调试代码", "quickFix": "快速修复", "explain": "解释", "refactor": "重构", "debugPrompt": "帮我调试这段代码：", "quickFixPrompt": "修复这个错误：", "explainPrompt": "解释这段代码：", "refactorPrompt": "重构这段代码使其更整洁：" },
+  "header": { "credits": "积分：{{amount}}", "buyCredits": "购买积分", "new": "新建", "openFolder": "打开文件夹", "terminal": "终端", "knowledge": "知识库", "share": "分享", "history": "聊天历史", "key": "API密钥", "settings": "设置", "interview": "面试模式", "moreActions": "更多操作" },
+  "workspace": { "workingIn": "工作目录：", "switch": "切换", "openFolderFirst": "请先通过文件→打开文件夹来打开该文件夹" },
+  "apiKey": { "title": "需要API密钥", "description": "添加你的AIBuddy API密钥以开始与AI对话", "addKey": "添加密钥", "configured": "API密钥已配置", "notConfigured": "添加你的API密钥", "placeholder": "输入你的AIBuddy API密钥...", "save": "保存API密钥", "saved": "已保存！", "securityNote": "你的API密钥安全地存储在你的设备上", "getKey": "在这里获取！" },
+  "status": { "ready": "就绪", "loading": "加载中...", "validating": "验证中...", "sending": "发送中...", "thinking": "思考中...", "error": "错误" },
+  "voice": { "startDictation": "开始语音输入", "stopDictation": "停止语音输入", "notAvailable": "此环境不支持语音输入" },
+  "attachments": { "attachImage": "附加图片", "attachCode": "附加代码文件", "imageRemoved": "图片已移除" },
+  "historySidebar": { "title": "聊天历史", "newChat": "新对话", "search": "搜索聊天...", "loading": "加载中...", "noHistory": "暂无聊天历史", "startNew": "开始新对话", "pinned": "已置顶", "today": "今天", "yesterday": "昨天", "thisWeek": "本周", "thisMonth": "本月", "older": "更早", "messages": "条消息", "deleteConfirm": "删除此聊天记录？", "pinChat": "置顶聊天", "unpinChat": "取消置顶", "renameChat": "重命名聊天", "deleteChat": "删除聊天", "chatsSaved": "聊天已保存" },
+  "interview": { "typeQuestion": "输入面试问题...", "askAI": "问AI", "speechNotAvailable": "语音识别不可用。请使用'输入问题'模式。", "noTranscript": "暂无转录内容", "clickMic": "点击麦克风按钮开始收听面试", "typeBelow": "在下方输入问题以获取AI辅导" },
+  "usage": { "title": "你的使用限制", "currentSession": "当前会话", "startsWhen": "发送消息时开始", "allModels": "所有模型", "premiumModels": "高级模型", "resetsIn": "{{days}}天{{hours}}小时后重置", "justNow": "刚刚", "secondsAgo": "{{seconds}}秒前", "minutesAgo": "{{minutes}}分钟前", "resetting": "重置中...", "noPremiumYet": "你还没有使用过高级模型", "sessionUsage": "会话使用情况" },
+  "menu": { "file": "文件", "openFolder": "打开文件夹...", "openFile": "打开文件...", "save": "保存", "saveAll": "全部保存", "edit": "编辑", "view": "查看", "terminal": "终端", "newTerminal": "新终端", "clearTerminal": "清除终端", "ai": "AI", "newChat": "新对话", "toggleAI": "切换AI面板", "settingsMenu": "设置...", "help": "帮助", "checkUpdates": "检查更新...", "documentation": "文档", "reportIssue": "报告问题", "about": "关于AIBuddy" },
+  "languageSelector": { "title": "选择你的语言", "subtitle": "选择你的首选语言以开始", "continue": "继续", "searchPlaceholder": "搜索语言..." }
+}

@@ -11,7 +11,7 @@ vi.mock('electron', () => ({
   },
   app: {
     getPath: vi.fn().mockReturnValue('/tmp'),
-    getVersion: vi.fn().mockReturnValue('1.5.67'),
+    getVersion: vi.fn().mockReturnValue('1.5.77'),
   },
   BrowserWindow: vi.fn(),
   shell: { openExternal: vi.fn() },

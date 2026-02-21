@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "あなたのコーディング仲間！",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "こんにちは！",
+      "subtitle": "AIBuddyです、あなたのコーディング仲間です！\n何を作りたいか教えてください！",
+      "typeWhat": "作りたいものを入力",
+      "illDoWork": "私がやります",
+      "watchCredits": "クレジットに注意"
+    },
+    "returningUser": {
+      "greeting": "おかえりなさい！",
+      "subtitle": "今日は何に取り組みますか？",
+      "recentChats": "最近のチャット",
+      "viewAllHistory": "すべての履歴を表示"
+    }
+  },
+  "chat": {
+    "placeholder": "今日は何を作りますか？",
+    "placeholderImage": "何を手伝ってほしいか説明してください...",
+    "sendButton": "送信",
+    "stopButton": "停止",
+    "newChat": "新しいチャット",
+    "cancelledRequest": "リクエストがキャンセルされました",
+    "sending": "AIに送信中...",
+    "thinking": "考え中...",
+    "copyResponse": "回答をコピー",
+    "regenerate": "回答を再生成",
+    "goodResponse": "良い回答",
+    "poorResponse": "悪い回答",
+    "copied": "回答をコピーしました",
+    "startedNewChat": "新しいチャットを開始しました",
+    "requestInProgress": "リクエスト処理中 — もう一度押すと新しいチャットを強制開始します"
+  },
+  "actions": {
+    "debugCode": "デバッグ",
+    "quickFix": "クイック修正",
+    "explain": "説明",
+    "refactor": "リファクタリング",
+    "debugPrompt": "このコードのデバッグを手伝ってください：",
+    "quickFixPrompt": "このエラーを修正してください：",
+    "explainPrompt": "このコードを説明してください：",
+    "refactorPrompt": "このコードをよりきれいにリファクタリングしてください："
+  },
+  "header": {
+    "credits": "クレジット: {{amount}}",
+    "buyCredits": "クレジット購入",
+    "new": "新規",
+    "openFolder": "フォルダを開く",
+    "terminal": "ターミナル",
+    "knowledge": "ナレッジベース",
+    "share": "共有",
+    "history": "チャット履歴",
+    "key": "APIキー",
+    "settings": "設定",
+    "interview": "面接モード",
+    "moreActions": "その他のアクション"
+  },
+  "workspace": {
+    "workingIn": "作業フォルダ：",
+    "switch": "切替",
+    "openFolderFirst": "まずファイル → フォルダを開くで対象のフォルダを開いてください"
+  },
+  "apiKey": {
+    "title": "APIキーが必要です",
+    "description": "AIBuddy APIキーを追加してAIとのチャットを開始しましょう",
+    "addKey": "キーを追加",
+    "configured": "APIキー設定済み",
+    "notConfigured": "APIキーを追加",
+    "placeholder": "AIBuddy APIキーを入力...",
+    "save": "APIキーを保存",
+    "saved": "保存しました！",
+    "securityNote": "APIキーはデバイスに安全に保存されます",
+    "getKey": "こちらで取得！"
+  },
+  "status": {
+    "ready": "準備完了",
+    "loading": "読み込み中...",
+    "validating": "検証中...",
+    "sending": "送信中...",
+    "thinking": "思考中...",
+    "error": "エラー"
+  },
+  "voice": {
+    "startDictation": "音声入力を開始",
+    "stopDictation": "音声入力を停止",
+    "notAvailable": "この環境では音声入力は利用できません"
+  },
+  "attachments": {
+    "attachImage": "画像を添付",
+    "attachCode": "コードファイルを添付",
+    "imageRemoved": "画像を削除しました"
+  },
+  "historySidebar": {
+    "title": "チャット履歴",
+    "newChat": "新しいチャット",
+    "search": "チャットを検索...",
+    "loading": "読み込み中...",
+    "noHistory": "チャット履歴がありません",
+    "startNew": "新しいチャットを始めましょう",
+    "pinned": "ピン留め",
+    "today": "今日",
+    "yesterday": "昨日",
+    "thisWeek": "今週",
+    "thisMonth": "今月",
+    "older": "それ以前",
+    "messages": "メッセージ",
+    "deleteConfirm": "このチャットスレッドを削除しますか？",
+    "pinChat": "チャットをピン留め",
+    "unpinChat": "ピン留めを解除",
+    "renameChat": "チャット名を変更",
+    "deleteChat": "チャットを削除",
+    "chatsSaved": "チャット保存済み"
+  },
+  "interview": {
+    "typeQuestion": "面接の質問を入力...",
+    "askAI": "AIに質問",
+    "speechNotAvailable": "音声認識が利用できません。代わりに「質問を入力」モードを使用してください。",
+    "noTranscript": "まだ文字起こしがありません",
+    "clickMic": "マイクボタンをクリックして面接の聞き取りを開始",
+    "typeBelow": "下に質問を入力してAIコーチングを受けましょう"
+  },
+  "usage": {
+    "title": "使用制限",
+    "currentSession": "現在のセッション",
+    "startsWhen": "メッセージ送信時に開始",
+    "allModels": "全モデル",
+    "premiumModels": "プレミアムモデル",
+    "resetsIn": "{{days}}日{{hours}}時間後にリセット",
+    "justNow": "たった今",
+    "secondsAgo": "{{seconds}}秒前",
+    "minutesAgo": "{{minutes}}分前",
+    "resetting": "リセット中...",
+    "noPremiumYet": "まだプレミアムモデルを使用していません",
+    "sessionUsage": "セッション使用状況"
+  },
+  "menu": {
+    "file": "ファイル",
+    "openFolder": "フォルダを開く...",
+    "openFile": "ファイルを開く...",
+    "save": "保存",
+    "saveAll": "すべて保存",
+    "edit": "編集",
+    "view": "表示",
+    "terminal": "ターミナル",
+    "newTerminal": "新しいターミナル",
+    "clearTerminal": "ターミナルをクリア",
+    "ai": "AI",
+    "newChat": "新しいチャット",
+    "toggleAI": "AIパネルの切替",
+    "settingsMenu": "設定...",
+    "help": "ヘルプ",
+    "checkUpdates": "アップデートを確認...",
+    "documentation": "ドキュメント",
+    "reportIssue": "問題を報告",
+    "about": "AIBuddyについて"
+  },
+  "languageSelector": {
+    "title": "言語を選択",
+    "subtitle": "始めるために使用言語を選んでください",
+    "continue": "続ける",
+    "searchPlaceholder": "言語を検索..."
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Ton ami codeur !",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Salut !",
+      "subtitle": "Je suis AIBuddy, ton ami codeur !\nDis-moi ce que tu veux construire !",
+      "typeWhat": "Écris ce que tu veux",
+      "illDoWork": "Je fais le travail",
+      "watchCredits": "Surveille tes crédits"
+    },
+    "returningUser": {
+      "greeting": "Content de te revoir !",
+      "subtitle": "Sur quoi aimerais-tu travailler aujourd'hui ?",
+      "recentChats": "Conversations récentes",
+      "viewAllHistory": "Voir tout l'historique"
+    }
+  },
+  "chat": {
+    "placeholder": "Que veux-tu construire aujourd'hui ?",
+    "placeholderImage": "Décris ce pour quoi tu as besoin d'aide...",
+    "sendButton": "Envoyer",
+    "stopButton": "Arrêter",
+    "newChat": "Nouvelle conversation",
+    "cancelledRequest": "Requête annulée",
+    "sending": "Envoi à l'IA...",
+    "thinking": "Réflexion...",
+    "copyResponse": "Copier la réponse",
+    "regenerate": "Régénérer la réponse",
+    "goodResponse": "Bonne réponse",
+    "poorResponse": "Mauvaise réponse",
+    "copied": "Réponse copiée",
+    "startedNewChat": "Nouvelle conversation commencée",
+    "requestInProgress": "Requête en cours — appuie à nouveau pour forcer une nouvelle conversation"
+  },
+  "actions": {
+    "debugCode": "Déboguer le code",
+    "quickFix": "Correction rapide",
+    "explain": "Expliquer",
+    "refactor": "Refactoriser",
+    "debugPrompt": "Aide-moi à déboguer ce code :",
+    "quickFixPrompt": "Corrige cette erreur :",
+    "explainPrompt": "Explique ce code :",
+    "refactorPrompt": "Refactorise ce code pour qu'il soit plus propre :"
+  },
+  "header": {
+    "credits": "Crédits : {{amount}}",
+    "buyCredits": "Acheter des crédits",
+    "new": "Nouveau",
+    "openFolder": "Ouvrir un dossier",
+    "terminal": "Terminal",
+    "knowledge": "Base de connaissances",
+    "share": "Partager",
+    "history": "Historique des conversations",
+    "key": "Clé API",
+    "settings": "Paramètres",
+    "interview": "Mode entretien",
+    "moreActions": "Plus d'actions"
+  },
+  "workspace": {
+    "workingIn": "Travail dans :",
+    "switch": "Changer",
+    "openFolderFirst": "Veuillez d'abord ouvrir ce dossier via Fichier → Ouvrir un dossier"
+  },
+  "apiKey": {
+    "title": "Clé API requise",
+    "description": "Ajoute ta clé API AIBuddy pour commencer à discuter avec l'IA",
+    "addKey": "Ajouter une clé",
+    "configured": "Clé API configurée",
+    "notConfigured": "Ajoute ta clé API",
+    "placeholder": "Entre ta clé API AIBuddy...",
+    "save": "Enregistrer la clé API",
+    "saved": "Enregistré !",
+    "securityNote": "Ta clé API est stockée de manière sécurisée sur ton appareil",
+    "getKey": "Obtiens-en une ici !"
+  },
+  "status": {
+    "ready": "Prêt",
+    "loading": "Chargement...",
+    "validating": "Validation...",
+    "sending": "Envoi...",
+    "thinking": "Réflexion...",
+    "error": "Erreur"
+  },
+  "voice": {
+    "startDictation": "Démarrer la dictée vocale",
+    "stopDictation": "Arrêter la dictée",
+    "notAvailable": "Entrée vocale non disponible dans cet environnement"
+  },
+  "attachments": {
+    "attachImage": "Joindre une image",
+    "attachCode": "Joindre un fichier de code",
+    "imageRemoved": "Image supprimée"
+  },
+  "historySidebar": {
+    "title": "Historique des conversations",
+    "newChat": "Nouvelle conversation",
+    "search": "Rechercher des conversations...",
+    "loading": "Chargement...",
+    "noHistory": "Pas encore d'historique",
+    "startNew": "Commence une nouvelle conversation",
+    "pinned": "Épinglés",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "thisWeek": "Cette semaine",
+    "thisMonth": "Ce mois",
+    "older": "Plus anciens",
+    "messages": "messages",
+    "deleteConfirm": "Supprimer ce fil de conversation ?",
+    "pinChat": "Épingler la conversation",
+    "unpinChat": "Désépingler la conversation",
+    "renameChat": "Renommer la conversation",
+    "deleteChat": "Supprimer la conversation",
+    "chatsSaved": "conversations enregistrées"
+  },
+  "interview": {
+    "typeQuestion": "Tape la question d'entretien...",
+    "askAI": "Demander à l'IA",
+    "speechNotAvailable": "Reconnaissance vocale non disponible. Utilise le mode « Taper la question » à la place.",
+    "noTranscript": "Pas encore de transcription",
+    "clickMic": "Clique sur le bouton du micro pour commencer à écouter l'entretien",
+    "typeBelow": "Tape une question ci-dessous pour obtenir du coaching IA"
+  },
+  "usage": {
+    "title": "Tes limites d'utilisation",
+    "currentSession": "Session actuelle",
+    "startsWhen": "Commence lorsqu'un message est envoyé",
+    "allModels": "Tous les modèles",
+    "premiumModels": "Modèles premium",
+    "resetsIn": "Réinitialisation dans {{days}}j {{hours}}h",
+    "justNow": "à l'instant",
+    "secondsAgo": "il y a {{seconds}}s",
+    "minutesAgo": "il y a {{minutes}}m",
+    "resetting": "Réinitialisation...",
+    "noPremiumYet": "Tu n'as pas encore utilisé de modèles premium",
+    "sessionUsage": "Utilisation de session"
+  },
+  "menu": {
+    "file": "Fichier",
+    "openFolder": "Ouvrir un dossier...",
+    "openFile": "Ouvrir un fichier...",
+    "save": "Enregistrer",
+    "saveAll": "Tout enregistrer",
+    "edit": "Éditer",
+    "view": "Affichage",
+    "terminal": "Terminal",
+    "newTerminal": "Nouveau terminal",
+    "clearTerminal": "Effacer le terminal",
+    "ai": "IA",
+    "newChat": "Nouvelle conversation",
+    "toggleAI": "Basculer le panneau IA",
+    "settingsMenu": "Paramètres...",
+    "help": "Aide",
+    "checkUpdates": "Vérifier les mises à jour...",
+    "documentation": "Documentation",
+    "reportIssue": "Signaler un problème",
+    "about": "À propos d'AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Choisis ta langue",
+    "subtitle": "Sélectionne ta langue préférée pour commencer",
+    "continue": "Continuer",
+    "searchPlaceholder": "Rechercher des langues..."
+  }
+}

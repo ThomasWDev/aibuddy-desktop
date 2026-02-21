@@ -185,10 +185,31 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
     }
   }, [isListening, sendToAI])
 
-  const startListening = useCallback(() => {
+  const startListening = useCallback(async () => {
     if (!isSupported) {
       setError('Speech recognition is not supported in this environment')
       return
+    }
+
+    // KAN-62: Check macOS microphone permission before starting
+    try {
+      const electronAPI = (window as any).electronAPI
+      if (electronAPI?.microphone?.getStatus) {
+        const status = await electronAPI.microphone.getStatus()
+        if (status === 'denied') {
+          setError('Microphone access denied. Open System Settings > Privacy & Security > Microphone to grant access.')
+          return
+        }
+        if (status !== 'granted') {
+          const granted = await electronAPI.microphone.requestAccess()
+          if (!granted) {
+            setError('Microphone permission not granted. Please allow access in System Settings.')
+            return
+          }
+        }
+      }
+    } catch {
+      // Not in Electron or IPC unavailable — proceed
     }
 
     setError(null)

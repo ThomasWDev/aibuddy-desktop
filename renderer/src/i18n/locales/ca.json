@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "El teu amic de programació!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Hola!",
+      "subtitle": "Sóc AIBuddy, el teu amic de programació!\nDigues-me què vols construir!",
+      "typeWhat": "Escriu el que vols",
+      "illDoWork": "Jo faré la feina",
+      "watchCredits": "Vigila els teus crèdits"
+    },
+    "returningUser": {
+      "greeting": "Benvingut de nou!",
+      "subtitle": "En què t'agradaria treballar avui?",
+      "recentChats": "Converses recents",
+      "viewAllHistory": "Veure tot l'historial"
+    }
+  },
+  "chat": {
+    "placeholder": "Què vols construir avui?",
+    "placeholderImage": "Descriu amb què necessites ajuda...",
+    "sendButton": "Enviar",
+    "stopButton": "Aturar",
+    "newChat": "Nova conversa",
+    "cancelledRequest": "Sol·licitud cancel·lada",
+    "sending": "Enviant a AI...",
+    "thinking": "Pensant...",
+    "copyResponse": "Copiar resposta",
+    "regenerate": "Regenerar resposta",
+    "goodResponse": "Bona resposta",
+    "poorResponse": "Resposta dolenta",
+    "copied": "Resposta copiada",
+    "startedNewChat": "Nova conversa iniciada",
+    "requestInProgress": "Sol·licitud en curs – prem de nou per a una nova conversa"
+  },
+  "actions": {
+    "debugCode": "Depurar codi",
+    "quickFix": "Solució ràpida",
+    "explain": "Explicar",
+    "refactor": "Refactoritzar",
+    "debugPrompt": "Ajuda'm a depurar aquest codi:",
+    "quickFixPrompt": "Corregeix aquest error:",
+    "explainPrompt": "Explica aquest codi:",
+    "refactorPrompt": "Refactoritza aquest codi perquè sigui més net:"
+  },
+  "header": {
+    "credits": "Crèdits: {{amount}}",
+    "buyCredits": "Comprar crèdits",
+    "new": "Nou",
+    "openFolder": "Obrir carpeta",
+    "terminal": "Terminal",
+    "knowledge": "Base de coneixement",
+    "share": "Compartir",
+    "history": "Historial de converses",
+    "key": "Clau API",
+    "settings": "Configuració",
+    "interview": "Mode d'entrevista",
+    "moreActions": "Més accions"
+  },
+  "workspace": {
+    "workingIn": "Treballant a:",
+    "switch": "Canviar",
+    "openFolderFirst": "Si us plau, obriu primer aquesta carpeta a través de Fitxer → Obrir carpeta"
+  },
+  "apiKey": {
+    "title": "Cal una clau API",
+    "description": "Afegeix la teva clau API d'AIBuddy per començar a xatejar amb AI",
+    "addKey": "Afegir clau",
+    "configured": "Clau API configurada",
+    "notConfigured": "Afegeix la teva clau API",
+    "placeholder": "Introdueix la teva clau API d'AIBuddy...",
+    "save": "Desar clau API",
+    "saved": "Desat!",
+    "securityNote": "La teva clau API s'emmagatzema de forma segura al teu dispositiu",
+    "getKey": "Aconsegueix-ne una aquí!"
+  },
+  "status": {
+    "ready": "Preparat",
+    "loading": "Carregant...",
+    "validating": "Validant...",
+    "sending": "Enviant...",
+    "thinking": "Pensant...",
+    "error": "Error"
+  },
+  "voice": {
+    "startDictation": "Iniciar dictat per veu",
+    "stopDictation": "Aturar dictat",
+    "notAvailable": "L'entrada de veu no està disponible en aquest entorn"
+  },
+  "attachments": {
+    "attachImage": "Adjuntar imatge",
+    "attachCode": "Adjuntar fitxer de codi",
+    "imageRemoved": "Imatge eliminada"
+  },
+  "historySidebar": {
+    "title": "Historial de converses",
+    "newChat": "Nova conversa",
+    "search": "Cercar converses...",
+    "loading": "Carregant...",
+    "noHistory": "Encara no hi ha historial de converses",
+    "startNew": "Inicia una nova conversa",
+    "pinned": "Fixades",
+    "today": "Avui",
+    "yesterday": "Ahir",
+    "thisWeek": "Aquesta setmana",
+    "thisMonth": "Aquest mes",
+    "older": "Més antigues",
+    "messages": "missatges",
+    "deleteConfirm": "Eliminar aquesta conversa?",
+    "pinChat": "Fixar conversa",
+    "unpinChat": "Desafixar conversa",
+    "renameChat": "Canviar nom de la conversa",
+    "deleteChat": "Eliminar conversa",
+    "chatsSaved": "converses desades"
+  },
+  "interview": {
+    "typeQuestion": "Escriu la pregunta de l'entrevista...",
+    "askAI": "Preguntar a AI",
+    "speechNotAvailable": "El reconeixement de veu no està disponible. Utilitza el mode \"Escriure pregunta\" en el seu lloc.",
+    "noTranscript": "Encara no hi ha transcripció",
+    "clickMic": "Fes clic al botó del micròfon per començar a escoltar l'entrevista",
+    "typeBelow": "Escriu una pregunta a sota per rebre coaching d'AI"
+  },
+  "usage": {
+    "title": "Els teus límits d'ús",
+    "currentSession": "Sessió actual",
+    "startsWhen": "Comença quan s'envia un missatge",
+    "allModels": "Tots els models",
+    "premiumModels": "Models premium",
+    "resetsIn": "Es reinicia en {{days}}d {{hours}}h",
+    "justNow": "ara mateix",
+    "secondsAgo": "fa {{seconds}}s",
+    "minutesAgo": "fa {{minutes}}m",
+    "resetting": "Reiniciant...",
+    "noPremiumYet": "Encara no has fet servir models premium",
+    "sessionUsage": "Ús de la sessió"
+  },
+  "menu": {
+    "file": "Fitxer",
+    "openFolder": "Obrir carpeta...",
+    "openFile": "Obrir fitxer...",
+    "save": "Desar",
+    "saveAll": "Desar tot",
+    "edit": "Editar",
+    "view": "Visualització",
+    "terminal": "Terminal",
+    "newTerminal": "Nou Terminal",
+    "clearTerminal": "Netejar Terminal",
+    "ai": "AI",
+    "newChat": "Nova conversa",
+    "toggleAI": "Alternar panell AI",
+    "settingsMenu": "Configuració...",
+    "help": "Ajuda",
+    "checkUpdates": "Comprovar actualitzacions...",
+    "documentation": "Documentació",
+    "reportIssue": "Informar d'un problema",
+    "about": "Sobre AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Tria el teu idioma",
+    "subtitle": "Selecciona el teu idioma preferit per començar",
+    "continue": "Continuar",
+    "searchPlaceholder": "Cercar idiomes..."
+  }
+}

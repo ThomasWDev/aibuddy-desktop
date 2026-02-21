@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell, nativeImage, session } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell, nativeImage, session, clipboard, systemPreferences } from 'electron'
 import { join } from 'path'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import * as os from 'os'
@@ -240,6 +240,20 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  // KAN-62: Request macOS system-level microphone permission on launch.
+  // Without this, the OS silently blocks mic access even if entitlements are present.
+  if (process.platform === 'darwin') {
+    const micStatus = systemPreferences.getMediaAccessStatus('microphone')
+    console.log(`[Permissions] macOS microphone status: ${micStatus}`)
+    if (micStatus !== 'granted') {
+      systemPreferences.askForMediaAccess('microphone').then((granted) => {
+        console.log(`[Permissions] macOS microphone ${granted ? 'granted' : 'denied'}`)
+      }).catch((err) => {
+        console.error('[Permissions] Failed to request microphone:', err)
+      })
+    }
+  }
+
   // Grant microphone/audio permissions for Interview Mode
   mainWindow.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
     const allowedPermissions = ['media', 'microphone', 'audio-capture']
@@ -273,8 +287,7 @@ function createWindow(): void {
           "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
           "img-src 'self' data: https:; " +
           "font-src 'self' data: https://fonts.gstatic.com; " +
-          // Allow HTTPS everywhere + HTTP to ALB (no timeout limit for Claude Opus 4.5)
-          "connect-src 'self' https: wss: http://*.us-east-2.elb.amazonaws.com http://*.elb.amazonaws.com;"
+          "connect-src 'self' https: wss:;"
         ]
       }
     })
@@ -303,6 +316,12 @@ function createWindow(): void {
 // Create application menu
 function createMenu(): void {
   const template: Electron.MenuItemConstructorOptions[] = [
+    // KAN-59: macOS requires an explicit app menu as the first entry.
+    // Without this, the File menu becomes the app menu and Edit menu
+    // keyboard shortcuts (Cmd+C/V/X) don't register properly.
+    ...(process.platform === 'darwin' ? [{
+      role: 'appMenu' as const
+    }] : []),
     {
       label: 'File',
       submenu: [
@@ -752,6 +771,29 @@ function initMainProcessHandlers(): void {
 
   ipcMain.handle('shell:showItemInFolder', (_event, path: string) => {
     shell.showItemInFolder(path)
+    return true
+  })
+
+  // KAN-59: Clipboard IPC — reliable fallback for navigator.clipboard failures
+  ipcMain.handle('clipboard:writeText', (_event, text: string) => {
+    clipboard.writeText(text)
+    return true
+  })
+  ipcMain.handle('clipboard:readText', () => {
+    return clipboard.readText()
+  })
+
+  // KAN-62: Microphone permission IPC — check and request macOS mic access
+  ipcMain.handle('microphone:getStatus', () => {
+    if (process.platform === 'darwin') {
+      return systemPreferences.getMediaAccessStatus('microphone')
+    }
+    return 'granted'
+  })
+  ipcMain.handle('microphone:requestAccess', async () => {
+    if (process.platform === 'darwin') {
+      return systemPreferences.askForMediaAccess('microphone')
+    }
     return true
   })
 

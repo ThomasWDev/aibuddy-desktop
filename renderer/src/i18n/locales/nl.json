@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Jouw Programmeermaatje!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Hallo!",
+      "subtitle": "Ik ben AIBuddy, jouw programmeermaatje!\nVertel me wat je wilt bouwen!",
+      "typeWhat": "Typ wat je wilt",
+      "illDoWork": "Ik doe het werk",
+      "watchCredits": "Houd je tegoed in de gaten"
+    },
+    "returningUser": {
+      "greeting": "Welkom terug!",
+      "subtitle": "Waar wil je vandaag aan werken?",
+      "recentChats": "Recente Chats",
+      "viewAllHistory": "Bekijk alle geschiedenis"
+    }
+  },
+  "chat": {
+    "placeholder": "Wat wil je vandaag bouwen?",
+    "placeholderImage": "Beschrijf waar je hulp bij nodig hebt...",
+    "sendButton": "Verzenden",
+    "stopButton": "Stoppen",
+    "newChat": "Nieuwe chat",
+    "cancelledRequest": "Verzoek geannuleerd",
+    "sending": "Verzenden naar AI...",
+    "thinking": "Aan het denken...",
+    "copyResponse": "Antwoord kopiëren",
+    "regenerate": "Antwoord opnieuw genereren",
+    "goodResponse": "Goed antwoord",
+    "poorResponse": "Slecht antwoord",
+    "copied": "Antwoord gekopieerd",
+    "startedNewChat": "Nieuwe chat gestart",
+    "requestInProgress": "Verzoek wordt verwerkt - druk nogmaals om nieuwe chat te forceren"
+  },
+  "actions": {
+    "debugCode": "Code debuggen",
+    "quickFix": "Snelle fix",
+    "explain": "Uitleggen",
+    "refactor": "Refactoren",
+    "debugPrompt": "Help me deze code te debuggen:",
+    "quickFixPrompt": "Los deze fout op:",
+    "explainPrompt": "Leg deze code uit:",
+    "refactorPrompt": "Refactor deze code om het schoner te maken:"
+  },
+  "header": {
+    "credits": "Tegoed: {{amount}}",
+    "buyCredits": "Tegoed Kopen",
+    "new": "Nieuw",
+    "openFolder": "Map Openen",
+    "terminal": "Terminal",
+    "knowledge": "Kennisbank",
+    "share": "Delen",
+    "history": "Chatgeschiedenis",
+    "key": "API-sleutel",
+    "settings": "Instellingen",
+    "interview": "Interviewmodus",
+    "moreActions": "Meer acties"
+  },
+  "workspace": {
+    "workingIn": "Werken in:",
+    "switch": "Wisselen",
+    "openFolderFirst": "Open die map eerst via Bestand → Map Openen"
+  },
+  "apiKey": {
+    "title": "API-sleutel Vereist",
+    "description": "Voeg je AIBuddy API-sleutel toe om te beginnen met chatten met AI",
+    "addKey": "Sleutel Toevoegen",
+    "configured": "API-sleutel geconfigureerd",
+    "notConfigured": "Voeg je API-sleutel toe",
+    "placeholder": "Voer je AIBuddy API-sleutel in...",
+    "save": "API-sleutel Opslaan",
+    "saved": "Opgeslagen!",
+    "securityNote": "Je API-sleutel wordt veilig opgeslagen op je apparaat",
+    "getKey": "Haal er hier een!"
+  },
+  "status": {
+    "ready": "Gereed",
+    "loading": "Laden...",
+    "validating": "Valideren...",
+    "sending": "Verzenden...",
+    "thinking": "Aan het denken...",
+    "error": "Fout"
+  },
+  "voice": {
+    "startDictation": "Spraakdictaat starten",
+    "stopDictation": "Dictaat stoppen",
+    "notAvailable": "Spraakinvoer niet beschikbaar in deze omgeving"
+  },
+  "attachments": {
+    "attachImage": "Afbeelding bijvoegen",
+    "attachCode": "Codebestand bijvoegen",
+    "imageRemoved": "Afbeelding verwijderd"
+  },
+  "historySidebar": {
+    "title": "Chatgeschiedenis",
+    "newChat": "Nieuwe Chat",
+    "search": "Chats zoeken...",
+    "loading": "Laden...",
+    "noHistory": "Nog geen chatgeschiedenis",
+    "startNew": "Begin een nieuwe chat om te starten",
+    "pinned": "Vastgezet",
+    "today": "Vandaag",
+    "yesterday": "Gisteren",
+    "thisWeek": "Deze Week",
+    "thisMonth": "Deze Maand",
+    "older": "Ouder",
+    "messages": "berichten",
+    "deleteConfirm": "Deze chat verwijderen?",
+    "pinChat": "Chat vastzetten",
+    "unpinChat": "Chat loszetten",
+    "renameChat": "Chat hernoemen",
+    "deleteChat": "Chat verwijderen",
+    "chatsSaved": "chats opgeslagen"
+  },
+  "interview": {
+    "typeQuestion": "Typ de interviewvraag...",
+    "askAI": "Vraag AI",
+    "speechNotAvailable": "Spraakherkenning niet beschikbaar. Gebruik in plaats daarvan de modus \"Vraag Typen\".",
+    "noTranscript": "Nog geen transcript",
+    "clickMic": "Klik op de microfoonknop om te beginnen met luisteren naar het interview",
+    "typeBelow": "Typ hieronder een vraag om AI-coaching te krijgen"
+  },
+  "usage": {
+    "title": "Jouw gebruikslimieten",
+    "currentSession": "Huidige sessie",
+    "startsWhen": "Begint wanneer een bericht wordt verzonden",
+    "allModels": "Alle modellen",
+    "premiumModels": "Premium modellen",
+    "resetsIn": "Reset over {{days}}d {{hours}}u",
+    "justNow": "zojuist",
+    "secondsAgo": "{{seconds}}s geleden",
+    "minutesAgo": "{{minutes}}m geleden",
+    "resetting": "Resetten...",
+    "noPremiumYet": "Je hebt nog geen premium modellen gebruikt",
+    "sessionUsage": "Sessiegebruik"
+  },
+  "menu": {
+    "file": "Bestand",
+    "openFolder": "Map Openen...",
+    "openFile": "Bestand Openen...",
+    "save": "Opslaan",
+    "saveAll": "Alles Opslaan",
+    "edit": "Bewerken",
+    "view": "Weergave",
+    "terminal": "Terminal",
+    "newTerminal": "Nieuwe Terminal",
+    "clearTerminal": "Terminal Wissen",
+    "ai": "AI",
+    "newChat": "Nieuwe Chat",
+    "toggleAI": "AI-paneel Wisselen",
+    "settingsMenu": "Instellingen...",
+    "help": "Help",
+    "checkUpdates": "Controleren op Updates...",
+    "documentation": "Documentatie",
+    "reportIssue": "Probleem Melden",
+    "about": "Over AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Kies Je Taal",
+    "subtitle": "Selecteer je voorkeurstaal om te beginnen",
+    "continue": "Doorgaan",
+    "searchPlaceholder": "Talen zoeken..."
+  }
+}

@@ -84,10 +84,11 @@ export function initFileSystemHandlers(): void {
   // Write file contents
   ipcMain.handle('fs:writeFile', async (_event, filePath: string, data: string | Buffer) => {
     try {
-      // Ensure directory exists
       const dir = path.dirname(filePath)
       await fs.mkdir(dir, { recursive: true })
       await fs.writeFile(filePath, data, 'utf-8')
+      // KAN-45: Verify file was actually written to disk
+      await fs.access(filePath)
     } catch (error) {
       throw new Error(`Failed to write file: ${(error as Error).message}`)
     }

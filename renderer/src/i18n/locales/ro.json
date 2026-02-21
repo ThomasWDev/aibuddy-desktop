@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Prietenul tău la programare!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Salut!",
+      "subtitle": "Sunt AIBuddy, prietenul tău la programare!\nSpune-mi ce vrei să construiești!",
+      "typeWhat": "Scrie ce dorești",
+      "illDoWork": "Eu fac treaba",
+      "watchCredits": "Urmărește-ți creditele"
+    },
+    "returningUser": {
+      "greeting": "Bine ai revenit!",
+      "subtitle": "La ce ai vrea să lucrezi astăzi?",
+      "recentChats": "Conversații recente",
+      "viewAllHistory": "Vezi tot istoricul"
+    }
+  },
+  "chat": {
+    "placeholder": "Ce vrei să construiești astăzi?",
+    "placeholderImage": "Descrie cu ce ai nevoie de ajutor...",
+    "sendButton": "Trimite",
+    "stopButton": "Oprește",
+    "newChat": "Conversație nouă",
+    "cancelledRequest": "Cerere anulată",
+    "sending": "Se trimite către AI...",
+    "thinking": "Mă gândesc...",
+    "copyResponse": "Copiază răspunsul",
+    "regenerate": "Regenerează răspunsul",
+    "goodResponse": "Răspuns bun",
+    "poorResponse": "Răspuns slab",
+    "copied": "Răspuns copiat",
+    "startedNewChat": "Conversație nouă începută",
+    "requestInProgress": "Cerere în curs – apasă din nou pentru conversație nouă"
+  },
+  "actions": {
+    "debugCode": "Depanare cod",
+    "quickFix": "Reparare rapidă",
+    "explain": "Explică",
+    "refactor": "Refactorizează",
+    "debugPrompt": "Ajută-mă să depanez acest cod:",
+    "quickFixPrompt": "Repară această eroare:",
+    "explainPrompt": "Explică acest cod:",
+    "refactorPrompt": "Refactorizează acest cod pentru a fi mai curat:"
+  },
+  "header": {
+    "credits": "Credite: {{amount}}",
+    "buyCredits": "Cumpără credite",
+    "new": "Nou",
+    "openFolder": "Deschide folder",
+    "terminal": "Terminal",
+    "knowledge": "Bază de cunoștințe",
+    "share": "Partajează",
+    "history": "Istoric conversații",
+    "key": "Cheie API",
+    "settings": "Setări",
+    "interview": "Mod interviu",
+    "moreActions": "Mai multe acțiuni"
+  },
+  "workspace": {
+    "workingIn": "Lucrez în:",
+    "switch": "Schimbă",
+    "openFolderFirst": "Te rugăm să deschizi mai întâi acel folder prin Fișier → Deschide folder"
+  },
+  "apiKey": {
+    "title": "Cheie API necesară",
+    "description": "Adaugă cheia API AIBuddy pentru a începe să conversezi cu AI",
+    "addKey": "Adaugă cheie",
+    "configured": "Cheie API configurată",
+    "notConfigured": "Adaugă cheia ta API",
+    "placeholder": "Introdu cheia API AIBuddy...",
+    "save": "Salvează cheia API",
+    "saved": "Salvat!",
+    "securityNote": "Cheia ta API este stocată în siguranță pe dispozitivul tău",
+    "getKey": "Obține una aici!"
+  },
+  "status": {
+    "ready": "Pregătit",
+    "loading": "Se încarcă...",
+    "validating": "Se validează...",
+    "sending": "Se trimite...",
+    "thinking": "Mă gândesc...",
+    "error": "Eroare"
+  },
+  "voice": {
+    "startDictation": "Pornește dictarea vocală",
+    "stopDictation": "Oprește dictarea",
+    "notAvailable": "Intrarea vocală nu este disponibilă în acest mediu"
+  },
+  "attachments": {
+    "attachImage": "Atașează imagine",
+    "attachCode": "Atașează fișier de cod",
+    "imageRemoved": "Imagine eliminată"
+  },
+  "historySidebar": {
+    "title": "Istoric conversații",
+    "newChat": "Conversație nouă",
+    "search": "Caută conversații...",
+    "loading": "Se încarcă...",
+    "noHistory": "Niciun istoric de conversații încă",
+    "startNew": "Începe o conversație nouă",
+    "pinned": "Fixate",
+    "today": "Astăzi",
+    "yesterday": "Ieri",
+    "thisWeek": "Săptămâna aceasta",
+    "thisMonth": "Luna aceasta",
+    "older": "Mai vechi",
+    "messages": "mesaje",
+    "deleteConfirm": "Ștergi această conversație?",
+    "pinChat": "Fixează conversația",
+    "unpinChat": "Anulează fixarea conversației",
+    "renameChat": "Redenumește conversația",
+    "deleteChat": "Șterge conversația",
+    "chatsSaved": "conversații salvate"
+  },
+  "interview": {
+    "typeQuestion": "Scrie întrebarea de interviu...",
+    "askAI": "Întreabă AI",
+    "speechNotAvailable": "Recunoașterea vocală nu este disponibilă. Folosește modul \"Scrie întrebarea\" în schimb.",
+    "noTranscript": "Niciun transcript încă",
+    "clickMic": "Apasă butonul de microfon pentru a începe să asculți interviul",
+    "typeBelow": "Scrie o întrebare mai jos pentru coaching AI"
+  },
+  "usage": {
+    "title": "Limitele tale de utilizare",
+    "currentSession": "Sesiunea curentă",
+    "startsWhen": "Începe când se trimite un mesaj",
+    "allModels": "Toate modelele",
+    "premiumModels": "Modele premium",
+    "resetsIn": "Se resetează în {{days}}z {{hours}}o",
+    "justNow": "chiar acum",
+    "secondsAgo": "acum {{seconds}}s",
+    "minutesAgo": "acum {{minutes}}m",
+    "resetting": "Se resetează...",
+    "noPremiumYet": "Nu ai folosit încă modele premium",
+    "sessionUsage": "Utilizare sesiune"
+  },
+  "menu": {
+    "file": "Fișier",
+    "openFolder": "Deschide folder...",
+    "openFile": "Deschide fișier...",
+    "save": "Salvează",
+    "saveAll": "Salvează tot",
+    "edit": "Editare",
+    "view": "Vizualizare",
+    "terminal": "Terminal",
+    "newTerminal": "Terminal nou",
+    "clearTerminal": "Curăță Terminal",
+    "ai": "AI",
+    "newChat": "Conversație nouă",
+    "toggleAI": "Comută panoul AI",
+    "settingsMenu": "Setări...",
+    "help": "Ajutor",
+    "checkUpdates": "Verifică actualizări...",
+    "documentation": "Documentație",
+    "reportIssue": "Raportează o problemă",
+    "about": "Despre AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Alege limba ta",
+    "subtitle": "Selectează limba preferată pentru a începe",
+    "continue": "Continuă",
+    "searchPlaceholder": "Caută limbi..."
+  }
+}

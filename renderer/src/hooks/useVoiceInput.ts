@@ -134,19 +134,45 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
     }
   }, [language, continuous, interimResults, onResult, onError, isSupported])
 
-  const startListening = useCallback(() => {
+  const startListening = useCallback(async () => {
     if (!isSupported || !recognitionRef.current) {
       setErrorMessage('Voice input not supported in this browser')
       return
     }
 
+    // KAN-62: Check macOS microphone permission before starting
+    try {
+      const electronAPI = (window as any).electronAPI
+      if (electronAPI?.microphone?.getStatus) {
+        const status = await electronAPI.microphone.getStatus()
+        if (status === 'denied') {
+          setErrorMessage('Microphone access denied. Open System Settings > Privacy & Security > Microphone to grant access.')
+          setState('error')
+          onError?.('Microphone access denied. Open System Settings > Privacy & Security > Microphone to grant access.')
+          setTimeout(() => { setState('idle'); setErrorMessage(null) }, 5000)
+          return
+        }
+        if (status !== 'granted') {
+          const granted = await electronAPI.microphone.requestAccess()
+          if (!granted) {
+            setErrorMessage('Microphone permission not granted. Please allow access in System Settings.')
+            setState('error')
+            onError?.('Microphone permission not granted.')
+            setTimeout(() => { setState('idle'); setErrorMessage(null) }, 5000)
+            return
+          }
+        }
+      }
+    } catch {
+      // Not in Electron or IPC unavailable — proceed with web API attempt
+    }
+
     try {
       recognitionRef.current.start()
     } catch (err) {
-      // Recognition might already be running
       console.warn('Speech recognition start error:', err)
     }
-  }, [isSupported])
+  }, [isSupported, onError])
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {

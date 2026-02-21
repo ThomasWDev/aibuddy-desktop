@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "O Teu Amigo de Programação!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Olá!",
+      "subtitle": "Eu sou o AIBuddy, o teu amigo de programação!\nDiz-me o que queres construir!",
+      "typeWhat": "Escreve o que queres",
+      "illDoWork": "Eu faço o trabalho",
+      "watchCredits": "Acompanha os teus créditos"
+    },
+    "returningUser": {
+      "greeting": "Bem-vindo de volta!",
+      "subtitle": "Em que gostarias de trabalhar hoje?",
+      "recentChats": "Conversas Recentes",
+      "viewAllHistory": "Ver todo o histórico"
+    }
+  },
+  "chat": {
+    "placeholder": "O que queres construir hoje?",
+    "placeholderImage": "Descreve em que precisas de ajuda...",
+    "sendButton": "Enviar",
+    "stopButton": "Parar",
+    "newChat": "Nova conversa",
+    "cancelledRequest": "Pedido cancelado",
+    "sending": "A enviar para o AI...",
+    "thinking": "A pensar...",
+    "copyResponse": "Copiar resposta",
+    "regenerate": "Regenerar resposta",
+    "goodResponse": "Boa resposta",
+    "poorResponse": "Resposta fraca",
+    "copied": "Resposta copiada",
+    "startedNewChat": "Nova conversa iniciada",
+    "requestInProgress": "Pedido em curso - prime novamente para forçar nova conversa"
+  },
+  "actions": {
+    "debugCode": "Depurar código",
+    "quickFix": "Correção rápida",
+    "explain": "Explicar",
+    "refactor": "Refatorar",
+    "debugPrompt": "Ajuda-me a depurar este código:",
+    "quickFixPrompt": "Corrige este erro:",
+    "explainPrompt": "Explica este código:",
+    "refactorPrompt": "Refatora este código para ficar mais limpo:"
+  },
+  "header": {
+    "credits": "Créditos: {{amount}}",
+    "buyCredits": "Comprar Créditos",
+    "new": "Novo",
+    "openFolder": "Abrir Pasta",
+    "terminal": "Terminal",
+    "knowledge": "Base de Conhecimento",
+    "share": "Partilhar",
+    "history": "Histórico de Conversas",
+    "key": "Chave API",
+    "settings": "Definições",
+    "interview": "Modo Entrevista",
+    "moreActions": "Mais ações"
+  },
+  "workspace": {
+    "workingIn": "A trabalhar em:",
+    "switch": "Trocar",
+    "openFolderFirst": "Por favor, abre essa pasta primeiro em Ficheiro → Abrir Pasta"
+  },
+  "apiKey": {
+    "title": "Chave API Necessária",
+    "description": "Adiciona a tua chave API do AIBuddy para começar a conversar com o AI",
+    "addKey": "Adicionar Chave",
+    "configured": "Chave API configurada",
+    "notConfigured": "Adiciona a tua chave API",
+    "placeholder": "Introduz a tua chave API do AIBuddy...",
+    "save": "Guardar Chave API",
+    "saved": "Guardado!",
+    "securityNote": "A tua chave API é armazenada em segurança no teu dispositivo",
+    "getKey": "Obtém uma aqui!"
+  },
+  "status": {
+    "ready": "Pronto",
+    "loading": "A carregar...",
+    "validating": "A validar...",
+    "sending": "A enviar...",
+    "thinking": "A pensar...",
+    "error": "Erro"
+  },
+  "voice": {
+    "startDictation": "Iniciar ditado por voz",
+    "stopDictation": "Parar ditado",
+    "notAvailable": "Entrada de voz não disponível neste ambiente"
+  },
+  "attachments": {
+    "attachImage": "Anexar imagem",
+    "attachCode": "Anexar ficheiro de código",
+    "imageRemoved": "Imagem removida"
+  },
+  "historySidebar": {
+    "title": "Histórico de Conversas",
+    "newChat": "Nova Conversa",
+    "search": "Pesquisar conversas...",
+    "loading": "A carregar...",
+    "noHistory": "Ainda não há histórico de conversas",
+    "startNew": "Inicia uma nova conversa para começar",
+    "pinned": "Fixados",
+    "today": "Hoje",
+    "yesterday": "Ontem",
+    "thisWeek": "Esta Semana",
+    "thisMonth": "Este Mês",
+    "older": "Mais Antigos",
+    "messages": "mensagens",
+    "deleteConfirm": "Eliminar esta conversa?",
+    "pinChat": "Fixar conversa",
+    "unpinChat": "Desfixar conversa",
+    "renameChat": "Renomear conversa",
+    "deleteChat": "Eliminar conversa",
+    "chatsSaved": "conversas guardadas"
+  },
+  "interview": {
+    "typeQuestion": "Escreve a pergunta da entrevista...",
+    "askAI": "Perguntar ao AI",
+    "speechNotAvailable": "Reconhecimento de voz não disponível. Usa o modo \"Escrever Pergunta\" em vez disso.",
+    "noTranscript": "Ainda sem transcrição",
+    "clickMic": "Clica no botão do microfone para começar a ouvir a entrevista",
+    "typeBelow": "Escreve uma pergunta abaixo para obteres orientação do AI"
+  },
+  "usage": {
+    "title": "Os teus limites de utilização",
+    "currentSession": "Sessão atual",
+    "startsWhen": "Começa quando uma mensagem é enviada",
+    "allModels": "Todos os modelos",
+    "premiumModels": "Modelos premium",
+    "resetsIn": "Reinicia em {{days}}d {{hours}}h",
+    "justNow": "agora mesmo",
+    "secondsAgo": "{{seconds}}s atrás",
+    "minutesAgo": "{{minutes}}m atrás",
+    "resetting": "A reiniciar...",
+    "noPremiumYet": "Ainda não usaste modelos premium",
+    "sessionUsage": "Utilização da sessão"
+  },
+  "menu": {
+    "file": "Ficheiro",
+    "openFolder": "Abrir Pasta...",
+    "openFile": "Abrir Ficheiro...",
+    "save": "Guardar",
+    "saveAll": "Guardar Tudo",
+    "edit": "Editar",
+    "view": "Ver",
+    "terminal": "Terminal",
+    "newTerminal": "Novo Terminal",
+    "clearTerminal": "Limpar Terminal",
+    "ai": "AI",
+    "newChat": "Nova Conversa",
+    "toggleAI": "Alternar Painel AI",
+    "settingsMenu": "Definições...",
+    "help": "Ajuda",
+    "checkUpdates": "Verificar Atualizações...",
+    "documentation": "Documentação",
+    "reportIssue": "Reportar Problema",
+    "about": "Sobre o AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Escolhe o Teu Idioma",
+    "subtitle": "Seleciona o teu idioma preferido para começar",
+    "continue": "Continuar",
+    "searchPlaceholder": "Pesquisar idiomas..."
+  }
+}

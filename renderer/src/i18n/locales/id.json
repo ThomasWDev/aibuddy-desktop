@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Teman Ngodingmu!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Halo!",
+      "subtitle": "Saya AIBuddy, teman ngodingmu!\nKasih tahu apa yang ingin kamu buat!",
+      "typeWhat": "Ketik apa yang kamu mau",
+      "illDoWork": "Aku yang kerjakan",
+      "watchCredits": "Pantau kreditmu"
+    },
+    "returningUser": {
+      "greeting": "Selamat datang kembali!",
+      "subtitle": "Apa yang ingin kamu kerjakan hari ini?",
+      "recentChats": "Obrolan Terbaru",
+      "viewAllHistory": "Lihat semua riwayat"
+    }
+  },
+  "chat": {
+    "placeholder": "Apa yang ingin kamu buat hari ini?",
+    "placeholderImage": "Jelaskan apa yang kamu butuhkan bantuan...",
+    "sendButton": "Kirim",
+    "stopButton": "Berhenti",
+    "newChat": "Obrolan baru",
+    "cancelledRequest": "Permintaan dibatalkan",
+    "sending": "Mengirim ke AI...",
+    "thinking": "Berpikir...",
+    "copyResponse": "Salin respons",
+    "regenerate": "Buat ulang respons",
+    "goodResponse": "Respons bagus",
+    "poorResponse": "Respons kurang bagus",
+    "copied": "Respons disalin",
+    "startedNewChat": "Obrolan baru dimulai",
+    "requestInProgress": "Permintaan sedang berlangsung – tekan lagi untuk obrolan baru"
+  },
+  "actions": {
+    "debugCode": "Debug kode",
+    "quickFix": "Perbaikan cepat",
+    "explain": "Jelaskan",
+    "refactor": "Refaktor",
+    "debugPrompt": "Bantu saya debug kode ini:",
+    "quickFixPrompt": "Perbaiki error ini:",
+    "explainPrompt": "Jelaskan kode ini:",
+    "refactorPrompt": "Refaktor kode ini agar lebih bersih:"
+  },
+  "header": {
+    "credits": "Kredit: {{amount}}",
+    "buyCredits": "Beli Kredit",
+    "new": "Baru",
+    "openFolder": "Buka Folder",
+    "terminal": "Terminal",
+    "knowledge": "Basis Pengetahuan",
+    "share": "Bagikan",
+    "history": "Riwayat Obrolan",
+    "key": "Kunci API",
+    "settings": "Pengaturan",
+    "interview": "Mode Wawancara",
+    "moreActions": "Tindakan lainnya"
+  },
+  "workspace": {
+    "workingIn": "Bekerja di:",
+    "switch": "Ganti",
+    "openFolderFirst": "Silakan buka folder itu terlebih dahulu melalui File → Buka Folder"
+  },
+  "apiKey": {
+    "title": "Kunci API Diperlukan",
+    "description": "Tambahkan kunci API AIBuddy kamu untuk mulai mengobrol dengan AI",
+    "addKey": "Tambah Kunci",
+    "configured": "Kunci API terkonfigurasi",
+    "notConfigured": "Tambahkan kunci API kamu",
+    "placeholder": "Masukkan kunci API AIBuddy kamu...",
+    "save": "Simpan Kunci API",
+    "saved": "Tersimpan!",
+    "securityNote": "Kunci API kamu disimpan dengan aman di perangkatmu",
+    "getKey": "Dapatkan di sini!"
+  },
+  "status": {
+    "ready": "Siap",
+    "loading": "Memuat...",
+    "validating": "Memvalidasi...",
+    "sending": "Mengirim...",
+    "thinking": "Berpikir...",
+    "error": "Error"
+  },
+  "voice": {
+    "startDictation": "Mulai dikte suara",
+    "stopDictation": "Hentikan dikte",
+    "notAvailable": "Input suara tidak tersedia di lingkungan ini"
+  },
+  "attachments": {
+    "attachImage": "Lampirkan gambar",
+    "attachCode": "Lampirkan file kode",
+    "imageRemoved": "Gambar dihapus"
+  },
+  "historySidebar": {
+    "title": "Riwayat Obrolan",
+    "newChat": "Obrolan Baru",
+    "search": "Cari obrolan...",
+    "loading": "Memuat...",
+    "noHistory": "Belum ada riwayat obrolan",
+    "startNew": "Mulai obrolan baru",
+    "pinned": "Disematkan",
+    "today": "Hari ini",
+    "yesterday": "Kemarin",
+    "thisWeek": "Minggu Ini",
+    "thisMonth": "Bulan Ini",
+    "older": "Lebih Lama",
+    "messages": "pesan",
+    "deleteConfirm": "Hapus utas obrolan ini?",
+    "pinChat": "Sematkan obrolan",
+    "unpinChat": "Lepas sematan obrolan",
+    "renameChat": "Ubah nama obrolan",
+    "deleteChat": "Hapus obrolan",
+    "chatsSaved": "obrolan tersimpan"
+  },
+  "interview": {
+    "typeQuestion": "Ketik pertanyaan wawancara...",
+    "askAI": "Tanya AI",
+    "speechNotAvailable": "Pengenalan suara tidak tersedia. Gunakan mode \"Ketik Pertanyaan\" sebagai gantinya.",
+    "noTranscript": "Belum ada transkrip",
+    "clickMic": "Klik tombol mikrofon untuk mulai mendengarkan wawancara",
+    "typeBelow": "Ketik pertanyaan di bawah untuk coaching AI"
+  },
+  "usage": {
+    "title": "Batas penggunaanmu",
+    "currentSession": "Sesi saat ini",
+    "startsWhen": "Dimulai saat pesan dikirim",
+    "allModels": "Semua model",
+    "premiumModels": "Model premium",
+    "resetsIn": "Reset dalam {{days}}h {{hours}}j",
+    "justNow": "baru saja",
+    "secondsAgo": "{{seconds}}d lalu",
+    "minutesAgo": "{{minutes}}m lalu",
+    "resetting": "Mereset...",
+    "noPremiumYet": "Kamu belum menggunakan model premium",
+    "sessionUsage": "Penggunaan sesi"
+  },
+  "menu": {
+    "file": "File",
+    "openFolder": "Buka Folder...",
+    "openFile": "Buka File...",
+    "save": "Simpan",
+    "saveAll": "Simpan Semua",
+    "edit": "Edit",
+    "view": "Tampilan",
+    "terminal": "Terminal",
+    "newTerminal": "Terminal Baru",
+    "clearTerminal": "Bersihkan Terminal",
+    "ai": "AI",
+    "newChat": "Obrolan Baru",
+    "toggleAI": "Tampilkan/Sembunyikan Panel AI",
+    "settingsMenu": "Pengaturan...",
+    "help": "Bantuan",
+    "checkUpdates": "Periksa Pembaruan...",
+    "documentation": "Dokumentasi",
+    "reportIssue": "Laporkan Masalah",
+    "about": "Tentang AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Pilih Bahasamu",
+    "subtitle": "Pilih bahasa pilihanmu untuk memulai",
+    "continue": "Lanjutkan",
+    "searchPlaceholder": "Cari bahasa..."
+  }
+}

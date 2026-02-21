@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "आपका कोडिंग दोस्त!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "नमस्ते!",
+      "subtitle": "मैं AIBuddy हूँ, आपका कोडिंग दोस्त!\nमुझे बताइए आप क्या बनाना चाहते हैं!",
+      "typeWhat": "जो चाहिए वो टाइप करें",
+      "illDoWork": "मैं काम करूँगा",
+      "watchCredits": "अपने क्रेडिट पर नज़र रखें"
+    },
+    "returningUser": {
+      "greeting": "वापस स्वागत है!",
+      "subtitle": "आज आप किस पर काम करना चाहेंगे?",
+      "recentChats": "हाल की चैट",
+      "viewAllHistory": "पूरा इतिहास देखें"
+    }
+  },
+  "chat": {
+    "placeholder": "आज आप क्या बनाना चाहते हैं?",
+    "placeholderImage": "बताएं कि आपको किसमें मदद चाहिए...",
+    "sendButton": "भेजें",
+    "stopButton": "रोकें",
+    "newChat": "नई चैट",
+    "cancelledRequest": "अनुरोध रद्द किया गया",
+    "sending": "AI को भेजा जा रहा है...",
+    "thinking": "सोच रहा हूँ...",
+    "copyResponse": "जवाब कॉपी करें",
+    "regenerate": "जवाब दोबारा बनाएं",
+    "goodResponse": "अच्छा जवाब",
+    "poorResponse": "खराब जवाब",
+    "copied": "जवाब कॉपी हो गया",
+    "startedNewChat": "नई चैट शुरू हुई",
+    "requestInProgress": "अनुरोध जारी है - नई चैट शुरू करने के लिए फिर से दबाएं"
+  },
+  "actions": {
+    "debugCode": "कोड डीबग करें",
+    "quickFix": "त्वरित सुधार",
+    "explain": "समझाएं",
+    "refactor": "रिफैक्टर करें",
+    "debugPrompt": "इस कोड को डीबग करने में मेरी मदद करें:",
+    "quickFixPrompt": "इस त्रुटि को ठीक करें:",
+    "explainPrompt": "इस कोड को समझाएं:",
+    "refactorPrompt": "इस कोड को साफ़ करके रिफैक्टर करें:"
+  },
+  "header": {
+    "credits": "क्रेडिट: {{amount}}",
+    "buyCredits": "क्रेडिट खरीदें",
+    "new": "नया",
+    "openFolder": "फ़ोल्डर खोलें",
+    "terminal": "Terminal",
+    "knowledge": "ज्ञान भंडार",
+    "share": "साझा करें",
+    "history": "चैट इतिहास",
+    "key": "API कुंजी",
+    "settings": "सेटिंग्स",
+    "interview": "साक्षात्कार मोड",
+    "moreActions": "और कार्य"
+  },
+  "workspace": {
+    "workingIn": "काम कर रहे हैं:",
+    "switch": "बदलें",
+    "openFolderFirst": "कृपया पहले फ़ाइल → फ़ोल्डर खोलें से वह फ़ोल्डर खोलें"
+  },
+  "apiKey": {
+    "title": "API कुंजी आवश्यक है",
+    "description": "AI के साथ चैट शुरू करने के लिए अपनी AIBuddy API कुंजी जोड़ें",
+    "addKey": "कुंजी जोड़ें",
+    "configured": "API कुंजी कॉन्फ़िगर हो गई",
+    "notConfigured": "अपनी API कुंजी जोड़ें",
+    "placeholder": "अपनी AIBuddy API कुंजी दर्ज करें...",
+    "save": "API कुंजी सेव करें",
+    "saved": "सेव हो गया!",
+    "securityNote": "आपकी API कुंजी आपके डिवाइस पर सुरक्षित रूप से संग्रहीत है",
+    "getKey": "यहाँ से प्राप्त करें!"
+  },
+  "status": {
+    "ready": "तैयार",
+    "loading": "लोड हो रहा है...",
+    "validating": "सत्यापन हो रहा है...",
+    "sending": "भेजा जा रहा है...",
+    "thinking": "सोच रहा हूँ...",
+    "error": "त्रुटि"
+  },
+  "voice": {
+    "startDictation": "वॉइस डिक्टेशन शुरू करें",
+    "stopDictation": "डिक्टेशन रोकें",
+    "notAvailable": "इस वातावरण में वॉइस इनपुट उपलब्ध नहीं है"
+  },
+  "attachments": {
+    "attachImage": "छवि संलग्न करें",
+    "attachCode": "कोड फ़ाइल संलग्न करें",
+    "imageRemoved": "छवि हटाई गई"
+  },
+  "historySidebar": {
+    "title": "चैट इतिहास",
+    "newChat": "नई चैट",
+    "search": "चैट खोजें...",
+    "loading": "लोड हो रहा है...",
+    "noHistory": "अभी तक कोई चैट इतिहास नहीं",
+    "startNew": "शुरू करने के लिए नई चैट शुरू करें",
+    "pinned": "पिन किए गए",
+    "today": "आज",
+    "yesterday": "कल",
+    "thisWeek": "इस सप्ताह",
+    "thisMonth": "इस महीने",
+    "older": "पुराने",
+    "messages": "संदेश",
+    "deleteConfirm": "क्या आप इस चैट को हटाना चाहते हैं?",
+    "pinChat": "चैट पिन करें",
+    "unpinChat": "चैट अनपिन करें",
+    "renameChat": "चैट का नाम बदलें",
+    "deleteChat": "चैट हटाएं",
+    "chatsSaved": "चैट सेव हुईं"
+  },
+  "interview": {
+    "typeQuestion": "साक्षात्कार का प्रश्न टाइप करें...",
+    "askAI": "AI से पूछें",
+    "speechNotAvailable": "वाक् पहचान उपलब्ध नहीं है। इसके बजाय \"प्रश्न टाइप करें\" मोड का उपयोग करें।",
+    "noTranscript": "अभी तक कोई ट्रांसक्रिप्ट नहीं",
+    "clickMic": "साक्षात्कार सुनना शुरू करने के लिए माइक बटन पर क्लिक करें",
+    "typeBelow": "AI कोचिंग पाने के लिए नीचे एक प्रश्न टाइप करें"
+  },
+  "usage": {
+    "title": "आपकी उपयोग सीमाएं",
+    "currentSession": "वर्तमान सत्र",
+    "startsWhen": "संदेश भेजने पर शुरू होता है",
+    "allModels": "सभी मॉडल",
+    "premiumModels": "प्रीमियम मॉडल",
+    "resetsIn": "{{days}}दि {{hours}}घं में रीसेट",
+    "justNow": "अभी",
+    "secondsAgo": "{{seconds}}से पहले",
+    "minutesAgo": "{{minutes}}मि पहले",
+    "resetting": "रीसेट हो रहा है...",
+    "noPremiumYet": "आपने अभी तक प्रीमियम मॉडल का उपयोग नहीं किया है",
+    "sessionUsage": "सत्र उपयोग"
+  },
+  "menu": {
+    "file": "फ़ाइल",
+    "openFolder": "फ़ोल्डर खोलें...",
+    "openFile": "फ़ाइल खोलें...",
+    "save": "सेव करें",
+    "saveAll": "सभी सेव करें",
+    "edit": "संपादित करें",
+    "view": "दृश्य",
+    "terminal": "Terminal",
+    "newTerminal": "नया Terminal",
+    "clearTerminal": "Terminal साफ़ करें",
+    "ai": "AI",
+    "newChat": "नई चैट",
+    "toggleAI": "AI पैनल टॉगल करें",
+    "settingsMenu": "सेटिंग्स...",
+    "help": "सहायता",
+    "checkUpdates": "अपडेट जांचें...",
+    "documentation": "दस्तावेज़ीकरण",
+    "reportIssue": "समस्या रिपोर्ट करें",
+    "about": "AIBuddy के बारे में"
+  },
+  "languageSelector": {
+    "title": "अपनी भाषा चुनें",
+    "subtitle": "शुरू करने के लिए अपनी पसंदीदा भाषा चुनें",
+    "continue": "जारी रखें",
+    "searchPlaceholder": "भाषाएं खोजें..."
+  }
+}

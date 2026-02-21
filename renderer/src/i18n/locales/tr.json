@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Kodlama Arkadaşın!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Merhaba!",
+      "subtitle": "Ben AIBuddy, senin kodlama arkadaşın!\nBana ne yapmak istediğini söyle!",
+      "typeWhat": "Ne istediğini yaz",
+      "illDoWork": "İşi ben yaparım",
+      "watchCredits": "Kredilerini takip et"
+    },
+    "returningUser": {
+      "greeting": "Tekrar hoş geldin!",
+      "subtitle": "Bugün ne üzerinde çalışmak istersin?",
+      "recentChats": "Son Sohbetler",
+      "viewAllHistory": "Tüm geçmişi görüntüle"
+    }
+  },
+  "chat": {
+    "placeholder": "Bugün ne yapmak istiyorsun?",
+    "placeholderImage": "Neye yardım istediğini açıkla...",
+    "sendButton": "Gönder",
+    "stopButton": "Durdur",
+    "newChat": "Yeni sohbet",
+    "cancelledRequest": "İstek iptal edildi",
+    "sending": "AI'ya gönderiliyor...",
+    "thinking": "Düşünüyor...",
+    "copyResponse": "Yanıtı kopyala",
+    "regenerate": "Yanıtı yeniden oluştur",
+    "goodResponse": "İyi yanıt",
+    "poorResponse": "Zayıf yanıt",
+    "copied": "Yanıt kopyalandı",
+    "startedNewChat": "Yeni sohbet başlatıldı",
+    "requestInProgress": "İstek devam ediyor - yeni sohbet başlatmak için tekrar basın"
+  },
+  "actions": {
+    "debugCode": "Kodu hata ayıkla",
+    "quickFix": "Hızlı düzeltme",
+    "explain": "Açıkla",
+    "refactor": "Yeniden düzenle",
+    "debugPrompt": "Bu kodun hatasını bulmama yardım et:",
+    "quickFixPrompt": "Bu hatayı düzelt:",
+    "explainPrompt": "Bu kodu açıkla:",
+    "refactorPrompt": "Bu kodu daha temiz olacak şekilde yeniden düzenle:"
+  },
+  "header": {
+    "credits": "Krediler: {{amount}}",
+    "buyCredits": "Kredi Satın Al",
+    "new": "Yeni",
+    "openFolder": "Klasör Aç",
+    "terminal": "Terminal",
+    "knowledge": "Bilgi Tabanı",
+    "share": "Paylaş",
+    "history": "Sohbet Geçmişi",
+    "key": "API Anahtarı",
+    "settings": "Ayarlar",
+    "interview": "Mülakat Modu",
+    "moreActions": "Diğer işlemler"
+  },
+  "workspace": {
+    "workingIn": "Çalışma alanı:",
+    "switch": "Değiştir",
+    "openFolderFirst": "Lütfen önce o klasörü Dosya → Klasör Aç ile açın"
+  },
+  "apiKey": {
+    "title": "API Anahtarı Gerekli",
+    "description": "AI ile sohbete başlamak için AIBuddy API anahtarını ekle",
+    "addKey": "Anahtar Ekle",
+    "configured": "API Anahtarı yapılandırıldı",
+    "notConfigured": "API anahtarını ekle",
+    "placeholder": "AIBuddy API anahtarını gir...",
+    "save": "API Anahtarını Kaydet",
+    "saved": "Kaydedildi!",
+    "securityNote": "API anahtarın cihazında güvenli bir şekilde saklanır",
+    "getKey": "Buradan bir tane edin!"
+  },
+  "status": {
+    "ready": "Hazır",
+    "loading": "Yükleniyor...",
+    "validating": "Doğrulanıyor...",
+    "sending": "Gönderiliyor...",
+    "thinking": "Düşünüyor...",
+    "error": "Hata"
+  },
+  "voice": {
+    "startDictation": "Sesli dikte başlat",
+    "stopDictation": "Dikteyi durdur",
+    "notAvailable": "Bu ortamda sesli giriş kullanılamıyor"
+  },
+  "attachments": {
+    "attachImage": "Resim ekle",
+    "attachCode": "Kod dosyası ekle",
+    "imageRemoved": "Resim kaldırıldı"
+  },
+  "historySidebar": {
+    "title": "Sohbet Geçmişi",
+    "newChat": "Yeni Sohbet",
+    "search": "Sohbetlerde ara...",
+    "loading": "Yükleniyor...",
+    "noHistory": "Henüz sohbet geçmişi yok",
+    "startNew": "Başlamak için yeni bir sohbet başlat",
+    "pinned": "Sabitlenmiş",
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "thisWeek": "Bu Hafta",
+    "thisMonth": "Bu Ay",
+    "older": "Daha Eski",
+    "messages": "mesaj",
+    "deleteConfirm": "Bu sohbet silinsin mi?",
+    "pinChat": "Sohbeti sabitle",
+    "unpinChat": "Sohbet sabitlemesini kaldır",
+    "renameChat": "Sohbeti yeniden adlandır",
+    "deleteChat": "Sohbeti sil",
+    "chatsSaved": "sohbet kaydedildi"
+  },
+  "interview": {
+    "typeQuestion": "Mülakat sorusunu yazın...",
+    "askAI": "AI'ya Sor",
+    "speechNotAvailable": "Konuşma tanıma kullanılamıyor. Bunun yerine \"Soru Yaz\" modunu kullanın.",
+    "noTranscript": "Henüz transkript yok",
+    "clickMic": "Mülakatı dinlemeye başlamak için mikrofon düğmesine tıklayın",
+    "typeBelow": "AI koçluk almak için aşağıya bir soru yazın"
+  },
+  "usage": {
+    "title": "Kullanım limitlerin",
+    "currentSession": "Mevcut oturum",
+    "startsWhen": "Bir mesaj gönderildiğinde başlar",
+    "allModels": "Tüm modeller",
+    "premiumModels": "Premium modeller",
+    "resetsIn": "{{days}}g {{hours}}s içinde sıfırlanır",
+    "justNow": "az önce",
+    "secondsAgo": "{{seconds}}sn önce",
+    "minutesAgo": "{{minutes}}dk önce",
+    "resetting": "Sıfırlanıyor...",
+    "noPremiumYet": "Henüz premium model kullanmadın",
+    "sessionUsage": "Oturum kullanımı"
+  },
+  "menu": {
+    "file": "Dosya",
+    "openFolder": "Klasör Aç...",
+    "openFile": "Dosya Aç...",
+    "save": "Kaydet",
+    "saveAll": "Tümünü Kaydet",
+    "edit": "Düzenle",
+    "view": "Görünüm",
+    "terminal": "Terminal",
+    "newTerminal": "Yeni Terminal",
+    "clearTerminal": "Terminal'i Temizle",
+    "ai": "AI",
+    "newChat": "Yeni Sohbet",
+    "toggleAI": "AI Panelini Aç/Kapat",
+    "settingsMenu": "Ayarlar...",
+    "help": "Yardım",
+    "checkUpdates": "Güncellemeleri Kontrol Et...",
+    "documentation": "Belgeler",
+    "reportIssue": "Sorun Bildir",
+    "about": "AIBuddy Hakkında"
+  },
+  "languageSelector": {
+    "title": "Dilini Seç",
+    "subtitle": "Başlamak için tercih ettiğin dili seç",
+    "continue": "Devam Et",
+    "searchPlaceholder": "Dil ara..."
+  }
+}

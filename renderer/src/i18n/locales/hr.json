@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Vaš prijatelj za kodiranje!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Bok!",
+      "subtitle": "Ja sam AIBuddy, vaš prijatelj za kodiranje!\nRecite mi što želite izgraditi!",
+      "typeWhat": "Upišite što želite",
+      "illDoWork": "Ja ću obaviti posao",
+      "watchCredits": "Pratite svoje kredite"
+    },
+    "returningUser": {
+      "greeting": "Dobro došli natrag!",
+      "subtitle": "Na čemu biste danas željeli raditi?",
+      "recentChats": "Nedavni razgovori",
+      "viewAllHistory": "Pogledaj svu povijest"
+    }
+  },
+  "chat": {
+    "placeholder": "Što želite izgraditi danas?",
+    "placeholderImage": "Opišite s čime vam treba pomoć...",
+    "sendButton": "Pošalji",
+    "stopButton": "Zaustavi",
+    "newChat": "Novi razgovor",
+    "cancelledRequest": "Zahtjev otkazan",
+    "sending": "Slanje prema AI...",
+    "thinking": "Razmišljam...",
+    "copyResponse": "Kopiraj odgovor",
+    "regenerate": "Regeneriraj odgovor",
+    "goodResponse": "Dobar odgovor",
+    "poorResponse": "Loš odgovor",
+    "copied": "Odgovor kopiran",
+    "startedNewChat": "Novi razgovor započet",
+    "requestInProgress": "Zahtjev u tijeku – pritisnite ponovno za novi razgovor"
+  },
+  "actions": {
+    "debugCode": "Debugiraj kod",
+    "quickFix": "Brzi popravak",
+    "explain": "Objasni",
+    "refactor": "Refaktoriraj",
+    "debugPrompt": "Pomozi mi debugirati ovaj kod:",
+    "quickFixPrompt": "Popravi ovu grešku:",
+    "explainPrompt": "Objasni ovaj kod:",
+    "refactorPrompt": "Refaktoriraj ovaj kod da bude čišći:"
+  },
+  "header": {
+    "credits": "Krediti: {{amount}}",
+    "buyCredits": "Kupi kredite",
+    "new": "Novo",
+    "openFolder": "Otvori mapu",
+    "terminal": "Terminal",
+    "knowledge": "Baza znanja",
+    "share": "Podijeli",
+    "history": "Povijest razgovora",
+    "key": "API ključ",
+    "settings": "Postavke",
+    "interview": "Način intervjua",
+    "moreActions": "Više radnji"
+  },
+  "workspace": {
+    "workingIn": "Radim u:",
+    "switch": "Promijeni",
+    "openFolderFirst": "Molimo prvo otvorite tu mapu putem Datoteka → Otvori mapu"
+  },
+  "apiKey": {
+    "title": "Potreban API ključ",
+    "description": "Dodajte svoj API ključ za AIBuddy kako biste počeli razgovarati s AI",
+    "addKey": "Dodaj ključ",
+    "configured": "API ključ konfiguriran",
+    "notConfigured": "Dodajte svoj API ključ",
+    "placeholder": "Unesite svoj API ključ za AIBuddy...",
+    "save": "Spremi API ključ",
+    "saved": "Spremljeno!",
+    "securityNote": "Vaš API ključ je sigurno pohranjen na vašem uređaju",
+    "getKey": "Nabavite ga ovdje!"
+  },
+  "status": {
+    "ready": "Spreman",
+    "loading": "Učitavanje...",
+    "validating": "Provjera...",
+    "sending": "Slanje...",
+    "thinking": "Razmišljam...",
+    "error": "Greška"
+  },
+  "voice": {
+    "startDictation": "Pokreni glasovni diktat",
+    "stopDictation": "Zaustavi diktat",
+    "notAvailable": "Glasovni unos nije dostupan u ovom okruženju"
+  },
+  "attachments": {
+    "attachImage": "Priloži sliku",
+    "attachCode": "Priloži datoteku s kodom",
+    "imageRemoved": "Slika uklonjena"
+  },
+  "historySidebar": {
+    "title": "Povijest razgovora",
+    "newChat": "Novi razgovor",
+    "search": "Pretraži razgovore...",
+    "loading": "Učitavanje...",
+    "noHistory": "Još nema povijesti razgovora",
+    "startNew": "Započnite novi razgovor",
+    "pinned": "Prikvačeno",
+    "today": "Danas",
+    "yesterday": "Jučer",
+    "thisWeek": "Ovaj tjedan",
+    "thisMonth": "Ovaj mjesec",
+    "older": "Starije",
+    "messages": "poruke",
+    "deleteConfirm": "Obrisati ovaj razgovor?",
+    "pinChat": "Prikvači razgovor",
+    "unpinChat": "Otkvači razgovor",
+    "renameChat": "Preimenuj razgovor",
+    "deleteChat": "Obriši razgovor",
+    "chatsSaved": "razgovora spremljeno"
+  },
+  "interview": {
+    "typeQuestion": "Upišite pitanje za intervju...",
+    "askAI": "Pitaj AI",
+    "speechNotAvailable": "Prepoznavanje govora nije dostupno. Umjesto toga koristite način \"Upiši pitanje\".",
+    "noTranscript": "Još nema transkripta",
+    "clickMic": "Kliknite gumb mikrofona za početak slušanja intervjua",
+    "typeBelow": "Upišite pitanje ispod za AI coaching"
+  },
+  "usage": {
+    "title": "Vaša ograničenja korištenja",
+    "currentSession": "Trenutna sesija",
+    "startsWhen": "Počinje slanjem poruke",
+    "allModels": "Svi modeli",
+    "premiumModels": "Premium modeli",
+    "resetsIn": "Resetira se za {{days}}d {{hours}}h",
+    "justNow": "upravo sada",
+    "secondsAgo": "prije {{seconds}}s",
+    "minutesAgo": "prije {{minutes}}m",
+    "resetting": "Resetiranje...",
+    "noPremiumYet": "Još niste koristili premium modele",
+    "sessionUsage": "Korištenje sesije"
+  },
+  "menu": {
+    "file": "Datoteka",
+    "openFolder": "Otvori mapu...",
+    "openFile": "Otvori datoteku...",
+    "save": "Spremi",
+    "saveAll": "Spremi sve",
+    "edit": "Uredi",
+    "view": "Prikaz",
+    "terminal": "Terminal",
+    "newTerminal": "Novi Terminal",
+    "clearTerminal": "Očisti Terminal",
+    "ai": "AI",
+    "newChat": "Novi razgovor",
+    "toggleAI": "Uključi/isključi AI panel",
+    "settingsMenu": "Postavke...",
+    "help": "Pomoć",
+    "checkUpdates": "Provjeri ažuriranja...",
+    "documentation": "Dokumentacija",
+    "reportIssue": "Prijavi problem",
+    "about": "O aplikaciji AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Odaberite svoj jezik",
+    "subtitle": "Odaberite željeni jezik za početak",
+    "continue": "Nastavi",
+    "searchPlaceholder": "Pretraži jezike..."
+  }
+}

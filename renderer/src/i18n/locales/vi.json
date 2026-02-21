@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Bạn đồng hành lập trình!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Xin chào!",
+      "subtitle": "Mình là AIBuddy, bạn đồng hành lập trình của bạn!\nHãy cho mình biết bạn muốn xây dựng gì!",
+      "typeWhat": "Nhập điều bạn muốn",
+      "illDoWork": "Mình sẽ làm việc đó",
+      "watchCredits": "Theo dõi tín dụng của bạn"
+    },
+    "returningUser": {
+      "greeting": "Chào mừng trở lại!",
+      "subtitle": "Hôm nay bạn muốn làm việc gì?",
+      "recentChats": "Cuộc trò chuyện gần đây",
+      "viewAllHistory": "Xem tất cả lịch sử"
+    }
+  },
+  "chat": {
+    "placeholder": "Hôm nay bạn muốn xây dựng gì?",
+    "placeholderImage": "Mô tả điều bạn cần giúp đỡ...",
+    "sendButton": "Gửi",
+    "stopButton": "Dừng",
+    "newChat": "Cuộc trò chuyện mới",
+    "cancelledRequest": "Yêu cầu đã hủy",
+    "sending": "Đang gửi đến AI...",
+    "thinking": "Đang suy nghĩ...",
+    "copyResponse": "Sao chép phản hồi",
+    "regenerate": "Tạo lại phản hồi",
+    "goodResponse": "Phản hồi tốt",
+    "poorResponse": "Phản hồi kém",
+    "copied": "Đã sao chép phản hồi",
+    "startedNewChat": "Đã bắt đầu cuộc trò chuyện mới",
+    "requestInProgress": "Yêu cầu đang xử lý – nhấn lại để bắt đầu cuộc trò chuyện mới"
+  },
+  "actions": {
+    "debugCode": "Gỡ lỗi mã",
+    "quickFix": "Sửa nhanh",
+    "explain": "Giải thích",
+    "refactor": "Tái cấu trúc",
+    "debugPrompt": "Giúp tôi gỡ lỗi đoạn mã này:",
+    "quickFixPrompt": "Sửa lỗi này:",
+    "explainPrompt": "Giải thích đoạn mã này:",
+    "refactorPrompt": "Tái cấu trúc đoạn mã này cho gọn gàng hơn:"
+  },
+  "header": {
+    "credits": "Tín dụng: {{amount}}",
+    "buyCredits": "Mua tín dụng",
+    "new": "Mới",
+    "openFolder": "Mở thư mục",
+    "terminal": "Terminal",
+    "knowledge": "Cơ sở kiến thức",
+    "share": "Chia sẻ",
+    "history": "Lịch sử trò chuyện",
+    "key": "Khóa API",
+    "settings": "Cài đặt",
+    "interview": "Chế độ phỏng vấn",
+    "moreActions": "Thêm hành động"
+  },
+  "workspace": {
+    "workingIn": "Đang làm việc trong:",
+    "switch": "Chuyển",
+    "openFolderFirst": "Vui lòng mở thư mục đó trước qua Tệp → Mở thư mục"
+  },
+  "apiKey": {
+    "title": "Cần khóa API",
+    "description": "Thêm khóa API AIBuddy của bạn để bắt đầu trò chuyện với AI",
+    "addKey": "Thêm khóa",
+    "configured": "Khóa API đã được cấu hình",
+    "notConfigured": "Thêm khóa API của bạn",
+    "placeholder": "Nhập khóa API AIBuddy của bạn...",
+    "save": "Lưu khóa API",
+    "saved": "Đã lưu!",
+    "securityNote": "Khóa API của bạn được lưu trữ an toàn trên thiết bị",
+    "getKey": "Lấy một cái ở đây!"
+  },
+  "status": {
+    "ready": "Sẵn sàng",
+    "loading": "Đang tải...",
+    "validating": "Đang xác thực...",
+    "sending": "Đang gửi...",
+    "thinking": "Đang suy nghĩ...",
+    "error": "Lỗi"
+  },
+  "voice": {
+    "startDictation": "Bắt đầu đọc chính tả",
+    "stopDictation": "Dừng đọc chính tả",
+    "notAvailable": "Nhập giọng nói không khả dụng trong môi trường này"
+  },
+  "attachments": {
+    "attachImage": "Đính kèm hình ảnh",
+    "attachCode": "Đính kèm tệp mã",
+    "imageRemoved": "Đã xóa hình ảnh"
+  },
+  "historySidebar": {
+    "title": "Lịch sử trò chuyện",
+    "newChat": "Cuộc trò chuyện mới",
+    "search": "Tìm kiếm cuộc trò chuyện...",
+    "loading": "Đang tải...",
+    "noHistory": "Chưa có lịch sử trò chuyện",
+    "startNew": "Bắt đầu cuộc trò chuyện mới",
+    "pinned": "Đã ghim",
+    "today": "Hôm nay",
+    "yesterday": "Hôm qua",
+    "thisWeek": "Tuần này",
+    "thisMonth": "Tháng này",
+    "older": "Cũ hơn",
+    "messages": "tin nhắn",
+    "deleteConfirm": "Xóa cuộc trò chuyện này?",
+    "pinChat": "Ghim cuộc trò chuyện",
+    "unpinChat": "Bỏ ghim cuộc trò chuyện",
+    "renameChat": "Đổi tên cuộc trò chuyện",
+    "deleteChat": "Xóa cuộc trò chuyện",
+    "chatsSaved": "cuộc trò chuyện đã lưu"
+  },
+  "interview": {
+    "typeQuestion": "Nhập câu hỏi phỏng vấn...",
+    "askAI": "Hỏi AI",
+    "speechNotAvailable": "Nhận dạng giọng nói không khả dụng. Hãy sử dụng chế độ \"Nhập câu hỏi\" thay thế.",
+    "noTranscript": "Chưa có bản ghi",
+    "clickMic": "Nhấn nút micro để bắt đầu nghe phỏng vấn",
+    "typeBelow": "Nhập câu hỏi bên dưới để nhận huấn luyện AI"
+  },
+  "usage": {
+    "title": "Giới hạn sử dụng của bạn",
+    "currentSession": "Phiên hiện tại",
+    "startsWhen": "Bắt đầu khi gửi tin nhắn",
+    "allModels": "Tất cả mô hình",
+    "premiumModels": "Mô hình cao cấp",
+    "resetsIn": "Đặt lại sau {{days}}n {{hours}}g",
+    "justNow": "vừa xong",
+    "secondsAgo": "{{seconds}}s trước",
+    "minutesAgo": "{{minutes}}p trước",
+    "resetting": "Đang đặt lại...",
+    "noPremiumYet": "Bạn chưa sử dụng mô hình cao cấp",
+    "sessionUsage": "Sử dụng phiên"
+  },
+  "menu": {
+    "file": "Tệp",
+    "openFolder": "Mở thư mục...",
+    "openFile": "Mở tệp...",
+    "save": "Lưu",
+    "saveAll": "Lưu tất cả",
+    "edit": "Chỉnh sửa",
+    "view": "Xem",
+    "terminal": "Terminal",
+    "newTerminal": "Terminal mới",
+    "clearTerminal": "Xóa Terminal",
+    "ai": "AI",
+    "newChat": "Cuộc trò chuyện mới",
+    "toggleAI": "Bật/tắt bảng AI",
+    "settingsMenu": "Cài đặt...",
+    "help": "Trợ giúp",
+    "checkUpdates": "Kiểm tra cập nhật...",
+    "documentation": "Tài liệu",
+    "reportIssue": "Báo cáo sự cố",
+    "about": "Về AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Chọn ngôn ngữ của bạn",
+    "subtitle": "Chọn ngôn ngữ ưa thích để bắt đầu",
+    "continue": "Tiếp tục",
+    "searchPlaceholder": "Tìm kiếm ngôn ngữ..."
+  }
+}

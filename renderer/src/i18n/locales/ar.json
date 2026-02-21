@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "صديقك في البرمجة!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "مرحباً!",
+      "subtitle": "أنا AIBuddy، صديقك في البرمجة!\nأخبرني ماذا تريد أن تبني!",
+      "typeWhat": "اكتب ما تريد",
+      "illDoWork": "سأقوم بالعمل",
+      "watchCredits": "راقب رصيدك"
+    },
+    "returningUser": {
+      "greeting": "مرحباً بعودتك!",
+      "subtitle": "على ماذا تريد أن تعمل اليوم؟",
+      "recentChats": "المحادثات الأخيرة",
+      "viewAllHistory": "عرض كل السجل"
+    }
+  },
+  "chat": {
+    "placeholder": "ماذا تريد أن تبني اليوم؟",
+    "placeholderImage": "صف ما تحتاج مساعدة فيه...",
+    "sendButton": "إرسال",
+    "stopButton": "إيقاف",
+    "newChat": "محادثة جديدة",
+    "cancelledRequest": "تم إلغاء الطلب",
+    "sending": "جارٍ الإرسال إلى AI...",
+    "thinking": "جارٍ التفكير...",
+    "copyResponse": "نسخ الرد",
+    "regenerate": "إعادة توليد الرد",
+    "goodResponse": "رد جيد",
+    "poorResponse": "رد ضعيف",
+    "copied": "تم نسخ الرد",
+    "startedNewChat": "تم بدء محادثة جديدة",
+    "requestInProgress": "الطلب قيد التنفيذ - اضغط مرة أخرى لبدء محادثة جديدة"
+  },
+  "actions": {
+    "debugCode": "تصحيح الكود",
+    "quickFix": "إصلاح سريع",
+    "explain": "شرح",
+    "refactor": "إعادة هيكلة",
+    "debugPrompt": "ساعدني في تصحيح هذا الكود:",
+    "quickFixPrompt": "أصلح هذا الخطأ:",
+    "explainPrompt": "اشرح هذا الكود:",
+    "refactorPrompt": "أعد هيكلة هذا الكود ليكون أنظف:"
+  },
+  "header": {
+    "credits": "الرصيد: {{amount}}",
+    "buyCredits": "شراء رصيد",
+    "new": "جديد",
+    "openFolder": "فتح مجلد",
+    "terminal": "Terminal",
+    "knowledge": "قاعدة المعرفة",
+    "share": "مشاركة",
+    "history": "سجل المحادثات",
+    "key": "مفتاح API",
+    "settings": "الإعدادات",
+    "interview": "وضع المقابلة",
+    "moreActions": "المزيد من الإجراءات"
+  },
+  "workspace": {
+    "workingIn": "العمل في:",
+    "switch": "تبديل",
+    "openFolderFirst": "يرجى فتح هذا المجلد أولاً عبر ملف ← فتح مجلد"
+  },
+  "apiKey": {
+    "title": "مفتاح API مطلوب",
+    "description": "أضف مفتاح API الخاص بـ AIBuddy لبدء المحادثة مع AI",
+    "addKey": "إضافة مفتاح",
+    "configured": "تم تكوين مفتاح API",
+    "notConfigured": "أضف مفتاح API الخاص بك",
+    "placeholder": "أدخل مفتاح API الخاص بـ AIBuddy...",
+    "save": "حفظ مفتاح API",
+    "saved": "تم الحفظ!",
+    "securityNote": "يتم تخزين مفتاح API الخاص بك بأمان على جهازك",
+    "getKey": "احصل على واحد من هنا!"
+  },
+  "status": {
+    "ready": "جاهز",
+    "loading": "جارٍ التحميل...",
+    "validating": "جارٍ التحقق...",
+    "sending": "جارٍ الإرسال...",
+    "thinking": "جارٍ التفكير...",
+    "error": "خطأ"
+  },
+  "voice": {
+    "startDictation": "بدء الإملاء الصوتي",
+    "stopDictation": "إيقاف الإملاء",
+    "notAvailable": "الإدخال الصوتي غير متاح في هذه البيئة"
+  },
+  "attachments": {
+    "attachImage": "إرفاق صورة",
+    "attachCode": "إرفاق ملف كود",
+    "imageRemoved": "تمت إزالة الصورة"
+  },
+  "historySidebar": {
+    "title": "سجل المحادثات",
+    "newChat": "محادثة جديدة",
+    "search": "البحث في المحادثات...",
+    "loading": "جارٍ التحميل...",
+    "noHistory": "لا يوجد سجل محادثات بعد",
+    "startNew": "ابدأ محادثة جديدة للبدء",
+    "pinned": "المثبتة",
+    "today": "اليوم",
+    "yesterday": "أمس",
+    "thisWeek": "هذا الأسبوع",
+    "thisMonth": "هذا الشهر",
+    "older": "أقدم",
+    "messages": "رسائل",
+    "deleteConfirm": "هل تريد حذف هذه المحادثة؟",
+    "pinChat": "تثبيت المحادثة",
+    "unpinChat": "إلغاء تثبيت المحادثة",
+    "renameChat": "إعادة تسمية المحادثة",
+    "deleteChat": "حذف المحادثة",
+    "chatsSaved": "محادثات محفوظة"
+  },
+  "interview": {
+    "typeQuestion": "اكتب سؤال المقابلة...",
+    "askAI": "اسأل AI",
+    "speechNotAvailable": "التعرف على الكلام غير متاح. استخدم وضع \"كتابة السؤال\" بدلاً من ذلك.",
+    "noTranscript": "لا يوجد نص بعد",
+    "clickMic": "اضغط على زر الميكروفون لبدء الاستماع إلى المقابلة",
+    "typeBelow": "اكتب سؤالاً أدناه للحصول على توجيه من AI"
+  },
+  "usage": {
+    "title": "حدود الاستخدام الخاصة بك",
+    "currentSession": "الجلسة الحالية",
+    "startsWhen": "تبدأ عند إرسال رسالة",
+    "allModels": "جميع النماذج",
+    "premiumModels": "النماذج المميزة",
+    "resetsIn": "يتم إعادة التعيين خلال {{days}}ي {{hours}}س",
+    "justNow": "الآن",
+    "secondsAgo": "منذ {{seconds}}ث",
+    "minutesAgo": "منذ {{minutes}}د",
+    "resetting": "جارٍ إعادة التعيين...",
+    "noPremiumYet": "لم تستخدم النماذج المميزة بعد",
+    "sessionUsage": "استخدام الجلسة"
+  },
+  "menu": {
+    "file": "ملف",
+    "openFolder": "فتح مجلد...",
+    "openFile": "فتح ملف...",
+    "save": "حفظ",
+    "saveAll": "حفظ الكل",
+    "edit": "تحرير",
+    "view": "عرض",
+    "terminal": "Terminal",
+    "newTerminal": "Terminal جديد",
+    "clearTerminal": "مسح Terminal",
+    "ai": "AI",
+    "newChat": "محادثة جديدة",
+    "toggleAI": "تبديل لوحة AI",
+    "settingsMenu": "الإعدادات...",
+    "help": "مساعدة",
+    "checkUpdates": "التحقق من التحديثات...",
+    "documentation": "التوثيق",
+    "reportIssue": "الإبلاغ عن مشكلة",
+    "about": "حول AIBuddy"
+  },
+  "languageSelector": {
+    "title": "اختر لغتك",
+    "subtitle": "اختر لغتك المفضلة للبدء",
+    "continue": "متابعة",
+    "searchPlaceholder": "البحث عن اللغات..."
+  }
+}

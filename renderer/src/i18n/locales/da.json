@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Din Kodningsven!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Hej!",
+      "subtitle": "Jeg er AIBuddy, din kodningsven!\nFortæl mig hvad du vil bygge!",
+      "typeWhat": "Skriv hvad du vil",
+      "illDoWork": "Jeg klarer arbejdet",
+      "watchCredits": "Hold øje med dine kreditter"
+    },
+    "returningUser": {
+      "greeting": "Velkommen tilbage!",
+      "subtitle": "Hvad vil du gerne arbejde med i dag?",
+      "recentChats": "Seneste Samtaler",
+      "viewAllHistory": "Se al historik"
+    }
+  },
+  "chat": {
+    "placeholder": "Hvad vil du bygge i dag?",
+    "placeholderImage": "Beskriv hvad du har brug for hjælp til...",
+    "sendButton": "Send",
+    "stopButton": "Stop",
+    "newChat": "Ny samtale",
+    "cancelledRequest": "Anmodning annulleret",
+    "sending": "Sender til AI...",
+    "thinking": "Tænker...",
+    "copyResponse": "Kopiér svar",
+    "regenerate": "Generér nyt svar",
+    "goodResponse": "Godt svar",
+    "poorResponse": "Dårligt svar",
+    "copied": "Svar kopieret",
+    "startedNewChat": "Ny samtale startet",
+    "requestInProgress": "Anmodning i gang - tryk igen for at tvinge ny samtale"
+  },
+  "actions": {
+    "debugCode": "Fejlsøg kode",
+    "quickFix": "Hurtig rettelse",
+    "explain": "Forklar",
+    "refactor": "Refaktorér",
+    "debugPrompt": "Hjælp mig med at fejlsøge denne kode:",
+    "quickFixPrompt": "Ret denne fejl:",
+    "explainPrompt": "Forklar denne kode:",
+    "refactorPrompt": "Refaktorér denne kode så den bliver renere:"
+  },
+  "header": {
+    "credits": "Kreditter: {{amount}}",
+    "buyCredits": "Køb Kreditter",
+    "new": "Ny",
+    "openFolder": "Åbn Mappe",
+    "terminal": "Terminal",
+    "knowledge": "Vidensbase",
+    "share": "Del",
+    "history": "Samtalehistorik",
+    "key": "API-nøgle",
+    "settings": "Indstillinger",
+    "interview": "Interviewtilstand",
+    "moreActions": "Flere handlinger"
+  },
+  "workspace": {
+    "workingIn": "Arbejder i:",
+    "switch": "Skift",
+    "openFolderFirst": "Åbn venligst den mappe først via Fil → Åbn Mappe"
+  },
+  "apiKey": {
+    "title": "API-nøgle Påkrævet",
+    "description": "Tilføj din AIBuddy API-nøgle for at begynde at chatte med AI",
+    "addKey": "Tilføj Nøgle",
+    "configured": "API-nøgle konfigureret",
+    "notConfigured": "Tilføj din API-nøgle",
+    "placeholder": "Indtast din AIBuddy API-nøgle...",
+    "save": "Gem API-nøgle",
+    "saved": "Gemt!",
+    "securityNote": "Din API-nøgle opbevares sikkert på din enhed",
+    "getKey": "Få en her!"
+  },
+  "status": {
+    "ready": "Klar",
+    "loading": "Indlæser...",
+    "validating": "Validerer...",
+    "sending": "Sender...",
+    "thinking": "Tænker...",
+    "error": "Fejl"
+  },
+  "voice": {
+    "startDictation": "Start stemmediktering",
+    "stopDictation": "Stop diktering",
+    "notAvailable": "Stemmeinput er ikke tilgængelig i dette miljø"
+  },
+  "attachments": {
+    "attachImage": "Vedhæft billede",
+    "attachCode": "Vedhæft kodefil",
+    "imageRemoved": "Billede fjernet"
+  },
+  "historySidebar": {
+    "title": "Samtalehistorik",
+    "newChat": "Ny Samtale",
+    "search": "Søg i samtaler...",
+    "loading": "Indlæser...",
+    "noHistory": "Ingen samtalehistorik endnu",
+    "startNew": "Start en ny samtale for at begynde",
+    "pinned": "Fastgjorte",
+    "today": "I dag",
+    "yesterday": "I går",
+    "thisWeek": "Denne Uge",
+    "thisMonth": "Denne Måned",
+    "older": "Ældre",
+    "messages": "beskeder",
+    "deleteConfirm": "Slet denne samtaletråd?",
+    "pinChat": "Fastgør samtale",
+    "unpinChat": "Frigør samtale",
+    "renameChat": "Omdøb samtale",
+    "deleteChat": "Slet samtale",
+    "chatsSaved": "samtaler gemt"
+  },
+  "interview": {
+    "typeQuestion": "Skriv interviewspørgsmålet...",
+    "askAI": "Spørg AI",
+    "speechNotAvailable": "Talegenkendelse er ikke tilgængelig. Brug tilstanden \"Skriv Spørgsmål\" i stedet.",
+    "noTranscript": "Ingen transskription endnu",
+    "clickMic": "Klik på mikrofonknappen for at begynde at lytte til interviewet",
+    "typeBelow": "Skriv et spørgsmål nedenfor for at få AI-coaching"
+  },
+  "usage": {
+    "title": "Dine forbrugsgrænser",
+    "currentSession": "Nuværende session",
+    "startsWhen": "Starter når en besked sendes",
+    "allModels": "Alle modeller",
+    "premiumModels": "Premium-modeller",
+    "resetsIn": "Nulstilles om {{days}}d {{hours}}t",
+    "justNow": "lige nu",
+    "secondsAgo": "{{seconds}}s siden",
+    "minutesAgo": "{{minutes}}m siden",
+    "resetting": "Nulstiller...",
+    "noPremiumYet": "Du har ikke brugt premium-modeller endnu",
+    "sessionUsage": "Sessionsforbrug"
+  },
+  "menu": {
+    "file": "Fil",
+    "openFolder": "Åbn Mappe...",
+    "openFile": "Åbn Fil...",
+    "save": "Gem",
+    "saveAll": "Gem Alt",
+    "edit": "Rediger",
+    "view": "Vis",
+    "terminal": "Terminal",
+    "newTerminal": "Ny Terminal",
+    "clearTerminal": "Ryd Terminal",
+    "ai": "AI",
+    "newChat": "Ny Samtale",
+    "toggleAI": "Slå AI-panel til/fra",
+    "settingsMenu": "Indstillinger...",
+    "help": "Hjælp",
+    "checkUpdates": "Søg efter Opdateringer...",
+    "documentation": "Dokumentation",
+    "reportIssue": "Rapportér Problem",
+    "about": "Om AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Vælg Dit Sprog",
+    "subtitle": "Vælg dit foretrukne sprog for at komme i gang",
+    "continue": "Fortsæt",
+    "searchPlaceholder": "Søg sprog..."
+  }
+}

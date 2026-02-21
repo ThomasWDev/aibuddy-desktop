@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Váš kamarád pro programování!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Ahoj!",
+      "subtitle": "Jsem AIBuddy, váš kamarád pro programování!\nŘekněte mi, co chcete vytvořit!",
+      "typeWhat": "Napište, co chcete",
+      "illDoWork": "Já to udělám",
+      "watchCredits": "Sledujte své kredity"
+    },
+    "returningUser": {
+      "greeting": "Vítejte zpět!",
+      "subtitle": "Na čem byste dnes chtěli pracovat?",
+      "recentChats": "Poslední konverzace",
+      "viewAllHistory": "Zobrazit celou historii"
+    }
+  },
+  "chat": {
+    "placeholder": "Co chcete dnes vytvořit?",
+    "placeholderImage": "Popište, s čím potřebujete pomoci...",
+    "sendButton": "Odeslat",
+    "stopButton": "Zastavit",
+    "newChat": "Nová konverzace",
+    "cancelledRequest": "Požadavek zrušen",
+    "sending": "Odesílání do AI...",
+    "thinking": "Přemýšlím...",
+    "copyResponse": "Kopírovat odpověď",
+    "regenerate": "Vygenerovat znovu",
+    "goodResponse": "Dobrá odpověď",
+    "poorResponse": "Špatná odpověď",
+    "copied": "Odpověď zkopírována",
+    "startedNewChat": "Nová konverzace zahájena",
+    "requestInProgress": "Požadavek probíhá – stiskněte znovu pro novou konverzaci"
+  },
+  "actions": {
+    "debugCode": "Ladit kód",
+    "quickFix": "Rychlá oprava",
+    "explain": "Vysvětlit",
+    "refactor": "Refaktorovat",
+    "debugPrompt": "Pomozte mi odladit tento kód:",
+    "quickFixPrompt": "Opravte tuto chybu:",
+    "explainPrompt": "Vysvětlete tento kód:",
+    "refactorPrompt": "Refaktorujte tento kód, aby byl čistší:"
+  },
+  "header": {
+    "credits": "Kredity: {{amount}}",
+    "buyCredits": "Koupit kredity",
+    "new": "Nový",
+    "openFolder": "Otevřít složku",
+    "terminal": "Terminal",
+    "knowledge": "Znalostní báze",
+    "share": "Sdílet",
+    "history": "Historie konverzací",
+    "key": "API klíč",
+    "settings": "Nastavení",
+    "interview": "Režim pohovoru",
+    "moreActions": "Další akce"
+  },
+  "workspace": {
+    "workingIn": "Pracuji v:",
+    "switch": "Přepnout",
+    "openFolderFirst": "Nejprve prosím otevřete složku přes Soubor → Otevřít složku"
+  },
+  "apiKey": {
+    "title": "Vyžadován API klíč",
+    "description": "Přidejte svůj API klíč AIBuddy a začněte chatovat s AI",
+    "addKey": "Přidat klíč",
+    "configured": "API klíč nakonfigurován",
+    "notConfigured": "Přidejte svůj API klíč",
+    "placeholder": "Zadejte svůj API klíč AIBuddy...",
+    "save": "Uložit API klíč",
+    "saved": "Uloženo!",
+    "securityNote": "Váš API klíč je bezpečně uložen na vašem zařízení",
+    "getKey": "Získejte ho zde!"
+  },
+  "status": {
+    "ready": "Připraven",
+    "loading": "Načítání...",
+    "validating": "Ověřování...",
+    "sending": "Odesílání...",
+    "thinking": "Přemýšlím...",
+    "error": "Chyba"
+  },
+  "voice": {
+    "startDictation": "Zahájit hlasový diktát",
+    "stopDictation": "Zastavit diktát",
+    "notAvailable": "Hlasový vstup není v tomto prostředí dostupný"
+  },
+  "attachments": {
+    "attachImage": "Připojit obrázek",
+    "attachCode": "Připojit soubor s kódem",
+    "imageRemoved": "Obrázek odebrán"
+  },
+  "historySidebar": {
+    "title": "Historie konverzací",
+    "newChat": "Nová konverzace",
+    "search": "Hledat konverzace...",
+    "loading": "Načítání...",
+    "noHistory": "Zatím žádná historie konverzací",
+    "startNew": "Začněte novou konverzaci",
+    "pinned": "Připnuté",
+    "today": "Dnes",
+    "yesterday": "Včera",
+    "thisWeek": "Tento týden",
+    "thisMonth": "Tento měsíc",
+    "older": "Starší",
+    "messages": "zprávy",
+    "deleteConfirm": "Smazat tuto konverzaci?",
+    "pinChat": "Připnout konverzaci",
+    "unpinChat": "Odepnout konverzaci",
+    "renameChat": "Přejmenovat konverzaci",
+    "deleteChat": "Smazat konverzaci",
+    "chatsSaved": "konverzací uloženo"
+  },
+  "interview": {
+    "typeQuestion": "Napište otázku k pohovoru...",
+    "askAI": "Zeptat se AI",
+    "speechNotAvailable": "Rozpoznávání řeči není dostupné. Použijte místo toho režim \"Napsat otázku\".",
+    "noTranscript": "Zatím žádný přepis",
+    "clickMic": "Klikněte na tlačítko mikrofonu a začněte poslouchat pohovor",
+    "typeBelow": "Napište otázku níže pro AI koučování"
+  },
+  "usage": {
+    "title": "Vaše limity využití",
+    "currentSession": "Aktuální relace",
+    "startsWhen": "Začíná odesláním zprávy",
+    "allModels": "Všechny modely",
+    "premiumModels": "Prémiové modely",
+    "resetsIn": "Reset za {{days}}d {{hours}}h",
+    "justNow": "právě teď",
+    "secondsAgo": "před {{seconds}}s",
+    "minutesAgo": "před {{minutes}}m",
+    "resetting": "Resetování...",
+    "noPremiumYet": "Zatím jste nepoužili prémiové modely",
+    "sessionUsage": "Využití relace"
+  },
+  "menu": {
+    "file": "Soubor",
+    "openFolder": "Otevřít složku...",
+    "openFile": "Otevřít soubor...",
+    "save": "Uložit",
+    "saveAll": "Uložit vše",
+    "edit": "Úpravy",
+    "view": "Zobrazení",
+    "terminal": "Terminal",
+    "newTerminal": "Nový Terminal",
+    "clearTerminal": "Vymazat Terminal",
+    "ai": "AI",
+    "newChat": "Nová konverzace",
+    "toggleAI": "Přepnout AI panel",
+    "settingsMenu": "Nastavení...",
+    "help": "Nápověda",
+    "checkUpdates": "Zkontrolovat aktualizace...",
+    "documentation": "Dokumentace",
+    "reportIssue": "Nahlásit problém",
+    "about": "O aplikaci AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Vyberte svůj jazyk",
+    "subtitle": "Vyberte preferovaný jazyk pro začátek",
+    "continue": "Pokračovat",
+    "searchPlaceholder": "Hledat jazyky..."
+  }
+}

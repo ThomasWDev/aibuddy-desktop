@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Ваш друг у програмуванні!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Привіт!",
+      "subtitle": "Я AIBuddy, ваш друг у програмуванні!\nРозкажіть мені, що ви хочете створити!",
+      "typeWhat": "Напишіть, що ви хочете",
+      "illDoWork": "Я виконаю роботу",
+      "watchCredits": "Слідкуйте за своїми кредитами"
+    },
+    "returningUser": {
+      "greeting": "З поверненням!",
+      "subtitle": "Над чим ви хочете попрацювати сьогодні?",
+      "recentChats": "Останні бесіди",
+      "viewAllHistory": "Переглянути всю історію"
+    }
+  },
+  "chat": {
+    "placeholder": "Що ви хочете створити сьогодні?",
+    "placeholderImage": "Опишіть, з чим вам потрібна допомога...",
+    "sendButton": "Надіслати",
+    "stopButton": "Зупинити",
+    "newChat": "Нова бесіда",
+    "cancelledRequest": "Запит скасовано",
+    "sending": "Надсилання до AI...",
+    "thinking": "Думаю...",
+    "copyResponse": "Копіювати відповідь",
+    "regenerate": "Згенерувати знову",
+    "goodResponse": "Гарна відповідь",
+    "poorResponse": "Погана відповідь",
+    "copied": "Відповідь скопійовано",
+    "startedNewChat": "Нову бесіду розпочато",
+    "requestInProgress": "Запит виконується – натисніть знову для нової бесіди"
+  },
+  "actions": {
+    "debugCode": "Налагодження коду",
+    "quickFix": "Швидке виправлення",
+    "explain": "Пояснити",
+    "refactor": "Рефакторинг",
+    "debugPrompt": "Допоможіть мені налагодити цей код:",
+    "quickFixPrompt": "Виправте цю помилку:",
+    "explainPrompt": "Поясніть цей код:",
+    "refactorPrompt": "Відрефакторіть цей код, щоб він був чистішим:"
+  },
+  "header": {
+    "credits": "Кредити: {{amount}}",
+    "buyCredits": "Придбати кредити",
+    "new": "Новий",
+    "openFolder": "Відкрити папку",
+    "terminal": "Terminal",
+    "knowledge": "База знань",
+    "share": "Поділитися",
+    "history": "Історія бесід",
+    "key": "API ключ",
+    "settings": "Налаштування",
+    "interview": "Режим співбесіди",
+    "moreActions": "Більше дій"
+  },
+  "workspace": {
+    "workingIn": "Працюю в:",
+    "switch": "Перемкнути",
+    "openFolderFirst": "Будь ласка, спочатку відкрийте цю папку через Файл → Відкрити папку"
+  },
+  "apiKey": {
+    "title": "Потрібен API ключ",
+    "description": "Додайте свій API ключ AIBuddy, щоб почати спілкування з AI",
+    "addKey": "Додати ключ",
+    "configured": "API ключ налаштовано",
+    "notConfigured": "Додайте свій API ключ",
+    "placeholder": "Введіть свій API ключ AIBuddy...",
+    "save": "Зберегти API ключ",
+    "saved": "Збережено!",
+    "securityNote": "Ваш API ключ надійно зберігається на вашому пристрої",
+    "getKey": "Отримайте тут!"
+  },
+  "status": {
+    "ready": "Готово",
+    "loading": "Завантаження...",
+    "validating": "Перевірка...",
+    "sending": "Надсилання...",
+    "thinking": "Думаю...",
+    "error": "Помилка"
+  },
+  "voice": {
+    "startDictation": "Почати голосовий диктант",
+    "stopDictation": "Зупинити диктант",
+    "notAvailable": "Голосовий ввід недоступний у цьому середовищі"
+  },
+  "attachments": {
+    "attachImage": "Прикріпити зображення",
+    "attachCode": "Прикріпити файл коду",
+    "imageRemoved": "Зображення видалено"
+  },
+  "historySidebar": {
+    "title": "Історія бесід",
+    "newChat": "Нова бесіда",
+    "search": "Шукати бесіди...",
+    "loading": "Завантаження...",
+    "noHistory": "Ще немає історії бесід",
+    "startNew": "Почніть нову бесіду",
+    "pinned": "Закріплені",
+    "today": "Сьогодні",
+    "yesterday": "Вчора",
+    "thisWeek": "Цього тижня",
+    "thisMonth": "Цього місяця",
+    "older": "Старіші",
+    "messages": "повідомлення",
+    "deleteConfirm": "Видалити цю бесіду?",
+    "pinChat": "Закріпити бесіду",
+    "unpinChat": "Відкріпити бесіду",
+    "renameChat": "Перейменувати бесіду",
+    "deleteChat": "Видалити бесіду",
+    "chatsSaved": "бесід збережено"
+  },
+  "interview": {
+    "typeQuestion": "Введіть запитання для співбесіди...",
+    "askAI": "Запитати AI",
+    "speechNotAvailable": "Розпізнавання мовлення недоступне. Використовуйте режим \"Введіть запитання\".",
+    "noTranscript": "Ще немає транскрипції",
+    "clickMic": "Натисніть кнопку мікрофона, щоб почати слухати співбесіду",
+    "typeBelow": "Введіть запитання нижче для AI коучингу"
+  },
+  "usage": {
+    "title": "Ваші ліміти використання",
+    "currentSession": "Поточна сесія",
+    "startsWhen": "Починається з надсилання повідомлення",
+    "allModels": "Усі моделі",
+    "premiumModels": "Преміум моделі",
+    "resetsIn": "Скидання через {{days}}д {{hours}}г",
+    "justNow": "щойно",
+    "secondsAgo": "{{seconds}}с тому",
+    "minutesAgo": "{{minutes}}хв тому",
+    "resetting": "Скидання...",
+    "noPremiumYet": "Ви ще не використовували преміум моделі",
+    "sessionUsage": "Використання сесії"
+  },
+  "menu": {
+    "file": "Файл",
+    "openFolder": "Відкрити папку...",
+    "openFile": "Відкрити файл...",
+    "save": "Зберегти",
+    "saveAll": "Зберегти все",
+    "edit": "Редагування",
+    "view": "Вигляд",
+    "terminal": "Terminal",
+    "newTerminal": "Новий Terminal",
+    "clearTerminal": "Очистити Terminal",
+    "ai": "AI",
+    "newChat": "Нова бесіда",
+    "toggleAI": "Перемкнути панель AI",
+    "settingsMenu": "Налаштування...",
+    "help": "Довідка",
+    "checkUpdates": "Перевірити оновлення...",
+    "documentation": "Документація",
+    "reportIssue": "Повідомити про проблему",
+    "about": "Про AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Оберіть свою мову",
+    "subtitle": "Виберіть бажану мову, щоб почати",
+    "continue": "Продовжити",
+    "searchPlaceholder": "Шукати мови..."
+  }
+}

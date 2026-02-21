@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Your Coding Friend!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Hi there!",
+      "subtitle": "I'm AIBuddy, your coding friend!\nTell me what you want to build!",
+      "typeWhat": "Type what you want",
+      "illDoWork": "I'll do the work",
+      "watchCredits": "Watch your credits"
+    },
+    "returningUser": {
+      "greeting": "Welcome back!",
+      "subtitle": "What would you like to work on today?",
+      "recentChats": "Recent Chats",
+      "viewAllHistory": "View all history"
+    }
+  },
+  "chat": {
+    "placeholder": "What do you want to build today?",
+    "placeholderImage": "Describe what you need help with...",
+    "sendButton": "Send",
+    "stopButton": "Stop",
+    "newChat": "New chat",
+    "cancelledRequest": "Request cancelled",
+    "sending": "Sending to AI...",
+    "thinking": "Thinking...",
+    "copyResponse": "Copy response",
+    "regenerate": "Regenerate response",
+    "goodResponse": "Good response",
+    "poorResponse": "Poor response",
+    "copied": "Response copied",
+    "startedNewChat": "Started new chat",
+    "requestInProgress": "Request in progress - press again to force new chat"
+  },
+  "actions": {
+    "debugCode": "Debug code",
+    "quickFix": "Quick fix",
+    "explain": "Explain",
+    "refactor": "Refactor",
+    "debugPrompt": "Help me debug this code:",
+    "quickFixPrompt": "Fix this error:",
+    "explainPrompt": "Explain this code:",
+    "refactorPrompt": "Refactor this code to be cleaner:"
+  },
+  "header": {
+    "credits": "Credits: {{amount}}",
+    "buyCredits": "Buy Credits",
+    "new": "New",
+    "openFolder": "Open Folder",
+    "terminal": "Terminal",
+    "knowledge": "Knowledge Base",
+    "share": "Share",
+    "history": "Chat History",
+    "key": "API Key",
+    "settings": "Settings",
+    "interview": "Interview Mode",
+    "moreActions": "More actions"
+  },
+  "workspace": {
+    "workingIn": "Working in:",
+    "switch": "Switch",
+    "openFolderFirst": "Please open that folder first via File → Open Folder"
+  },
+  "apiKey": {
+    "title": "API Key Required",
+    "description": "Add your AIBuddy API key to start chatting with AI",
+    "addKey": "Add Key",
+    "configured": "API Key configured",
+    "notConfigured": "Add your API key",
+    "placeholder": "Enter your AIBuddy API key...",
+    "save": "Save API Key",
+    "saved": "Saved!",
+    "securityNote": "Your API key is stored securely on your device",
+    "getKey": "Get one here!"
+  },
+  "status": {
+    "ready": "Ready",
+    "loading": "Loading...",
+    "validating": "Validating...",
+    "sending": "Sending...",
+    "thinking": "Thinking...",
+    "error": "Error"
+  },
+  "voice": {
+    "startDictation": "Start voice dictation",
+    "stopDictation": "Stop dictation",
+    "notAvailable": "Voice input not available in this environment"
+  },
+  "attachments": {
+    "attachImage": "Attach image",
+    "attachCode": "Attach code file",
+    "imageRemoved": "Image removed"
+  },
+  "historySidebar": {
+    "title": "Chat History",
+    "newChat": "New Chat",
+    "search": "Search chats...",
+    "loading": "Loading...",
+    "noHistory": "No chat history yet",
+    "startNew": "Start a new chat to begin",
+    "pinned": "Pinned",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "older": "Older",
+    "messages": "messages",
+    "deleteConfirm": "Delete this chat thread?",
+    "pinChat": "Pin chat",
+    "unpinChat": "Unpin chat",
+    "renameChat": "Rename chat",
+    "deleteChat": "Delete chat",
+    "chatsSaved": "chats saved"
+  },
+  "interview": {
+    "typeQuestion": "Type the interview question...",
+    "askAI": "Ask AI",
+    "speechNotAvailable": "Speech recognition not available. Use \"Type Question\" mode instead.",
+    "noTranscript": "No transcript yet",
+    "clickMic": "Click the mic button to start listening to the interview",
+    "typeBelow": "Type a question below to get AI coaching"
+  },
+  "usage": {
+    "title": "Your usage limits",
+    "currentSession": "Current session",
+    "startsWhen": "Starts when a message is sent",
+    "allModels": "All models",
+    "premiumModels": "Premium models",
+    "resetsIn": "Resets in {{days}}d {{hours}}h",
+    "justNow": "just now",
+    "secondsAgo": "{{seconds}}s ago",
+    "minutesAgo": "{{minutes}}m ago",
+    "resetting": "Resetting...",
+    "noPremiumYet": "You haven't used premium models yet",
+    "sessionUsage": "Session usage"
+  },
+  "menu": {
+    "file": "File",
+    "openFolder": "Open Folder...",
+    "openFile": "Open File...",
+    "save": "Save",
+    "saveAll": "Save All",
+    "edit": "Edit",
+    "view": "View",
+    "terminal": "Terminal",
+    "newTerminal": "New Terminal",
+    "clearTerminal": "Clear Terminal",
+    "ai": "AI",
+    "newChat": "New Chat",
+    "toggleAI": "Toggle AI Panel",
+    "settingsMenu": "Settings...",
+    "help": "Help",
+    "checkUpdates": "Check for Updates...",
+    "documentation": "Documentation",
+    "reportIssue": "Report Issue",
+    "about": "About AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Choose Your Language",
+    "subtitle": "Select your preferred language to get started",
+    "continue": "Continue",
+    "searchPlaceholder": "Search languages..."
+  }
+}

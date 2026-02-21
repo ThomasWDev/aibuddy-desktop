@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "החבר שלך לתכנות!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "שלום!",
+      "subtitle": "אני AIBuddy, החבר שלך לתכנות!\nספר לי מה אתה רוצה לבנות!",
+      "typeWhat": "הקלד מה שאתה רוצה",
+      "illDoWork": "אני אעשה את העבודה",
+      "watchCredits": "עקוב אחר הקרדיטים שלך"
+    },
+    "returningUser": {
+      "greeting": "ברוך שובך!",
+      "subtitle": "על מה תרצה לעבוד היום?",
+      "recentChats": "שיחות אחרונות",
+      "viewAllHistory": "הצג את כל ההיסטוריה"
+    }
+  },
+  "chat": {
+    "placeholder": "מה אתה רוצה לבנות היום?",
+    "placeholderImage": "תאר במה אתה צריך עזרה...",
+    "sendButton": "שלח",
+    "stopButton": "עצור",
+    "newChat": "שיחה חדשה",
+    "cancelledRequest": "הבקשה בוטלה",
+    "sending": "שולח ל-AI...",
+    "thinking": "חושב...",
+    "copyResponse": "העתק תגובה",
+    "regenerate": "צור תגובה מחדש",
+    "goodResponse": "תגובה טובה",
+    "poorResponse": "תגובה גרועה",
+    "copied": "התגובה הועתקה",
+    "startedNewChat": "שיחה חדשה התחילה",
+    "requestInProgress": "בקשה בתהליך – לחץ שוב לשיחה חדשה"
+  },
+  "actions": {
+    "debugCode": "ניפוי באגים בקוד",
+    "quickFix": "תיקון מהיר",
+    "explain": "הסבר",
+    "refactor": "שכתוב קוד",
+    "debugPrompt": "עזור לי לנפות באגים בקוד הזה:",
+    "quickFixPrompt": "תקן את השגיאה הזו:",
+    "explainPrompt": "הסבר את הקוד הזה:",
+    "refactorPrompt": "שכתב את הקוד הזה כך שיהיה נקי יותר:"
+  },
+  "header": {
+    "credits": "קרדיטים: {{amount}}",
+    "buyCredits": "קנה קרדיטים",
+    "new": "חדש",
+    "openFolder": "פתח תיקייה",
+    "terminal": "Terminal",
+    "knowledge": "בסיס ידע",
+    "share": "שתף",
+    "history": "היסטוריית שיחות",
+    "key": "מפתח API",
+    "settings": "הגדרות",
+    "interview": "מצב ראיון",
+    "moreActions": "פעולות נוספות"
+  },
+  "workspace": {
+    "workingIn": "עובד ב:",
+    "switch": "החלף",
+    "openFolderFirst": "אנא פתח את התיקייה הזו תחילה דרך קובץ → פתח תיקייה"
+  },
+  "apiKey": {
+    "title": "נדרש מפתח API",
+    "description": "הוסף את מפתח ה-API של AIBuddy כדי להתחיל לשוחח עם AI",
+    "addKey": "הוסף מפתח",
+    "configured": "מפתח API הוגדר",
+    "notConfigured": "הוסף את מפתח ה-API שלך",
+    "placeholder": "הזן את מפתח ה-API של AIBuddy...",
+    "save": "שמור מפתח API",
+    "saved": "נשמר!",
+    "securityNote": "מפתח ה-API שלך מאוחסן בצורה מאובטחת במכשיר שלך",
+    "getKey": "השג אחד כאן!"
+  },
+  "status": {
+    "ready": "מוכן",
+    "loading": "טוען...",
+    "validating": "מאמת...",
+    "sending": "שולח...",
+    "thinking": "חושב...",
+    "error": "שגיאה"
+  },
+  "voice": {
+    "startDictation": "התחל הכתבה קולית",
+    "stopDictation": "עצור הכתבה",
+    "notAvailable": "קלט קולי אינו זמין בסביבה זו"
+  },
+  "attachments": {
+    "attachImage": "צרף תמונה",
+    "attachCode": "צרף קובץ קוד",
+    "imageRemoved": "התמונה הוסרה"
+  },
+  "historySidebar": {
+    "title": "היסטוריית שיחות",
+    "newChat": "שיחה חדשה",
+    "search": "חפש שיחות...",
+    "loading": "טוען...",
+    "noHistory": "אין עדיין היסטוריית שיחות",
+    "startNew": "התחל שיחה חדשה",
+    "pinned": "מוצמדות",
+    "today": "היום",
+    "yesterday": "אתמול",
+    "thisWeek": "השבוע",
+    "thisMonth": "החודש",
+    "older": "ישנות יותר",
+    "messages": "הודעות",
+    "deleteConfirm": "למחוק את השיחה הזו?",
+    "pinChat": "הצמד שיחה",
+    "unpinChat": "בטל הצמדת שיחה",
+    "renameChat": "שנה שם שיחה",
+    "deleteChat": "מחק שיחה",
+    "chatsSaved": "שיחות נשמרו"
+  },
+  "interview": {
+    "typeQuestion": "הקלד את שאלת הראיון...",
+    "askAI": "שאל את AI",
+    "speechNotAvailable": "זיהוי דיבור אינו זמין. השתמש במצב \"הקלד שאלה\" במקום.",
+    "noTranscript": "אין עדיין תמליל",
+    "clickMic": "לחץ על כפתור המיקרופון כדי להתחיל להאזין לראיון",
+    "typeBelow": "הקלד שאלה למטה לקבלת אימון AI"
+  },
+  "usage": {
+    "title": "מגבלות השימוש שלך",
+    "currentSession": "הפעלה נוכחית",
+    "startsWhen": "מתחיל כאשר נשלחת הודעה",
+    "allModels": "כל המודלים",
+    "premiumModels": "מודלים פרימיום",
+    "resetsIn": "מתאפס בעוד {{days}}י {{hours}}ש",
+    "justNow": "הרגע",
+    "secondsAgo": "לפני {{seconds}}ש",
+    "minutesAgo": "לפני {{minutes}}ד",
+    "resetting": "מתאפס...",
+    "noPremiumYet": "עדיין לא השתמשת במודלים פרימיום",
+    "sessionUsage": "שימוש בהפעלה"
+  },
+  "menu": {
+    "file": "קובץ",
+    "openFolder": "פתח תיקייה...",
+    "openFile": "פתח קובץ...",
+    "save": "שמור",
+    "saveAll": "שמור הכל",
+    "edit": "עריכה",
+    "view": "תצוגה",
+    "terminal": "Terminal",
+    "newTerminal": "Terminal חדש",
+    "clearTerminal": "נקה Terminal",
+    "ai": "AI",
+    "newChat": "שיחה חדשה",
+    "toggleAI": "הצג/הסתר לוח AI",
+    "settingsMenu": "הגדרות...",
+    "help": "עזרה",
+    "checkUpdates": "בדוק עדכונים...",
+    "documentation": "תיעוד",
+    "reportIssue": "דווח על בעיה",
+    "about": "אודות AIBuddy"
+  },
+  "languageSelector": {
+    "title": "בחר את השפה שלך",
+    "subtitle": "בחר את השפה המועדפת עליך כדי להתחיל",
+    "continue": "המשך",
+    "searchPlaceholder": "חפש שפות..."
+  }
+}

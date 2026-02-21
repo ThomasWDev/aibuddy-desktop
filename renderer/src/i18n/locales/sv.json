@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Din Kodningskompis!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Hej!",
+      "subtitle": "Jag är AIBuddy, din kodningskompis!\nBerätta vad du vill bygga!",
+      "typeWhat": "Skriv vad du vill",
+      "illDoWork": "Jag gör jobbet",
+      "watchCredits": "Håll koll på dina krediter"
+    },
+    "returningUser": {
+      "greeting": "Välkommen tillbaka!",
+      "subtitle": "Vad vill du jobba med idag?",
+      "recentChats": "Senaste Chattar",
+      "viewAllHistory": "Visa all historik"
+    }
+  },
+  "chat": {
+    "placeholder": "Vad vill du bygga idag?",
+    "placeholderImage": "Beskriv vad du behöver hjälp med...",
+    "sendButton": "Skicka",
+    "stopButton": "Stopp",
+    "newChat": "Ny chatt",
+    "cancelledRequest": "Förfrågan avbruten",
+    "sending": "Skickar till AI...",
+    "thinking": "Tänker...",
+    "copyResponse": "Kopiera svar",
+    "regenerate": "Generera nytt svar",
+    "goodResponse": "Bra svar",
+    "poorResponse": "Dåligt svar",
+    "copied": "Svar kopierat",
+    "startedNewChat": "Ny chatt startad",
+    "requestInProgress": "Förfrågan pågår - tryck igen för att tvinga ny chatt"
+  },
+  "actions": {
+    "debugCode": "Felsök kod",
+    "quickFix": "Snabbfix",
+    "explain": "Förklara",
+    "refactor": "Refaktorera",
+    "debugPrompt": "Hjälp mig felsöka den här koden:",
+    "quickFixPrompt": "Fixa det här felet:",
+    "explainPrompt": "Förklara den här koden:",
+    "refactorPrompt": "Refaktorera den här koden för att göra den renare:"
+  },
+  "header": {
+    "credits": "Krediter: {{amount}}",
+    "buyCredits": "Köp Krediter",
+    "new": "Ny",
+    "openFolder": "Öppna Mapp",
+    "terminal": "Terminal",
+    "knowledge": "Kunskapsbas",
+    "share": "Dela",
+    "history": "Chatthistorik",
+    "key": "API-nyckel",
+    "settings": "Inställningar",
+    "interview": "Intervjuläge",
+    "moreActions": "Fler åtgärder"
+  },
+  "workspace": {
+    "workingIn": "Arbetar i:",
+    "switch": "Byt",
+    "openFolderFirst": "Vänligen öppna den mappen först via Arkiv → Öppna Mapp"
+  },
+  "apiKey": {
+    "title": "API-nyckel Krävs",
+    "description": "Lägg till din AIBuddy API-nyckel för att börja chatta med AI",
+    "addKey": "Lägg till Nyckel",
+    "configured": "API-nyckel konfigurerad",
+    "notConfigured": "Lägg till din API-nyckel",
+    "placeholder": "Ange din AIBuddy API-nyckel...",
+    "save": "Spara API-nyckel",
+    "saved": "Sparat!",
+    "securityNote": "Din API-nyckel lagras säkert på din enhet",
+    "getKey": "Skaffa en här!"
+  },
+  "status": {
+    "ready": "Redo",
+    "loading": "Laddar...",
+    "validating": "Validerar...",
+    "sending": "Skickar...",
+    "thinking": "Tänker...",
+    "error": "Fel"
+  },
+  "voice": {
+    "startDictation": "Starta röstdiktering",
+    "stopDictation": "Stoppa diktering",
+    "notAvailable": "Röstinmatning är inte tillgänglig i den här miljön"
+  },
+  "attachments": {
+    "attachImage": "Bifoga bild",
+    "attachCode": "Bifoga kodfil",
+    "imageRemoved": "Bild borttagen"
+  },
+  "historySidebar": {
+    "title": "Chatthistorik",
+    "newChat": "Ny Chatt",
+    "search": "Sök chattar...",
+    "loading": "Laddar...",
+    "noHistory": "Ingen chatthistorik ännu",
+    "startNew": "Starta en ny chatt för att börja",
+    "pinned": "Fästa",
+    "today": "Idag",
+    "yesterday": "Igår",
+    "thisWeek": "Denna Vecka",
+    "thisMonth": "Denna Månad",
+    "older": "Äldre",
+    "messages": "meddelanden",
+    "deleteConfirm": "Ta bort den här chatttråden?",
+    "pinChat": "Fäst chatt",
+    "unpinChat": "Lossa chatt",
+    "renameChat": "Byt namn på chatt",
+    "deleteChat": "Ta bort chatt",
+    "chatsSaved": "chattar sparade"
+  },
+  "interview": {
+    "typeQuestion": "Skriv intervjufrågan...",
+    "askAI": "Fråga AI",
+    "speechNotAvailable": "Röstigenkänning är inte tillgänglig. Använd läget \"Skriv Fråga\" istället.",
+    "noTranscript": "Ingen transkription ännu",
+    "clickMic": "Klicka på mikrofonknappen för att börja lyssna på intervjun",
+    "typeBelow": "Skriv en fråga nedan för att få AI-coachning"
+  },
+  "usage": {
+    "title": "Dina användningsgränser",
+    "currentSession": "Nuvarande session",
+    "startsWhen": "Börjar när ett meddelande skickas",
+    "allModels": "Alla modeller",
+    "premiumModels": "Premiummodeller",
+    "resetsIn": "Återställs om {{days}}d {{hours}}t",
+    "justNow": "just nu",
+    "secondsAgo": "{{seconds}}s sedan",
+    "minutesAgo": "{{minutes}}m sedan",
+    "resetting": "Återställer...",
+    "noPremiumYet": "Du har inte använt premiummodeller ännu",
+    "sessionUsage": "Sessionsanvändning"
+  },
+  "menu": {
+    "file": "Arkiv",
+    "openFolder": "Öppna Mapp...",
+    "openFile": "Öppna Fil...",
+    "save": "Spara",
+    "saveAll": "Spara Allt",
+    "edit": "Redigera",
+    "view": "Visa",
+    "terminal": "Terminal",
+    "newTerminal": "Ny Terminal",
+    "clearTerminal": "Rensa Terminal",
+    "ai": "AI",
+    "newChat": "Ny Chatt",
+    "toggleAI": "Växla AI-panel",
+    "settingsMenu": "Inställningar...",
+    "help": "Hjälp",
+    "checkUpdates": "Sök efter Uppdateringar...",
+    "documentation": "Dokumentation",
+    "reportIssue": "Rapportera Problem",
+    "about": "Om AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Välj Ditt Språk",
+    "subtitle": "Välj ditt föredragna språk för att komma igång",
+    "continue": "Fortsätt",
+    "searchPlaceholder": "Sök språk..."
+  }
+}

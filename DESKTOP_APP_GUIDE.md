@@ -1,7 +1,7 @@
 # AIBuddy Desktop IDE - Complete Guide
 
-**Version:** 1.5.65  
-**Last Updated:** February 18, 2026  
+**Version:** 1.5.76  
+**Last Updated:** February 21, 2026  
 **Repository:** https://github.com/ThomasWDev/aibuddy-desktop
 
 ---
@@ -493,6 +493,28 @@ When you want AIBuddy to **review or analyze a project that lives on your Deskto
 **Why “Downloads” might appear:** The app does not request “Downloads” by name. macOS may show a permission dialog the first time the app accesses a folder; the system can label it as “Downloads”, “Desktop”, or “Documents”. Using **Open Folder on Desktop** and selecting the correct folder ensures the first path you grant is the right one.
 
 **Investigating a bad session in Sentry:** See `docs/SESSION_ANALYSIS_FOLDER_ON_DESKTOP.md` for how to list events and fetch breadcrumbs (e.g. `user.chat`, `ui.click`, `workspace`) to see which folder was open and which path was selected.
+
+---
+
+## Recent Fixes (v1.5.76)
+
+| Ticket | Issue | Fix Summary |
+|--------|-------|-------------|
+| KAN-53 | App skipped landing page on launch | Import + render `WelcomeScreen` when no workspace is loaded |
+| KAN-54 | Simple prompts cost too much | Token-based sliding window (40K cap) + handoff doc only on first message |
+| KAN-45 | File reported created but not on disk | Post-write verification + `path.join()` + workspace boundary enforcement |
+| KAN-59 | Copy text not working on Mac | macOS app menu fix + Electron clipboard IPC fallback |
+| KAN-62 | Microphone error recording voice | `systemPreferences.askForMediaAccess('microphone')` + IPC for status |
+
+### Workspace Boundary Enforcement (KAN-45)
+
+All file operations now enforce workspace boundaries. If the AI tries to access files outside the loaded workspace, it receives a clear error: `"Path is outside the current workspace. Please use the Open Folder button to load the target directory first."`
+
+### Cost Control (KAN-54)
+
+- **MAX_CONTEXT_TOKENS = 40,000** — Conversation history is token-capped before sending to the API
+- **Handoff doc caching** — Large project handoff docs are only sent on the first message per conversation
+- **Server guardrails** — AWS API caps at $2.00/request with model downgrade chain
 
 ---
 

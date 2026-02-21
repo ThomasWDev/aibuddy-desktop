@@ -286,6 +286,13 @@
   background: rgba(236, 72, 153, 0.6);
 }
 
+/* KAN-59: Chat message text selection */
+.prose,
+.prose * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
 /* Terminal text selection */
 #terminal-output,
 #terminal-output * {

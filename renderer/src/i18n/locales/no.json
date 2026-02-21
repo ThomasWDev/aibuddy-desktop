@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Din Kodekompis!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Hei!",
+      "subtitle": "Jeg er AIBuddy, din kodekompis!\nFortell meg hva du vil bygge!",
+      "typeWhat": "Skriv hva du vil",
+      "illDoWork": "Jeg gjør jobben",
+      "watchCredits": "Hold øye med kredittene dine"
+    },
+    "returningUser": {
+      "greeting": "Velkommen tilbake!",
+      "subtitle": "Hva vil du jobbe med i dag?",
+      "recentChats": "Nylige Samtaler",
+      "viewAllHistory": "Se all historikk"
+    }
+  },
+  "chat": {
+    "placeholder": "Hva vil du bygge i dag?",
+    "placeholderImage": "Beskriv hva du trenger hjelp med...",
+    "sendButton": "Send",
+    "stopButton": "Stopp",
+    "newChat": "Ny samtale",
+    "cancelledRequest": "Forespørsel avbrutt",
+    "sending": "Sender til AI...",
+    "thinking": "Tenker...",
+    "copyResponse": "Kopier svar",
+    "regenerate": "Generer svar på nytt",
+    "goodResponse": "Godt svar",
+    "poorResponse": "Dårlig svar",
+    "copied": "Svar kopiert",
+    "startedNewChat": "Ny samtale startet",
+    "requestInProgress": "Forespørsel pågår - trykk igjen for å tvinge ny samtale"
+  },
+  "actions": {
+    "debugCode": "Feilsøk kode",
+    "quickFix": "Hurtigreparasjon",
+    "explain": "Forklar",
+    "refactor": "Refaktorer",
+    "debugPrompt": "Hjelp meg å feilsøke denne koden:",
+    "quickFixPrompt": "Fiks denne feilen:",
+    "explainPrompt": "Forklar denne koden:",
+    "refactorPrompt": "Refaktorer denne koden til å bli renere:"
+  },
+  "header": {
+    "credits": "Kreditter: {{amount}}",
+    "buyCredits": "Kjøp Kreditter",
+    "new": "Ny",
+    "openFolder": "Åpne Mappe",
+    "terminal": "Terminal",
+    "knowledge": "Kunnskapsbase",
+    "share": "Del",
+    "history": "Samtalehistorikk",
+    "key": "API-nøkkel",
+    "settings": "Innstillinger",
+    "interview": "Intervjumodus",
+    "moreActions": "Flere handlinger"
+  },
+  "workspace": {
+    "workingIn": "Jobber i:",
+    "switch": "Bytt",
+    "openFolderFirst": "Vennligst åpne den mappen først via Fil → Åpne Mappe"
+  },
+  "apiKey": {
+    "title": "API-nøkkel Kreves",
+    "description": "Legg til din AIBuddy API-nøkkel for å begynne å chatte med AI",
+    "addKey": "Legg til Nøkkel",
+    "configured": "API-nøkkel konfigurert",
+    "notConfigured": "Legg til din API-nøkkel",
+    "placeholder": "Skriv inn din AIBuddy API-nøkkel...",
+    "save": "Lagre API-nøkkel",
+    "saved": "Lagret!",
+    "securityNote": "Din API-nøkkel lagres sikkert på enheten din",
+    "getKey": "Skaff en her!"
+  },
+  "status": {
+    "ready": "Klar",
+    "loading": "Laster...",
+    "validating": "Validerer...",
+    "sending": "Sender...",
+    "thinking": "Tenker...",
+    "error": "Feil"
+  },
+  "voice": {
+    "startDictation": "Start stemmediktering",
+    "stopDictation": "Stopp diktering",
+    "notAvailable": "Stemmeinndata er ikke tilgjengelig i dette miljøet"
+  },
+  "attachments": {
+    "attachImage": "Legg ved bilde",
+    "attachCode": "Legg ved kodefil",
+    "imageRemoved": "Bilde fjernet"
+  },
+  "historySidebar": {
+    "title": "Samtalehistorikk",
+    "newChat": "Ny Samtale",
+    "search": "Søk i samtaler...",
+    "loading": "Laster...",
+    "noHistory": "Ingen samtalehistorikk ennå",
+    "startNew": "Start en ny samtale for å begynne",
+    "pinned": "Festet",
+    "today": "I dag",
+    "yesterday": "I går",
+    "thisWeek": "Denne Uken",
+    "thisMonth": "Denne Måneden",
+    "older": "Eldre",
+    "messages": "meldinger",
+    "deleteConfirm": "Slette denne samtalen?",
+    "pinChat": "Fest samtale",
+    "unpinChat": "Løsne samtale",
+    "renameChat": "Gi samtale nytt navn",
+    "deleteChat": "Slett samtale",
+    "chatsSaved": "samtaler lagret"
+  },
+  "interview": {
+    "typeQuestion": "Skriv intervjuspørsmålet...",
+    "askAI": "Spør AI",
+    "speechNotAvailable": "Talegjenkjenning er ikke tilgjengelig. Bruk modusen \"Skriv Spørsmål\" i stedet.",
+    "noTranscript": "Ingen transkripsjon ennå",
+    "clickMic": "Klikk på mikrofonknappen for å begynne å lytte til intervjuet",
+    "typeBelow": "Skriv et spørsmål nedenfor for å få AI-coaching"
+  },
+  "usage": {
+    "title": "Dine bruksgrenser",
+    "currentSession": "Nåværende økt",
+    "startsWhen": "Starter når en melding sendes",
+    "allModels": "Alle modeller",
+    "premiumModels": "Premium-modeller",
+    "resetsIn": "Tilbakestilles om {{days}}d {{hours}}t",
+    "justNow": "akkurat nå",
+    "secondsAgo": "{{seconds}}s siden",
+    "minutesAgo": "{{minutes}}m siden",
+    "resetting": "Tilbakestiller...",
+    "noPremiumYet": "Du har ikke brukt premium-modeller ennå",
+    "sessionUsage": "Øktbruk"
+  },
+  "menu": {
+    "file": "Fil",
+    "openFolder": "Åpne Mappe...",
+    "openFile": "Åpne Fil...",
+    "save": "Lagre",
+    "saveAll": "Lagre Alt",
+    "edit": "Rediger",
+    "view": "Vis",
+    "terminal": "Terminal",
+    "newTerminal": "Ny Terminal",
+    "clearTerminal": "Tøm Terminal",
+    "ai": "AI",
+    "newChat": "Ny Samtale",
+    "toggleAI": "Veksle AI-panel",
+    "settingsMenu": "Innstillinger...",
+    "help": "Hjelp",
+    "checkUpdates": "Se etter Oppdateringer...",
+    "documentation": "Dokumentasjon",
+    "reportIssue": "Rapporter Problem",
+    "about": "Om AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Velg Ditt Språk",
+    "subtitle": "Velg ditt foretrukne språk for å komme i gang",
+    "continue": "Fortsett",
+    "searchPlaceholder": "Søk etter språk..."
+  }
+}

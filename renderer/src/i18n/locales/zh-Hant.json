@@ -1,0 +1,17 @@
+{
+  "app": { "name": "AIBuddy", "tagline": "你的程式夥伴！", "version": "v{{version}}" },
+  "welcome": { "newUser": { "greeting": "你好！", "subtitle": "我是AIBuddy，你的程式夥伴！\n告訴我你想做什麼！", "typeWhat": "輸入你想要的", "illDoWork": "我來做", "watchCredits": "留意你的積分" }, "returningUser": { "greeting": "歡迎回來！", "subtitle": "今天你想做什麼？", "recentChats": "最近的聊天", "viewAllHistory": "查看全部歷史" } },
+  "chat": { "placeholder": "今天想做什麼？", "placeholderImage": "描述你需要幫助的內容...", "sendButton": "發送", "stopButton": "停止", "newChat": "新對話", "cancelledRequest": "請求已取消", "sending": "正在發送給AI...", "thinking": "思考中...", "copyResponse": "複製回覆", "regenerate": "重新生成", "goodResponse": "好的回覆", "poorResponse": "差的回覆", "copied": "回覆已複製", "startedNewChat": "已開始新對話", "requestInProgress": "請求進行中——再次按下可強制開始新對話" },
+  "actions": { "debugCode": "除錯", "quickFix": "快速修復", "explain": "解釋", "refactor": "重構", "debugPrompt": "幫我除錯這段程式碼：", "quickFixPrompt": "修復這個錯誤：", "explainPrompt": "解釋這段程式碼：", "refactorPrompt": "重構這段程式碼使其更整潔：" },
+  "header": { "credits": "積分：{{amount}}", "buyCredits": "購買積分", "new": "新建", "openFolder": "開啟資料夾", "terminal": "終端機", "knowledge": "知識庫", "share": "分享", "history": "聊天歷史", "key": "API金鑰", "settings": "設定", "interview": "面試模式", "moreActions": "更多操作" },
+  "workspace": { "workingIn": "工作目錄：", "switch": "切換", "openFolderFirst": "請先透過檔案→開啟資料夾來開啟該資料夾" },
+  "apiKey": { "title": "需要API金鑰", "description": "新增你的AIBuddy API金鑰以開始與AI對話", "addKey": "新增金鑰", "configured": "API金鑰已設定", "notConfigured": "新增你的API金鑰", "placeholder": "輸入你的AIBuddy API金鑰...", "save": "儲存API金鑰", "saved": "已儲存！", "securityNote": "你的API金鑰安全地儲存在你的裝置上", "getKey": "在這裡取得！" },
+  "status": { "ready": "就緒", "loading": "載入中...", "validating": "驗證中...", "sending": "傳送中...", "thinking": "思考中...", "error": "錯誤" },
+  "voice": { "startDictation": "開始語音輸入", "stopDictation": "停止語音輸入", "notAvailable": "此環境不支援語音輸入" },
+  "attachments": { "attachImage": "附加圖片", "attachCode": "附加程式碼檔案", "imageRemoved": "圖片已移除" },
+  "historySidebar": { "title": "聊天歷史", "newChat": "新對話", "search": "搜尋聊天...", "loading": "載入中...", "noHistory": "暫無聊天歷史", "startNew": "開始新對話", "pinned": "已置頂", "today": "今天", "yesterday": "昨天", "thisWeek": "本週", "thisMonth": "本月", "older": "更早", "messages": "則訊息", "deleteConfirm": "刪除此聊天記錄？", "pinChat": "置頂聊天", "unpinChat": "取消置頂", "renameChat": "重新命名聊天", "deleteChat": "刪除聊天", "chatsSaved": "聊天已儲存" },
+  "interview": { "typeQuestion": "輸入面試問題...", "askAI": "問AI", "speechNotAvailable": "語音辨識不可用。請使用「輸入問題」模式。", "noTranscript": "暫無轉錄內容", "clickMic": "點擊麥克風按鈕開始收聽面試", "typeBelow": "在下方輸入問題以獲取AI輔導" },
+  "usage": { "title": "你的使用限制", "currentSession": "目前工作階段", "startsWhen": "傳送訊息時開始", "allModels": "所有模型", "premiumModels": "進階模型", "resetsIn": "{{days}}天{{hours}}小時後重置", "justNow": "剛剛", "secondsAgo": "{{seconds}}秒前", "minutesAgo": "{{minutes}}分鐘前", "resetting": "重置中...", "noPremiumYet": "你還沒有使用過進階模型", "sessionUsage": "工作階段使用情況" },
+  "menu": { "file": "檔案", "openFolder": "開啟資料夾...", "openFile": "開啟檔案...", "save": "儲存", "saveAll": "全部儲存", "edit": "編輯", "view": "檢視", "terminal": "終端機", "newTerminal": "新終端機", "clearTerminal": "清除終端機", "ai": "AI", "newChat": "新對話", "toggleAI": "切換AI面板", "settingsMenu": "設定...", "help": "說明", "checkUpdates": "檢查更新...", "documentation": "文件", "reportIssue": "回報問題", "about": "關於AIBuddy" },
+  "languageSelector": { "title": "選擇你的語言", "subtitle": "選擇你的首選語言以開始", "continue": "繼續", "searchPlaceholder": "搜尋語言..." }
+}

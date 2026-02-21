@@ -45,6 +45,10 @@ import { HistorySidebar } from './components/HistorySidebar'
 import { ShareModal } from './components/ShareModal'
 import { UsageLimitsPanel } from './components/UsageLimitsPanel'
 import { InterviewPanel } from './components/InterviewPanel'
+import { LanguageSelector } from './components/LanguageSelector'
+import { WelcomeScreen } from './components/welcome/WelcomeScreen'
+import { useTranslation } from 'react-i18next'
+import { SUPPORTED_LANGUAGES } from './i18n/languages'
 import { useTheme, type Theme, type FontSize } from './hooks/useTheme'
 import { useVoiceInput } from './hooks/useVoiceInput'
 import type { ChatThread } from '../../src/history/types'
@@ -202,6 +206,13 @@ interface ImageAttachment {
 const MAX_IMAGE_DIMENSION = 1920
 const JPEG_QUALITY = 0.8
 const MAX_PAYLOAD_BYTES = 900 * 1024 // 900KB — ALB→Lambda sync invocation limit is ~1MB
+// KAN-54: Token-based cost guard — limit total input tokens before sending
+const MAX_CONTEXT_TOKENS = 40_000
+
+function estimateTokenCount(text: string): number {
+  if (!text) return 0
+  return Math.ceil(text.length / 3.5)
+}
 
 function compressImageFromSrc(src: string): Promise<{ base64: string; mimeType: ImageAttachment['mimeType'] }> {
   return new Promise((resolve, reject) => {
@@ -675,6 +686,11 @@ function isRetryableError(error: ApiErrorResponse | null, httpStatus?: number): 
 // ============================================================================
 
 function App() {
+  const { t, i18n } = useTranslation()
+  const [showLanguageSelector, setShowLanguageSelector] = useState(
+    () => !localStorage.getItem('aibuddy_language_selected')
+  )
+
   // Theme and font settings
   const { theme, setTheme, fontSize, setFontSize } = useTheme()
   
@@ -710,6 +726,9 @@ function App() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [appVersion, setAppVersion] = useState<string | null>(null)
   
+  // KAN-54: Only send handoff doc on first message per conversation
+  const handoffSentRef = useRef(false)
+
   // Credits tracking
   const [credits, setCredits] = useState<number | null>(null)
   const [lastCost, setLastCost] = useState<number | null>(null)
@@ -2266,15 +2285,16 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         chatMessages.push({ role: 'user', content: userMessage.content })
       }
 
-      // Load project handoff doc from workspace (e.g. CourtEdge-NCAA-System COMPLETE_SYSTEM_HANDOFF.md)
+      // KAN-54: Only load handoff doc on first message per conversation to reduce cost
       let handoffDoc: string | undefined
-      if (workspacePath && window.electronAPI?.fs?.readFileAsText) {
+      if (!handoffSentRef.current && workspacePath && window.electronAPI?.fs?.readFileAsText) {
         try {
           const handoffPath = `${workspacePath.replace(/\/$/, '')}/COMPLETE_SYSTEM_HANDOFF.md`
           handoffDoc = await window.electronAPI.fs.readFileAsText(handoffPath)
           if (handoffDoc && handoffDoc.length > 45000) {
             handoffDoc = handoffDoc.slice(0, 45000) + '\n\n...[truncated for context length]'
           }
+          handoffSentRef.current = true
         } catch {
           // No handoff file or read failed – continue without it
         }
@@ -2321,12 +2341,32 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               hasImages,
               handoffDoc: handoffDoc || undefined,
               platformContext: DESKTOP_PLATFORM_CONTEXT,
+              uiLanguage: i18n.language,
             })
           },
           ...chatMessages
         ],
         max_tokens: 4096,
         temperature: 0.7,
+      }
+
+      // KAN-54: Token-based truncation — keep total input tokens under MAX_CONTEXT_TOKENS
+      const systemTokens = estimateTokenCount(typeof requestBody.messages[0]?.content === 'string' ? requestBody.messages[0].content : '')
+      let totalTokens = systemTokens
+      const conversationMsgs = requestBody.messages.slice(1)
+      for (const msg of conversationMsgs) {
+        const text = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+        totalTokens += estimateTokenCount(text)
+      }
+      if (totalTokens > MAX_CONTEXT_TOKENS && conversationMsgs.length > 2) {
+        console.log(`[KAN-54] Estimated ${totalTokens} tokens exceeds MAX_CONTEXT_TOKENS (${MAX_CONTEXT_TOKENS}). Trimming history...`)
+        while (totalTokens > MAX_CONTEXT_TOKENS && conversationMsgs.length > 2) {
+          const removed = conversationMsgs.shift()
+          const removedText = typeof removed?.content === 'string' ? removed.content : JSON.stringify(removed?.content)
+          totalTokens -= estimateTokenCount(removedText)
+        }
+        requestBody.messages = [requestBody.messages[0], ...conversationMsgs]
+        console.log(`[KAN-54] Trimmed to ${conversationMsgs.length} messages (~${totalTokens} tokens)`)
       }
 
       let serializedBody = JSON.stringify(requestBody)
@@ -2858,14 +2898,22 @@ Be concise and actionable. Use an alternative approach, not the same commands th
   }
 
   const copyToClipboard = useCallback(async (text: string, id: string) => {
-    await navigator.clipboard.writeText(text)
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      try { await window.electronAPI?.clipboard?.writeText(text) } catch {}
+    }
     setCopiedId(id)
     toast.success('Copied!')
     setTimeout(() => setCopiedId(null), 2000)
   }, [])
   
   const copyResponse = useCallback(async (content: string, messageId: string) => {
-    await navigator.clipboard.writeText(content)
+    try {
+      await navigator.clipboard.writeText(content)
+    } catch {
+      try { await window.electronAPI?.clipboard?.writeText(content) } catch {}
+    }
     setCopiedId(messageId + '-response')
     toast.success('📋 Response copied!')
     addBreadcrumb('Response copied', 'chat.action', { messageId })
@@ -3157,6 +3205,39 @@ Be concise and actionable. Use an alternative approach, not the same commands th
     [terminalOutput]
   )
 
+  if (showLanguageSelector) {
+    return (
+      <LanguageSelector
+        onLanguageSelected={(code) => {
+          setShowLanguageSelector(false)
+          addBreadcrumb('Language selected', 'ui.action', { language: code })
+        }}
+      />
+    )
+  }
+
+  // KAN-53: Show WelcomeScreen when no workspace is loaded on first launch
+  if (!workspacePath && !hasUsedBefore) {
+    return (
+      <WelcomeScreen
+        onOpenFolder={(path) => {
+          setWorkspacePath(path)
+          // Save to recent workspaces
+          const electronAPI = (window as any).electronAPI
+          if (electronAPI?.store?.set) {
+            electronAPI.store.get('recentWorkspaces').then((recent: string[] | null) => {
+              const updated = [path, ...(recent || []).filter((p: string) => p !== path)].slice(0, 10)
+              electronAPI.store.set('recentWorkspaces', updated)
+            }).catch(() => {})
+          }
+        }}
+        onNewChat={() => {
+          setHasUsedBefore(true)
+        }}
+      />
+    )
+  }
+
   return (
     <div 
       className="h-screen flex flex-col"
@@ -3164,6 +3245,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)',
         fontFamily: "'Nunito', 'Comic Neue', sans-serif"
       }}
+      dir={['ar', 'he'].includes(i18n.language) ? 'rtl' : 'ltr'}
     >
       {/* KAN-48/40/42 FIX: Compact header - no longer blocks scrolling */}
       <header 
@@ -3223,7 +3305,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               onClick={() => {
                 trackButtonClick('New Chat', 'Header')
                 if (isLoading) {
-                  toast.warning('Request in progress - press ⌘N again to force new chat')
+                  toast.warning(t('chat.requestInProgress'))
                   return
                 }
                 setMessages([])
@@ -3233,7 +3315,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 setLastModel(null)
                 setInput('')
                 inputRef.current?.focus()
-                toast.info('Started new chat')
+                toast.info(t('chat.startedNewChat'))
                 addBreadcrumb('New chat from header button', 'ui.action')
               }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl font-semibold text-xs transition-all hover:scale-105 h-8"
@@ -3476,10 +3558,10 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           title="Click to switch project folder"
         >
           <FolderOpen className="w-3 h-3 text-cyan-400" />
-          <span className="text-slate-400">Working in:</span>
+          <span className="text-slate-400">{t('workspace.workingIn')}</span>
           <span className="text-cyan-400 font-semibold truncate flex-1">{workspacePath}</span>
           <span className="text-[10px] text-slate-500 group-hover:text-cyan-400 transition-colors font-medium px-1.5 py-0.5 rounded bg-slate-800/50 group-hover:bg-cyan-500/10">
-            Switch
+            {t('workspace.switch')}
           </span>
         </div>
       )}
@@ -3503,16 +3585,16 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 </div>
                 
                 <h2 className="text-3xl font-bold text-white mb-2">
-                  Welcome back! 👋
+                  {t('welcome.returningUser.greeting')} 👋
                 </h2>
                 <p className="text-lg text-slate-400 mb-6">
-                  What would you like to work on today?
+                  {t('welcome.returningUser.subtitle')}
                 </p>
                 
                 {/* Recent Chats - Quick Access */}
                 {recentThreads.length > 0 && (
                   <div className="w-full max-w-md mb-6">
-                    <p className="text-sm font-semibold text-slate-500 mb-2 text-left">Recent Chats</p>
+                    <p className="text-sm font-semibold text-slate-500 mb-2 text-left">{t('welcome.returningUser.recentChats')}</p>
                     <div className="space-y-2">
                       {recentThreads.slice(0, 3).map(thread => (
                         <button
@@ -3559,7 +3641,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                       onClick={() => setShowHistory(true)}
                       className="mt-2 text-xs text-purple-400 hover:text-purple-300 transition-colors"
                     >
-                      View all history →
+                      {t('welcome.returningUser.viewAllHistory')} →
                     </button>
                   </div>
                 )}
@@ -3567,10 +3649,10 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 {/* Quick Actions for power users */}
                 <div className="flex flex-wrap justify-center gap-2 mb-6">
                   {[
-                    { icon: "🐛", text: "Debug code", prompt: "Help me debug this code:" },
-                    { icon: "⚡", text: "Quick fix", prompt: "Fix this error:" },
-                    { icon: "📝", text: "Explain", prompt: "Explain this code:" },
-                    { icon: "🔧", text: "Refactor", prompt: "Refactor this code to be cleaner:" }
+                    { icon: "🐛", text: t('actions.debugCode'), prompt: t('actions.debugPrompt') },
+                    { icon: "⚡", text: t('actions.quickFix'), prompt: t('actions.quickFixPrompt') },
+                    { icon: "📝", text: t('actions.explain'), prompt: t('actions.explainPrompt') },
+                    { icon: "🔧", text: t('actions.refactor'), prompt: t('actions.refactorPrompt') }
                   ].map((action, i) => (
                     <button
                       key={i}
@@ -3604,38 +3686,36 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 
                 {/* Big Welcome Text */}
                 <h2 className="text-5xl font-black text-white mb-4">
-                  Hi there! 👋
+                  {t('welcome.newUser.greeting')} 👋
                 </h2>
-                <p className="text-2xl text-slate-300 mb-8 max-w-lg font-semibold">
-                  I'm <span style={{ color: '#ec4899' }}>AIBuddy</span>, your coding friend!
-                  <br />
-                  Tell me what you want to build! 🚀
+                <p className="text-2xl text-slate-300 mb-8 max-w-lg font-semibold whitespace-pre-line">
+                  {t('welcome.newUser.subtitle')} 🚀
                 </p>
 
                 {/* Big Helpful Cards */}
                 <div className="flex flex-wrap justify-center gap-4 mb-8">
-                  <Tooltip text="Just type what you want me to do in the box below!">
+                  <Tooltip text={t('welcome.newUser.typeWhat')}>
                     <div 
                       className="px-6 py-4 rounded-2xl text-lg font-bold cursor-help transition-transform hover:scale-105"
                       style={{ background: 'rgba(236, 72, 153, 0.15)', color: '#f472b6', border: '2px solid #f472b6' }}
                     >
-                      💬 Type what you want
+                      💬 {t('welcome.newUser.typeWhat')}
                     </div>
                   </Tooltip>
-                  <Tooltip text="I'll write the code and do all the hard work for you!">
+                  <Tooltip text={t('welcome.newUser.illDoWork')}>
                     <div 
                       className="px-6 py-4 rounded-2xl text-lg font-bold cursor-help transition-transform hover:scale-105"
                       style={{ background: 'rgba(6, 182, 212, 0.15)', color: '#22d3ee', border: '2px solid #22d3ee' }}
                     >
-                      🚀 I'll do the work
+                      🚀 {t('welcome.newUser.illDoWork')}
                     </div>
                   </Tooltip>
-                  <Tooltip text="Each question uses some credits - check the green number at the top!">
+                  <Tooltip text={t('welcome.newUser.watchCredits')}>
                     <div 
                       className="px-6 py-4 rounded-2xl text-lg font-bold cursor-help transition-transform hover:scale-105"
                       style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '2px solid #4ade80' }}
                     >
-                      💰 Watch your credits
+                      💰 {t('welcome.newUser.watchCredits')}
                     </div>
                   </Tooltip>
                 </div>
@@ -4039,8 +4119,8 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   }}
                   onPaste={handlePasteImage}
                   placeholder={attachedImages.length > 0 
-                    ? "📷 Describe what you need help with..."
-                    : "🤔 What do you want to build today?"
+                    ? `📷 ${t('chat.placeholderImage')}`
+                    : `🤔 ${t('chat.placeholder')}`
                   }
                   className="w-full bg-transparent text-white text-base resize-none outline-none placeholder-slate-400 font-medium leading-normal py-2"
                   style={{ minHeight: '40px', maxHeight: '120px' }}
@@ -4053,7 +4133,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               {/* KAN-17 FIX: Voice Input Button - always visible, shows error if not supported */}
               <Tooltip text={
                 !voiceSupported 
-                  ? 'Voice input not available in this environment'
+                  ? t('voice.notAvailable')
                   : voiceState === 'listening' 
                     ? 'Stop dictation' 
                     : 'Start voice dictation'
@@ -4602,6 +4682,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           // KAN-27 FIX: Clear cost and model when starting new chat
           setLastCost(null)
           setLastModel(null)
+          handoffSentRef.current = false // KAN-54: Reset handoff doc for new conversation
           setShowHistory(false)
           toast.success('✨ Started new chat!')
           addBreadcrumb('Started new chat thread', 'history')

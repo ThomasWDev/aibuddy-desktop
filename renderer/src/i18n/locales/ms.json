@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "Rakan Pengaturcaraan Anda!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Hai!",
+      "subtitle": "Saya AIBuddy, rakan pengaturcaraan anda!\nBeritahu saya apa yang anda mahu bina!",
+      "typeWhat": "Taip apa yang anda mahu",
+      "illDoWork": "Saya akan lakukan kerjanya",
+      "watchCredits": "Pantau kredit anda"
+    },
+    "returningUser": {
+      "greeting": "Selamat kembali!",
+      "subtitle": "Apa yang anda mahu kerjakan hari ini?",
+      "recentChats": "Perbualan Terkini",
+      "viewAllHistory": "Lihat semua sejarah"
+    }
+  },
+  "chat": {
+    "placeholder": "Apa yang anda mahu bina hari ini?",
+    "placeholderImage": "Terangkan apa yang anda perlukan bantuan...",
+    "sendButton": "Hantar",
+    "stopButton": "Berhenti",
+    "newChat": "Perbualan baharu",
+    "cancelledRequest": "Permintaan dibatalkan",
+    "sending": "Menghantar kepada AI...",
+    "thinking": "Berfikir...",
+    "copyResponse": "Salin respons",
+    "regenerate": "Jana semula respons",
+    "goodResponse": "Respons baik",
+    "poorResponse": "Respons kurang baik",
+    "copied": "Respons disalin",
+    "startedNewChat": "Perbualan baharu dimulakan",
+    "requestInProgress": "Permintaan sedang berjalan – tekan lagi untuk perbualan baharu"
+  },
+  "actions": {
+    "debugCode": "Debug kod",
+    "quickFix": "Pembaikan pantas",
+    "explain": "Terangkan",
+    "refactor": "Refaktor",
+    "debugPrompt": "Bantu saya debug kod ini:",
+    "quickFixPrompt": "Betulkan ralat ini:",
+    "explainPrompt": "Terangkan kod ini:",
+    "refactorPrompt": "Refaktor kod ini supaya lebih bersih:"
+  },
+  "header": {
+    "credits": "Kredit: {{amount}}",
+    "buyCredits": "Beli Kredit",
+    "new": "Baharu",
+    "openFolder": "Buka Folder",
+    "terminal": "Terminal",
+    "knowledge": "Pangkalan Pengetahuan",
+    "share": "Kongsi",
+    "history": "Sejarah Perbualan",
+    "key": "Kunci API",
+    "settings": "Tetapan",
+    "interview": "Mod Temu Duga",
+    "moreActions": "Lagi tindakan"
+  },
+  "workspace": {
+    "workingIn": "Bekerja dalam:",
+    "switch": "Tukar",
+    "openFolderFirst": "Sila buka folder itu dahulu melalui Fail → Buka Folder"
+  },
+  "apiKey": {
+    "title": "Kunci API Diperlukan",
+    "description": "Tambah kunci API AIBuddy anda untuk mula berbual dengan AI",
+    "addKey": "Tambah Kunci",
+    "configured": "Kunci API dikonfigurasi",
+    "notConfigured": "Tambah kunci API anda",
+    "placeholder": "Masukkan kunci API AIBuddy anda...",
+    "save": "Simpan Kunci API",
+    "saved": "Disimpan!",
+    "securityNote": "Kunci API anda disimpan dengan selamat pada peranti anda",
+    "getKey": "Dapatkan di sini!"
+  },
+  "status": {
+    "ready": "Sedia",
+    "loading": "Memuatkan...",
+    "validating": "Mengesahkan...",
+    "sending": "Menghantar...",
+    "thinking": "Berfikir...",
+    "error": "Ralat"
+  },
+  "voice": {
+    "startDictation": "Mulakan rencana suara",
+    "stopDictation": "Hentikan rencana",
+    "notAvailable": "Input suara tidak tersedia dalam persekitaran ini"
+  },
+  "attachments": {
+    "attachImage": "Lampirkan imej",
+    "attachCode": "Lampirkan fail kod",
+    "imageRemoved": "Imej dibuang"
+  },
+  "historySidebar": {
+    "title": "Sejarah Perbualan",
+    "newChat": "Perbualan Baharu",
+    "search": "Cari perbualan...",
+    "loading": "Memuatkan...",
+    "noHistory": "Tiada sejarah perbualan lagi",
+    "startNew": "Mulakan perbualan baharu",
+    "pinned": "Disemat",
+    "today": "Hari Ini",
+    "yesterday": "Semalam",
+    "thisWeek": "Minggu Ini",
+    "thisMonth": "Bulan Ini",
+    "older": "Lebih Lama",
+    "messages": "mesej",
+    "deleteConfirm": "Padam urutan perbualan ini?",
+    "pinChat": "Semat perbualan",
+    "unpinChat": "Nyahsemat perbualan",
+    "renameChat": "Namakan semula perbualan",
+    "deleteChat": "Padam perbualan",
+    "chatsSaved": "perbualan disimpan"
+  },
+  "interview": {
+    "typeQuestion": "Taip soalan temu duga...",
+    "askAI": "Tanya AI",
+    "speechNotAvailable": "Pengecaman suara tidak tersedia. Gunakan mod \"Taip Soalan\" sebagai ganti.",
+    "noTranscript": "Tiada transkrip lagi",
+    "clickMic": "Klik butang mikrofon untuk mula mendengar temu duga",
+    "typeBelow": "Taip soalan di bawah untuk bimbingan AI"
+  },
+  "usage": {
+    "title": "Had penggunaan anda",
+    "currentSession": "Sesi semasa",
+    "startsWhen": "Bermula apabila mesej dihantar",
+    "allModels": "Semua model",
+    "premiumModels": "Model premium",
+    "resetsIn": "Set semula dalam {{days}}h {{hours}}j",
+    "justNow": "baru sahaja",
+    "secondsAgo": "{{seconds}}s lalu",
+    "minutesAgo": "{{minutes}}m lalu",
+    "resetting": "Menetapkan semula...",
+    "noPremiumYet": "Anda belum menggunakan model premium",
+    "sessionUsage": "Penggunaan sesi"
+  },
+  "menu": {
+    "file": "Fail",
+    "openFolder": "Buka Folder...",
+    "openFile": "Buka Fail...",
+    "save": "Simpan",
+    "saveAll": "Simpan Semua",
+    "edit": "Edit",
+    "view": "Paparan",
+    "terminal": "Terminal",
+    "newTerminal": "Terminal Baharu",
+    "clearTerminal": "Kosongkan Terminal",
+    "ai": "AI",
+    "newChat": "Perbualan Baharu",
+    "toggleAI": "Togol Panel AI",
+    "settingsMenu": "Tetapan...",
+    "help": "Bantuan",
+    "checkUpdates": "Semak Kemas Kini...",
+    "documentation": "Dokumentasi",
+    "reportIssue": "Laporkan Isu",
+    "about": "Mengenai AIBuddy"
+  },
+  "languageSelector": {
+    "title": "Pilih Bahasa Anda",
+    "subtitle": "Pilih bahasa pilihan anda untuk bermula",
+    "continue": "Teruskan",
+    "searchPlaceholder": "Cari bahasa..."
+  }
+}

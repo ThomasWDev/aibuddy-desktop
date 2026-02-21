@@ -1,0 +1,168 @@
+{
+  "app": {
+    "name": "AIBuddy",
+    "tagline": "A kódoló barátod!",
+    "version": "v{{version}}"
+  },
+  "welcome": {
+    "newUser": {
+      "greeting": "Szia!",
+      "subtitle": "AIBuddy vagyok, a kódoló barátod!\nMondd el, mit szeretnél építeni!",
+      "typeWhat": "Írd be, mit szeretnél",
+      "illDoWork": "Én elvégzem a munkát",
+      "watchCredits": "Figyeld a kreditjeidet"
+    },
+    "returningUser": {
+      "greeting": "Üdv újra!",
+      "subtitle": "Min szeretnél ma dolgozni?",
+      "recentChats": "Legutóbbi beszélgetések",
+      "viewAllHistory": "Teljes előzmények megtekintése"
+    }
+  },
+  "chat": {
+    "placeholder": "Mit szeretnél ma építeni?",
+    "placeholderImage": "Írd le, mihez kell segítség...",
+    "sendButton": "Küldés",
+    "stopButton": "Leállítás",
+    "newChat": "Új beszélgetés",
+    "cancelledRequest": "Kérés visszavonva",
+    "sending": "Küldés az AI-nak...",
+    "thinking": "Gondolkodom...",
+    "copyResponse": "Válasz másolása",
+    "regenerate": "Válasz újragenerálása",
+    "goodResponse": "Jó válasz",
+    "poorResponse": "Gyenge válasz",
+    "copied": "Válasz másolva",
+    "startedNewChat": "Új beszélgetés indítva",
+    "requestInProgress": "Kérés folyamatban – nyomd meg újra az új beszélgetéshez"
+  },
+  "actions": {
+    "debugCode": "Kód hibakeresés",
+    "quickFix": "Gyors javítás",
+    "explain": "Magyarázat",
+    "refactor": "Refaktorálás",
+    "debugPrompt": "Segíts hibát keresni ebben a kódban:",
+    "quickFixPrompt": "Javítsd ki ezt a hibát:",
+    "explainPrompt": "Magyarázd el ezt a kódot:",
+    "refactorPrompt": "Refaktoráld ezt a kódot tisztábbra:"
+  },
+  "header": {
+    "credits": "Kreditek: {{amount}}",
+    "buyCredits": "Kreditek vásárlása",
+    "new": "Új",
+    "openFolder": "Mappa megnyitása",
+    "terminal": "Terminal",
+    "knowledge": "Tudásbázis",
+    "share": "Megosztás",
+    "history": "Beszélgetés előzmények",
+    "key": "API kulcs",
+    "settings": "Beállítások",
+    "interview": "Interjú mód",
+    "moreActions": "További műveletek"
+  },
+  "workspace": {
+    "workingIn": "Munkaterület:",
+    "switch": "Váltás",
+    "openFolderFirst": "Kérjük, először nyisd meg a mappát a Fájl → Mappa megnyitása menüponton keresztül"
+  },
+  "apiKey": {
+    "title": "API kulcs szükséges",
+    "description": "Add hozzá az AIBuddy API kulcsodat, hogy elkezdhess csevegni az AI-val",
+    "addKey": "Kulcs hozzáadása",
+    "configured": "API kulcs beállítva",
+    "notConfigured": "Add hozzá az API kulcsodat",
+    "placeholder": "Írd be az AIBuddy API kulcsodat...",
+    "save": "API kulcs mentése",
+    "saved": "Mentve!",
+    "securityNote": "Az API kulcsod biztonságosan tárolódik az eszközödön",
+    "getKey": "Szerezz egyet itt!"
+  },
+  "status": {
+    "ready": "Kész",
+    "loading": "Betöltés...",
+    "validating": "Ellenőrzés...",
+    "sending": "Küldés...",
+    "thinking": "Gondolkodom...",
+    "error": "Hiba"
+  },
+  "voice": {
+    "startDictation": "Hangos diktálás indítása",
+    "stopDictation": "Diktálás leállítása",
+    "notAvailable": "A hangbemenet nem érhető el ebben a környezetben"
+  },
+  "attachments": {
+    "attachImage": "Kép csatolása",
+    "attachCode": "Kódfájl csatolása",
+    "imageRemoved": "Kép eltávolítva"
+  },
+  "historySidebar": {
+    "title": "Beszélgetés előzmények",
+    "newChat": "Új beszélgetés",
+    "search": "Beszélgetések keresése...",
+    "loading": "Betöltés...",
+    "noHistory": "Még nincsenek beszélgetés előzmények",
+    "startNew": "Indíts egy új beszélgetést",
+    "pinned": "Rögzített",
+    "today": "Ma",
+    "yesterday": "Tegnap",
+    "thisWeek": "Ezen a héten",
+    "thisMonth": "Ebben a hónapban",
+    "older": "Régebbi",
+    "messages": "üzenetek",
+    "deleteConfirm": "Törlöd ezt a beszélgetést?",
+    "pinChat": "Beszélgetés rögzítése",
+    "unpinChat": "Rögzítés feloldása",
+    "renameChat": "Beszélgetés átnevezése",
+    "deleteChat": "Beszélgetés törlése",
+    "chatsSaved": "beszélgetés mentve"
+  },
+  "interview": {
+    "typeQuestion": "Írd be az interjú kérdést...",
+    "askAI": "Kérdezd az AI-t",
+    "speechNotAvailable": "A beszédfelismerés nem elérhető. Használd helyette a \"Kérdés beírása\" módot.",
+    "noTranscript": "Még nincs átirat",
+    "clickMic": "Kattints a mikrofon gombra az interjú hallgatásának megkezdéséhez",
+    "typeBelow": "Írj be egy kérdést lentebb AI coaching-hoz"
+  },
+  "usage": {
+    "title": "Használati korlátaid",
+    "currentSession": "Jelenlegi munkamenet",
+    "startsWhen": "Üzenet küldésekor indul",
+    "allModels": "Összes modell",
+    "premiumModels": "Prémium modellek",
+    "resetsIn": "Visszaáll {{days}}n {{hours}}ó múlva",
+    "justNow": "éppen most",
+    "secondsAgo": "{{seconds}}mp-ja",
+    "minutesAgo": "{{minutes}}p-ja",
+    "resetting": "Visszaállítás...",
+    "noPremiumYet": "Még nem használtál prémium modelleket",
+    "sessionUsage": "Munkamenet használat"
+  },
+  "menu": {
+    "file": "Fájl",
+    "openFolder": "Mappa megnyitása...",
+    "openFile": "Fájl megnyitása...",
+    "save": "Mentés",
+    "saveAll": "Összes mentése",
+    "edit": "Szerkesztés",
+    "view": "Nézet",
+    "terminal": "Terminal",
+    "newTerminal": "Új Terminal",
+    "clearTerminal": "Terminal törlése",
+    "ai": "AI",
+    "newChat": "Új beszélgetés",
+    "toggleAI": "AI panel ki/be",
+    "settingsMenu": "Beállítások...",
+    "help": "Súgó",
+    "checkUpdates": "Frissítések keresése...",
+    "documentation": "Dokumentáció",
+    "reportIssue": "Hiba bejelentése",
+    "about": "Az AIBuddy névjegye"
+  },
+  "languageSelector": {
+    "title": "Válaszd ki a nyelvedet",
+    "subtitle": "Válaszd ki a kívánt nyelvet a kezdéshez",
+    "continue": "Tovább",
+    "searchPlaceholder": "Nyelvek keresése..."
+  }
+}
