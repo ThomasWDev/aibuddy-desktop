@@ -161,17 +161,19 @@ describe('embedHelperProfiles — MAS Profile Embedding', () => {
   })
 })
 
-describe('afterPack Phase Order — 91109 Fix', () => {
-  it('source afterPack.js has Phase 0 before Phase 1', () => {
+describe('afterPack Phase Order — 91109 + LSMinimumSystemVersion Fix', () => {
+  it('source afterPack.js has all phases in correct order', () => {
     const src = readFileSync(AFTERPACK_PATH, 'utf-8')
     const phase0Idx = src.indexOf('Phase 0')
     const phase1Idx = src.indexOf('Phase 1')
     const phase2Idx = src.indexOf('Phase 2')
     const phase3Idx = src.indexOf('Phase 3')
+    const phase4Idx = src.indexOf('Phase 4')
     expect(phase0Idx).toBeGreaterThan(-1)
     expect(phase1Idx).toBeGreaterThan(phase0Idx)
     expect(phase2Idx).toBeGreaterThan(phase1Idx)
     expect(phase3Idx).toBeGreaterThan(phase2Idx)
+    expect(phase4Idx).toBeGreaterThan(phase3Idx)
   })
 
   it('Phase 0 strips source profiles BEFORE bundle xattr cleanup', () => {
@@ -181,16 +183,30 @@ describe('afterPack Phase Order — 91109 Fix', () => {
     expect(stripSourceIdx).toBeLessThan(walkSyncIdx)
   })
 
-  it('Phase 3 runs AFTER embedHelperProfiles', () => {
+  it('Phase 2 patches LSMinimumSystemVersion in ALL Info.plists', () => {
+    const src = readFileSync(AFTERPACK_PATH, 'utf-8')
+    expect(src).toContain('LSMinimumSystemVersion')
+    expect(src).toContain('PlistBuddy')
+    expect(src).toContain('Info.plist')
+  })
+
+  it('Phase 3 embeds profiles AFTER LSMinimumSystemVersion patch', () => {
+    const src = readFileSync(AFTERPACK_PATH, 'utf-8')
+    const plistBuddyIdx = src.indexOf('PlistBuddy')
+    const phase3Idx = src.indexOf('Phase 3')
+    expect(plistBuddyIdx).toBeGreaterThan(-1)
+    expect(phase3Idx).toBeGreaterThan(plistBuddyIdx)
+  })
+
+  it('Phase 4 runs AFTER embedHelperProfiles', () => {
     const src = readFileSync(AFTERPACK_PATH, 'utf-8')
     const embedIdx = src.indexOf('embedHelperProfiles(appPath, buildDir)')
-    const phase3Idx = src.indexOf('Phase 3')
-    expect(phase3Idx).toBeGreaterThan(embedIdx)
+    const phase4Idx = src.indexOf('Phase 4')
+    expect(phase4Idx).toBeGreaterThan(embedIdx)
   })
 
   it('final stripQuarantineRecursive runs at the very end', () => {
     const src = readFileSync(AFTERPACK_PATH, 'utf-8')
-    const lines = src.split('\n')
     const lastRecursiveIdx = src.lastIndexOf('stripQuarantineRecursive(appPath)')
     const readyIdx = src.indexOf('afterPack complete')
     expect(lastRecursiveIdx).toBeLessThan(readyIdx)

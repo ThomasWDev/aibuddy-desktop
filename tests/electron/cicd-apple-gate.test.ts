@@ -96,12 +96,19 @@ describe('CI/CD — Quarantine Prevention', () => {
     expect(phase0Idx).toBeLessThan(phase1Idx)
   })
 
-  it('afterPack.js Phase 3 sweeps profiles after embedding', () => {
+  it('afterPack.js Phase 2 patches LSMinimumSystemVersion in all plists', () => {
     const src = readFileSync(AFTERPACK_PATH, 'utf-8')
-    expect(src).toContain('Phase 3')
-    const phase2Idx = src.indexOf('Phase 2')
+    expect(src).toContain('Phase 2')
+    expect(src).toContain('LSMinimumSystemVersion')
+    expect(src).toContain('PlistBuddy')
+  })
+
+  it('afterPack.js Phase 4 sweeps profiles after embedding', () => {
+    const src = readFileSync(AFTERPACK_PATH, 'utf-8')
+    expect(src).toContain('Phase 4')
     const phase3Idx = src.indexOf('Phase 3')
-    expect(phase3Idx).toBeGreaterThan(phase2Idx)
+    const phase4Idx = src.indexOf('Phase 4')
+    expect(phase4Idx).toBeGreaterThan(phase3Idx)
   })
 
   it('XATTR_NAMES includes com.apple.quarantine', () => {
@@ -163,6 +170,10 @@ describe('CI/CD — MAS Build Configuration', () => {
 
   it('hardenedRuntime is false for MAS', () => {
     expect(pkg.build.mas.hardenedRuntime).toBe(false)
+  })
+
+  it('MAS identity is full "3rd Party Mac Developer Application" name', () => {
+    expect(pkg.build.mas.identity).toContain('3rd Party Mac Developer Application')
   })
 })
 

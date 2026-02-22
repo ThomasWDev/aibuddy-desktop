@@ -142,11 +142,27 @@ exports.default = async function afterPack(context) {
 
 	stripQuarantineRecursive(appPath)
 
-	// Phase 2 — Embed provisioning profiles in helper bundles (MAS only)
+	// Phase 2 — Set LSMinimumSystemVersion in ALL Info.plist files (helpers too)
+	// Apple rejects arm64-only builds without LSMinimumSystemVersion >= 12.0 on EVERY bundle
+	const MIN_SYS_VERSION = "12.0"
+	const allPlists = allPaths.filter(p => p.endsWith("Info.plist"))
+	let plistsPatched = 0
+	for (const plist of allPlists) {
+		try {
+			execSync(
+				`/usr/libexec/PlistBuddy -c "Set :LSMinimumSystemVersion ${MIN_SYS_VERSION}" "${plist}" 2>/dev/null` +
+				` || /usr/libexec/PlistBuddy -c "Add :LSMinimumSystemVersion string ${MIN_SYS_VERSION}" "${plist}"`,
+				{ stdio: "pipe", shell: "/bin/bash" }
+			)
+			plistsPatched++
+		} catch (_) {}
+	}
+	console.log(`Phase 2: patched LSMinimumSystemVersion=${MIN_SYS_VERSION} in ${plistsPatched} Info.plist file(s)`)
+
+	// Phase 3 — Embed provisioning profiles in helper bundles (MAS only)
 	embedHelperProfiles(appPath, buildDir)
 
-	// Phase 3 — Final quarantine sweep on ALL provisioning profiles in the bundle
-	// Catches any profiles copied in Phase 2 or by electron-builder
+	// Phase 4 — Final quarantine sweep on ALL provisioning profiles in the bundle
 	const profilePaths = allPaths.filter(p => p.endsWith(".provisionprofile"))
 	for (const rel of HELPER_BUNDLES) {
 		const helperProfile = path.join(appPath, rel, "Contents", "embedded.provisionprofile")
@@ -159,7 +175,7 @@ exports.default = async function afterPack(context) {
 		stripQuarantine(p)
 	}
 	if (profilePaths.length > 0) {
-		console.log(`Phase 3: stripped xattrs from ${profilePaths.length} provisioning profile(s)`)
+		console.log(`Phase 4: stripped xattrs from ${profilePaths.length} provisioning profile(s)`)
 	}
 
 	// Final recursive sweep of entire bundle
