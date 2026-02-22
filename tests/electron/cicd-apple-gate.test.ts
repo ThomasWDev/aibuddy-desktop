@@ -172,8 +172,8 @@ describe('CI/CD — MAS Build Configuration', () => {
     expect(pkg.build.mas.hardenedRuntime).toBe(false)
   })
 
-  it('MAS identity is full "3rd Party Mac Developer Application" name', () => {
-    expect(pkg.build.mas.identity).toContain('3rd Party Mac Developer Application')
+  it('MAS identity is set for team-based cert resolution', () => {
+    expect(pkg.build.mas.identity).toContain('S2237D23CB')
   })
 })
 
