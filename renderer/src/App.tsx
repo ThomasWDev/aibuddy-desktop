@@ -934,13 +934,9 @@ function App() {
           }
         } catch {}
         
-        // Get recent workspace (local)
-        try {
-          const recent = await electronAPI.store.get('recentWorkspaces')
-          if (recent && recent.length > 0) {
-            setWorkspacePath(recent[0])
-          }
-        } catch {}
+        // KAN-53 FIX: Do NOT auto-restore workspacePath from recentWorkspaces.
+        // The WelcomeScreen already shows recent projects for the user to choose.
+        // Auto-restoring bypassed the landing page entirely, preventing project switching.
       }
       
       const phase1Time = Date.now() - startTime
@@ -3216,8 +3212,9 @@ Be concise and actionable. Use an alternative approach, not the same commands th
     )
   }
 
-  // KAN-53: Show WelcomeScreen when no workspace is loaded on first launch
-  if (!workspacePath && !hasUsedBefore) {
+  // KAN-53 FIX: Show WelcomeScreen whenever no workspace is loaded.
+  // Previously gated by `&& !hasUsedBefore` which blocked returning users entirely.
+  if (!workspacePath) {
     return (
       <WelcomeScreen
         onOpenFolder={(path) => {
@@ -3299,6 +3296,26 @@ Be concise and actionable. Use an alternative approach, not the same commands th
 
         {/* KAN-42 FIX: Clean header with primary actions + hamburger menu */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* KAN-53 FIX: Home button to navigate back to WelcomeScreen */}
+          <Tooltip text="Home — switch project" position="bottom">
+            <button
+              onClick={() => {
+                trackButtonClick('Home', 'Header')
+                addBreadcrumb('Home button clicked — returning to WelcomeScreen', 'ui.action')
+                setWorkspacePath(null)
+              }}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-xl font-semibold text-xs transition-all hover:scale-105 h-8"
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                color: '#94a3b8',
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span className="hidden sm:inline">Home</span>
+            </button>
+          </Tooltip>
+
           {/* KAN-38 FIX: Always-visible New Chat button */}
           <Tooltip text="New chat (⌘N)" position="bottom">
             <button

@@ -287,7 +287,7 @@ function createWindow(): void {
           "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
           "img-src 'self' data: https:; " +
           "font-src 'self' data: https://fonts.gstatic.com; " +
-          "connect-src 'self' https: wss:;"
+          "connect-src 'self' https: wss: http://*.us-east-2.elb.amazonaws.com http://*.elb.amazonaws.com;"
         ]
       }
     })

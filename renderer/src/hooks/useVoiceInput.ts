@@ -1,10 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 /**
- * Voice Input Hook - Issue #17
+ * Voice Input Hook - Issue #17 / KAN-62
  * 
  * Provides voice-to-text functionality using the Web Speech API.
  * Designed for use in the chat input area.
+ *
+ * KAN-62 FIX: Callbacks (onResult, onError) are stored in refs so
+ * the useEffect that creates the SpeechRecognition instance only
+ * depends on config values (language, continuous, interimResults).
+ * Without this, inline callbacks from the parent cause re-renders that
+ * abort recognition immediately after it starts.
  */
 
 export type VoiceInputState = 'idle' | 'listening' | 'processing' | 'error'
@@ -55,7 +61,16 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
   const recognitionRef = useRef<any>(null)
   const isSupported = !!SpeechRecognition
 
-  // Initialize recognition instance
+  // KAN-62 FIX: Store callbacks in refs so the recognition setup effect
+  // doesn't re-run when parent re-renders with new inline functions.
+  const onResultRef = useRef(onResult)
+  const onErrorRef = useRef(onError)
+  useEffect(() => {
+    onResultRef.current = onResult
+    onErrorRef.current = onError
+  }, [onResult, onError])
+
+  // Initialize recognition instance — depends only on config, NOT callbacks
   useEffect(() => {
     if (!isSupported) return
 
@@ -92,10 +107,10 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
 
       if (final) {
         setState('processing')
-        onResult?.(final, true)
+        onResultRef.current?.(final, true)
         setTimeout(() => setState('idle'), 100)
       } else if (interim) {
-        onResult?.(interim, false)
+        onResultRef.current?.(interim, false)
       }
     }
 
@@ -113,7 +128,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
       if (event.error !== 'aborted') {
         setErrorMessage(message)
         setState('error')
-        onError?.(message)
+        onErrorRef.current?.(message)
         
         // Reset to idle after 3 seconds
         setTimeout(() => {
@@ -132,7 +147,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
         recognitionRef.current.abort()
       }
     }
-  }, [language, continuous, interimResults, onResult, onError, isSupported])
+  }, [language, continuous, interimResults, isSupported])
 
   const startListening = useCallback(async () => {
     if (!isSupported || !recognitionRef.current) {
@@ -148,7 +163,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
         if (status === 'denied') {
           setErrorMessage('Microphone access denied. Open System Settings > Privacy & Security > Microphone to grant access.')
           setState('error')
-          onError?.('Microphone access denied. Open System Settings > Privacy & Security > Microphone to grant access.')
+          onErrorRef.current?.('Microphone access denied. Open System Settings > Privacy & Security > Microphone to grant access.')
           setTimeout(() => { setState('idle'); setErrorMessage(null) }, 5000)
           return
         }
@@ -157,7 +172,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
           if (!granted) {
             setErrorMessage('Microphone permission not granted. Please allow access in System Settings.')
             setState('error')
-            onError?.('Microphone permission not granted.')
+            onErrorRef.current?.('Microphone permission not granted.')
             setTimeout(() => { setState('idle'); setErrorMessage(null) }, 5000)
             return
           }
@@ -172,7 +187,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
     } catch (err) {
       console.warn('Speech recognition start error:', err)
     }
-  }, [isSupported, onError])
+  }, [isSupported])
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {

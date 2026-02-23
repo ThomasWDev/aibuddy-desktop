@@ -190,19 +190,21 @@ describe('afterPack Phase Order — 91109 + LSMinimumSystemVersion Fix', () => {
     expect(src).toContain('Info.plist')
   })
 
-  it('Phase 3 embeds profiles AFTER LSMinimumSystemVersion patch', () => {
+  it('Phase 3 is DISABLED to prevent ITMS-90886', () => {
     const src = readFileSync(AFTERPACK_PATH, 'utf-8')
-    const plistBuddyIdx = src.indexOf('PlistBuddy')
     const phase3Idx = src.indexOf('Phase 3')
-    expect(plistBuddyIdx).toBeGreaterThan(-1)
-    expect(phase3Idx).toBeGreaterThan(plistBuddyIdx)
+    expect(phase3Idx).toBeGreaterThan(-1)
+    expect(src).toContain('ITMS-90886')
+    expect(src).toContain('SKIPPED')
+    const afterPackFn = src.slice(src.indexOf('exports.default = async function'))
+    expect(afterPackFn).not.toContain('embedHelperProfiles(appPath')
   })
 
-  it('Phase 4 runs AFTER embedHelperProfiles', () => {
+  it('Phase 4 runs AFTER Phase 3 comment', () => {
     const src = readFileSync(AFTERPACK_PATH, 'utf-8')
-    const embedIdx = src.indexOf('embedHelperProfiles(appPath, buildDir)')
+    const phase3Idx = src.indexOf('Phase 3')
     const phase4Idx = src.indexOf('Phase 4')
-    expect(phase4Idx).toBeGreaterThan(embedIdx)
+    expect(phase4Idx).toBeGreaterThan(phase3Idx)
   })
 
   it('final stripQuarantineRecursive runs at the very end', () => {

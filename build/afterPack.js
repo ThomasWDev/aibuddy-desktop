@@ -167,17 +167,28 @@ exports.default = async function afterPack(context) {
 		)
 		console.log("Phase 2: set ITSAppUsesNonExemptEncryption=false in main Info.plist")
 	} catch (_) {}
+	// KAN-62: Ensure NSMicrophoneUsageDescription is present (required for voice dictation)
+	const MIC_DESCRIPTION = "AIBuddy uses the microphone for voice dictation so you can speak your prompts instead of typing."
+	try {
+		execSync(
+			`/usr/libexec/PlistBuddy -c "Set :NSMicrophoneUsageDescription '${MIC_DESCRIPTION}'" "${mainPlist}" 2>/dev/null` +
+			` || /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string '${MIC_DESCRIPTION}'" "${mainPlist}"`,
+			{ stdio: "pipe", shell: "/bin/bash" }
+		)
+		console.log("Phase 2: set NSMicrophoneUsageDescription in main Info.plist")
+	} catch (_) {}
 	console.log(`Phase 2: patched LSMinimumSystemVersion=${MIN_SYS_VERSION} in ${plistsPatched} Info.plist file(s)`)
 
-	// Phase 3 — Embed provisioning profiles in helper bundles (MAS only)
-	embedHelperProfiles(appPath, buildDir)
+	// Phase 3 — Helper provisioning profile embedding DISABLED
+	// Embedding profiles in helpers causes ITMS-90886 (PROCESSING_EXCEPTION) because
+	// electron-builder signs helpers with entitlementsInherit which lacks
+	// com.apple.application-identifier. The profile has it, the signature doesn't → mismatch.
+	// ITMS-90885 (missing helper profiles) is a non-blocking warning.
+	// Build 1.5.58 (no helper profiles) passes TestFlight; 1.5.63+ (with profiles) doesn't.
+	console.log("Phase 3: helper profile embedding SKIPPED (prevents ITMS-90886 / PROCESSING_EXCEPTION)")
 
 	// Phase 4 — Final quarantine sweep on ALL provisioning profiles in the bundle
 	const profilePaths = allPaths.filter(p => p.endsWith(".provisionprofile"))
-	for (const rel of HELPER_BUNDLES) {
-		const helperProfile = path.join(appPath, rel, "Contents", "embedded.provisionprofile")
-		if (fs.existsSync(helperProfile)) profilePaths.push(helperProfile)
-	}
 	const mainProfile = path.join(appPath, "Contents", "embedded.provisionprofile")
 	if (fs.existsSync(mainProfile)) profilePaths.push(mainProfile)
 
