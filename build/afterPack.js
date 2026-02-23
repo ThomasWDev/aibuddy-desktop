@@ -142,8 +142,9 @@ exports.default = async function afterPack(context) {
 
 	stripQuarantineRecursive(appPath)
 
-	// Phase 2 — Set LSMinimumSystemVersion in ALL Info.plist files (helpers too)
-	// Apple rejects arm64-only builds without LSMinimumSystemVersion >= 12.0 on EVERY bundle
+	// Phase 2 — Patch ALL Info.plist files for Apple compliance
+	// - LSMinimumSystemVersion: Apple rejects arm64-only builds without >= 12.0 on EVERY bundle
+	// - ITSAppUsesNonExemptEncryption: Required for TestFlight processing (prevents PROCESSING_EXCEPTION)
 	const MIN_SYS_VERSION = "12.0"
 	const allPlists = allPaths.filter(p => p.endsWith("Info.plist"))
 	let plistsPatched = 0
@@ -157,6 +158,15 @@ exports.default = async function afterPack(context) {
 			plistsPatched++
 		} catch (_) {}
 	}
+	const mainPlist = path.join(appPath, "Contents", "Info.plist")
+	try {
+		execSync(
+			`/usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "${mainPlist}" 2>/dev/null` +
+			` || /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "${mainPlist}"`,
+			{ stdio: "pipe", shell: "/bin/bash" }
+		)
+		console.log("Phase 2: set ITSAppUsesNonExemptEncryption=false in main Info.plist")
+	} catch (_) {}
 	console.log(`Phase 2: patched LSMinimumSystemVersion=${MIN_SYS_VERSION} in ${plistsPatched} Info.plist file(s)`)
 
 	// Phase 3 — Embed provisioning profiles in helper bundles (MAS only)

@@ -1,6 +1,6 @@
 {
   "name": "aibuddy-desktop",
-  "version": "1.5.77",
+  "version": "1.5.78",
   "description": "AIBuddy Desktop IDE - Your intelligent coding partner",
   "main": "out/main/index.js",
   "author": "AIBuddy Studio",
@@ -181,7 +181,8 @@
       "type": "distribution",
       "minimumSystemVersion": "12.0",
       "extendInfo": {
-        "LSMinimumSystemVersion": "12.0"
+        "LSMinimumSystemVersion": "12.0",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "target": [
         {
