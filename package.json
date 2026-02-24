@@ -1,6 +1,6 @@
 {
   "name": "aibuddy-desktop",
-  "version": "1.5.83",
+  "version": "1.5.84",
   "description": "AIBuddy Desktop IDE - Your intelligent coding partner",
   "main": "out/main/index.js",
   "author": "AIBuddy Studio",
