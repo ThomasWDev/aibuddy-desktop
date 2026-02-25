@@ -29,7 +29,7 @@ export function initEnvironmentHandlers(): void {
 
   console.log('[Environment IPC] Initializing handlers')
 
-  // Detect full environment
+  // Detect full environment (safe — returns fallback on sandbox/permission errors)
   ipcMain.handle('env:detect', async () => {
     console.log('[Environment IPC] Detecting environment...')
     try {
@@ -40,20 +40,28 @@ export function initEnvironmentHandlers(): void {
       })
       return cachedEnv
     } catch (err) {
-      console.error('[Environment IPC] Detection failed:', err)
-      throw err
+      console.error('[Environment IPC] Detection failed (sandbox?):', err)
+      return null
     }
   })
 
   // Get cached environment (faster)
   ipcMain.handle('env:getCached', async () => {
-    return getCachedEnvironment()
+    try {
+      return getCachedEnvironment()
+    } catch {
+      return null
+    }
   })
 
   // Generate AI-safe summary
   ipcMain.handle('env:getSummary', async () => {
-    const env = cachedEnv || getCachedEnvironment()
-    return generateEnvironmentSummary(env)
+    try {
+      const env = cachedEnv || getCachedEnvironment()
+      return generateEnvironmentSummary(env)
+    } catch {
+      return 'Environment detection unavailable (sandboxed)'
+    }
   })
 
   // Get run command for a project

@@ -240,19 +240,9 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  // KAN-62: Request macOS system-level microphone permission on launch.
-  // Without this, the OS silently blocks mic access even if entitlements are present.
-  if (process.platform === 'darwin') {
-    const micStatus = systemPreferences.getMediaAccessStatus('microphone')
-    console.log(`[Permissions] macOS microphone status: ${micStatus}`)
-    if (micStatus !== 'granted') {
-      systemPreferences.askForMediaAccess('microphone').then((granted) => {
-        console.log(`[Permissions] macOS microphone ${granted ? 'granted' : 'denied'}`)
-      }).catch((err) => {
-        console.error('[Permissions] Failed to request microphone:', err)
-      })
-    }
-  }
+  // KAN-62: Microphone permission is now requested on-demand when user clicks the
+  // voice input button, NOT at launch. Requesting at launch triggers a system dialog
+  // before the user has context, which Apple Review flags as an error (Guideline 2.1).
 
   // Grant microphone/audio permissions for Interview Mode
   mainWindow.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {

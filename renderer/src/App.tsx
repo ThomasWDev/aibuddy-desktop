@@ -955,10 +955,9 @@ function App() {
           // Fire and forget - don't block UI
           validateApiKey(key, false) // false = don't show toast on startup
         }
-      } else if (!hasKey) {
-        // No key - show settings after a brief delay so UI renders first
-        setTimeout(() => setShowSettings(true), 100)
       }
+      // No auto-open of settings on first launch — the WelcomeScreen handles onboarding.
+      // Previously this forced showSettings(true) which showed an error-like panel on launch.
       
       // Detect environment in background (don't await)
       if (electronAPI?.environment?.getSummary) {

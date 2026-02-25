@@ -171,9 +171,9 @@ describe('KAN-62: Voice Dictation — MAS Build Configuration', () => {
     expect(plist).toContain('com.apple.security.device.audio-input')
   })
 
-  it('entitlements.mas.plist should include microphone entitlement', () => {
+  it('entitlements.mas.plist should NOT include iOS-only device.microphone key', () => {
     const plist = readFileSync(MAS_ENTITLEMENTS_PATH, 'utf-8')
-    expect(plist).toContain('com.apple.security.device.microphone')
+    expect(plist).not.toContain('com.apple.security.device.microphone')
   })
 
   it('entitlements.mas.inherit.plist should include audio-input for helper processes', () => {

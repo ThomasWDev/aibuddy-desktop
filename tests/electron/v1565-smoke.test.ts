@@ -155,8 +155,9 @@ describe('v1.5.65 — macOS Audio Permissions', () => {
     expect(masEntitlements).toContain('com.apple.security.device.audio-input')
   })
 
-  it('MAS entitlements include microphone', () => {
-    expect(masEntitlements).toContain('com.apple.security.device.microphone')
+  it('MAS entitlements use audio-input (not device.microphone — iOS-only key)', () => {
+    expect(masEntitlements).toContain('com.apple.security.device.audio-input')
+    expect(masEntitlements).not.toContain('com.apple.security.device.microphone')
   })
 
   it('Electron grants microphone permission requests', () => {

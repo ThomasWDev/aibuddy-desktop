@@ -29,18 +29,6 @@
     <!-- Microphone access for Interview Mode audio capture -->
     <key>com.apple.security.device.audio-input</key>
     <true/>
-    <key>com.apple.security.device.microphone</key>
-    <true/>
-    
-    <!-- Allow spawning child processes (needed for terminal integration and env detection) -->
-    <key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
-    <array>
-        <string>com.apple.coreservices.launchservicesd</string>
-    </array>
-    
-    <!-- Allow executing helper processes (needed for git, terminal commands) -->
-    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
-    <true/>
     
     <!-- Bookmarks for accessing user-opened folders across restarts -->
     <key>com.apple.security.files.bookmarks.app-scope</key>

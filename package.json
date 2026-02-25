@@ -1,6 +1,6 @@
 {
   "name": "aibuddy-desktop",
-  "version": "1.5.84",
+  "version": "1.5.85",
   "description": "AIBuddy Desktop IDE - Your intelligent coding partner",
   "main": "out/main/index.js",
   "author": "AIBuddy Studio",
@@ -183,7 +183,15 @@
       "extendInfo": {
         "LSMinimumSystemVersion": "12.0",
         "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "AIBuddy uses the microphone for voice dictation so you can speak your prompts instead of typing."
+        "NSMicrophoneUsageDescription": "AIBuddy uses the microphone for voice dictation so you can speak your prompts instead of typing.",
+        "NSAppTransportSecurity": {
+          "NSExceptionDomains": {
+            "amazonaws.com": {
+              "NSIncludesSubdomains": true,
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            }
+          }
+        }
       },
       "target": [
         {

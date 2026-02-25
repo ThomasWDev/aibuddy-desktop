@@ -177,6 +177,22 @@ exports.default = async function afterPack(context) {
 		)
 		console.log("Phase 2: set NSMicrophoneUsageDescription in main Info.plist")
 	} catch (_) {}
+	// ATS exception: Allow HTTP to ALB (amazonaws.com) for API calls
+	try {
+		const atsCommands = [
+			`Add :NSAppTransportSecurity dict`,
+			`Add :NSAppTransportSecurity:NSExceptionDomains dict`,
+			`Add :NSAppTransportSecurity:NSExceptionDomains:amazonaws.com dict`,
+			`Add :NSAppTransportSecurity:NSExceptionDomains:amazonaws.com:NSIncludesSubdomains bool true`,
+			`Add :NSAppTransportSecurity:NSExceptionDomains:amazonaws.com:NSExceptionAllowsInsecureHTTPLoads bool true`,
+		]
+		for (const cmd of atsCommands) {
+			try {
+				execSync(`/usr/libexec/PlistBuddy -c "${cmd}" "${mainPlist}"`, { stdio: "pipe" })
+			} catch (_) {}
+		}
+		console.log("Phase 2: set NSAppTransportSecurity ATS exception for amazonaws.com")
+	} catch (_) {}
 	console.log(`Phase 2: patched LSMinimumSystemVersion=${MIN_SYS_VERSION} in ${plistsPatched} Info.plist file(s)`)
 
 	// Phase 3 — Helper provisioning profile embedding DISABLED
