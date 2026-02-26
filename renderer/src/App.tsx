@@ -2541,14 +2541,24 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       
       setStatus('generating')
       
-      // Wrap response.json() with a timeout to prevent indefinite hangs
-      const JSON_PARSE_TIMEOUT = 60_000 // 60 seconds to parse response body
-      const data = await Promise.race([
-        response.json(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Response body parsing timed out after 60s')), JSON_PARSE_TIMEOUT)
-        )
-      ]) as any
+      // KAN-34 FIX: Wrap JSON parsing with try-catch for HTML error pages
+      const JSON_PARSE_TIMEOUT = 60_000
+      let data: any
+      try {
+        data = await Promise.race([
+          response.json(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Response body parsing timed out after 60s')), JSON_PARSE_TIMEOUT)
+          )
+        ]) as any
+      } catch (parseErr) {
+        console.error('[App] JSON parse failed (server likely returned HTML):', (parseErr as Error).message)
+        toast.error('Server returned an invalid response. Please try again.')
+        addBreadcrumb('JSON parse failed', 'api.error', { status: response.status, error: (parseErr as Error).message }, 'error')
+        setStatus('error')
+        setIsLoading(false)
+        return
+      }
       console.log('[App] API response data:', data)
 
       // KAN-31 FIX: Check for API-level errors in response body
@@ -3315,14 +3325,16 @@ Be concise and actionable. Use an alternative approach, not the same commands th
             </button>
           </Tooltip>
 
-          {/* KAN-38 FIX: Always-visible New Chat button */}
+          {/* KAN-38 FIX: Always-visible New Chat button — cancels in-flight request if needed */}
           <Tooltip text="New chat (⌘N)" position="bottom">
             <button
               onClick={() => {
                 trackButtonClick('New Chat', 'Header')
-                if (isLoading) {
-                  toast.warning(t('chat.requestInProgress'))
-                  return
+                if (isLoading && abortControllerRef.current) {
+                  abortControllerRef.current.abort()
+                  abortControllerRef.current = null
+                  setIsLoading(false)
+                  setStatus('idle')
                 }
                 setMessages([])
                 setActiveThreadId(null)
