@@ -200,8 +200,8 @@ describe('Desktop Components — Smoke Tests', () => {
       expect(appSrc.length).toBeGreaterThan(1000)
     })
 
-    it('must render WelcomeScreen when no workspacePath (KAN-53)', () => {
-      expect(appSrc).toMatch(/if\s*\(\s*!workspacePath\s*\)/)
+    it('must render WelcomeScreen when no workspacePath and not chatWithoutWorkspace (KAN-53 + KAN-78)', () => {
+      expect(appSrc).toMatch(/if\s*\(\s*!workspacePath\s*&&\s*!chatWithoutWorkspace\s*\)/)
       expect(appSrc).not.toMatch(/!workspacePath\s*&&\s*!hasUsedBefore/)
     })
 

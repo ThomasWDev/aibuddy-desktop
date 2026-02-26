@@ -789,6 +789,11 @@ function App() {
   // Recent threads for adaptive empty state
   const [recentThreads, setRecentThreads] = useState<ChatThread[]>([])
   const [hasUsedBefore, setHasUsedBefore] = useState(false)
+
+  // KAN-78 FIX: Session flag to allow chatting without opening a folder first.
+  // When true, bypasses the WelcomeScreen even if workspacePath is null.
+  // Reset when user clicks Home to return to WelcomeScreen.
+  const [chatWithoutWorkspace, setChatWithoutWorkspace] = useState<boolean>(false)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -3222,8 +3227,8 @@ Be concise and actionable. Use an alternative approach, not the same commands th
   }
 
   // KAN-53 FIX: Show WelcomeScreen whenever no workspace is loaded.
-  // Previously gated by `&& !hasUsedBefore` which blocked returning users entirely.
-  if (!workspacePath) {
+  // KAN-78 FIX: Also skip WelcomeScreen when user clicked "Start Chatting" (chatWithoutWorkspace).
+  if (!workspacePath && !chatWithoutWorkspace) {
     return (
       <WelcomeScreen
         onOpenFolder={(path) => {
@@ -3239,6 +3244,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         }}
         onNewChat={() => {
           setHasUsedBefore(true)
+          setChatWithoutWorkspace(true)
         }}
       />
     )
@@ -3312,6 +3318,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 trackButtonClick('Home', 'Header')
                 addBreadcrumb('Home button clicked — returning to WelcomeScreen', 'ui.action')
                 setWorkspacePath(null)
+                setChatWithoutWorkspace(false)
               }}
               className="flex items-center gap-1 px-2 py-1.5 rounded-xl font-semibold text-xs transition-all hover:scale-105 h-8"
               style={{

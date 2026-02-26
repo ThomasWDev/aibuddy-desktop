@@ -42,9 +42,9 @@ describe('KAN-53: WelcomeScreen rendering condition', () => {
     expect(hasDoubleGate).toBe(false)
   })
 
-  it('should use only !workspacePath to show WelcomeScreen', () => {
-    // Find the JSX conditional that renders WelcomeScreen
-    const welcomeBlock = appSource.match(/if\s*\(\s*!workspacePath\s*\)\s*\{?\s*\n?\s*return\s*\(\s*\n?\s*<WelcomeScreen/)
+  it('should use !workspacePath && !chatWithoutWorkspace to show WelcomeScreen', () => {
+    // KAN-78: Gate now includes chatWithoutWorkspace so "Start Chatting" can bypass
+    const welcomeBlock = appSource.match(/if\s*\(\s*!workspacePath\s*&&\s*!chatWithoutWorkspace\s*\)\s*\{?\s*\n?\s*return\s*\(\s*\n?\s*<WelcomeScreen/)
     expect(welcomeBlock).not.toBeNull()
   })
 })
