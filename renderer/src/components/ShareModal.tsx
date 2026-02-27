@@ -65,38 +65,50 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
     return formatAsMarkdown(messages || [], threadTitle, messageCount)
   }, [messages, threadTitle, messageCount])
 
-  // Copy conversation as text to clipboard
+  // KAN-97 FIX: Copy with Electron clipboard fallback
   const handleCopyText = useCallback(async () => {
     if (!messages || messages.length === 0) {
       setError('No conversation to copy')
       return
     }
 
+    const text = getTextOutput()
     try {
-      await navigator.clipboard.writeText(getTextOutput())
-      setIsTextCopied(true)
-      setTimeout(() => setIsTextCopied(false), 2000)
-    } catch (err) {
-      console.error('Copy failed:', err)
-      setError('Failed to copy conversation')
+      await navigator.clipboard.writeText(text)
+    } catch {
+      try {
+        await (window as any).electronAPI?.clipboard?.writeText(text)
+      } catch (err) {
+        console.error('Copy failed:', err)
+        setError('Failed to copy conversation')
+        return
+      }
     }
+    setIsTextCopied(true)
+    setTimeout(() => setIsTextCopied(false), 2000)
   }, [messages, getTextOutput])
 
-  // Copy as Markdown to clipboard
+  // KAN-97 FIX: Copy Markdown with Electron clipboard fallback
   const handleCopyMarkdown = useCallback(async () => {
     if (!messages || messages.length === 0) {
       setError('No conversation to copy')
       return
     }
 
+    const md = getMarkdownOutput()
     try {
-      await navigator.clipboard.writeText(getMarkdownOutput())
-      setIsMdCopied(true)
-      setTimeout(() => setIsMdCopied(false), 2000)
-    } catch (err) {
-      console.error('Copy failed:', err)
-      setError('Failed to copy conversation')
+      await navigator.clipboard.writeText(md)
+    } catch {
+      try {
+        await (window as any).electronAPI?.clipboard?.writeText(md)
+      } catch (err) {
+        console.error('Copy failed:', err)
+        setError('Failed to copy conversation')
+        return
+      }
     }
+    setIsMdCopied(true)
+    setTimeout(() => setIsMdCopied(false), 2000)
   }, [messages, getMarkdownOutput])
 
   // Export as Markdown file
