@@ -165,7 +165,9 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "notarize": true,
+      "notarize": {
+        "teamId": "S2237D23CB"
+      },
       "identity": "9D252A06AE029A2B809D27023A11BAA10306002A",
       "signIgnore": [
         "node_modules"

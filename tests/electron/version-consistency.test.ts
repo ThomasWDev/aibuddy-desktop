@@ -118,7 +118,11 @@ describe('Build Configuration', () => {
   })
 
   it('mac build should have notarize configuration', () => {
-    expect(pkg.build?.mac?.notarize).toBe(true)
+    // KAN-21: notarize changed from boolean to object with explicit teamId
+    expect(pkg.build?.mac?.notarize).toBeTruthy()
+    if (typeof pkg.build?.mac?.notarize === 'object') {
+      expect(pkg.build.mac.notarize.teamId).toBe('S2237D23CB')
+    }
   })
 
   it('mac build should have entitlements configured', () => {
