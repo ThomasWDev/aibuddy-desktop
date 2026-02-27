@@ -1757,6 +1757,166 @@ function App() {
     }
   }
   
+  // KAN-96 FIX: Unified attachment handler — single Paperclip button for images + code files
+  const handleAttachFileWithElectron = async () => {
+    console.log('[AttachFile] Starting unified file selection...')
+    
+    try {
+      if (!window.electronAPI) {
+        console.error('[AttachFile] window.electronAPI is undefined')
+        addBreadcrumb('Attach file failed - electronAPI undefined', 'error', {}, 'error')
+        toast.error('Desktop features not available. Please restart the app.')
+        return
+      }
+      
+      if (!window.electronAPI.dialog?.openFile) {
+        console.error('[AttachFile] electronAPI.dialog.openFile not available')
+        addBreadcrumb('Attach file failed - dialog API not available', 'error', {}, 'error')
+        toast.error('File picker not available. Please restart the app.')
+        return
+      }
+
+      const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp']
+      const codeExts = Object.keys(CODE_FILE_EXTENSIONS)
+      
+      addBreadcrumb('Opening unified file dialog', 'ui.action', { action: 'openFile' })
+      
+      let filePath: string | null = null
+      try {
+        filePath = await window.electronAPI.dialog.openFile([
+          { name: 'All Supported Files', extensions: [...imageExts, ...codeExts] },
+          { name: 'Images', extensions: imageExts },
+          { name: 'Code Files', extensions: codeExts },
+          { name: 'All Files', extensions: ['*'] }
+        ])
+        console.log('[AttachFile] Dialog returned:', filePath ? 'path received' : 'cancelled/null')
+      } catch (dialogError) {
+        console.error('[AttachFile] Dialog threw error:', dialogError)
+        addBreadcrumb('File dialog threw error', 'error', { error: (dialogError as Error).message }, 'error')
+        toast.error('Could not open file picker. Try drag and drop instead.')
+        return
+      }
+      
+      if (!filePath) {
+        console.log('[AttachFile] User cancelled dialog')
+        return
+      }
+      
+      const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'file'
+      const extension = fileName.split('.').pop()?.toLowerCase() || ''
+      const isImage = imageExts.includes(extension)
+      
+      console.log('[AttachFile] Selected:', fileName, 'isImage:', isImage)
+      addBreadcrumb('File selected', 'ui.action', { path: filePath, isImage })
+      
+      if (isImage) {
+        if (!window.electronAPI.fs?.readFileAsBase64) {
+          toast.error('File system access not available.')
+          return
+        }
+        
+        let base64: string
+        try {
+          base64 = await window.electronAPI.fs.readFileAsBase64(filePath)
+        } catch (readError) {
+          console.error('[AttachFile] Failed to read image:', readError)
+          toast.error('Cannot read file. Check permissions or try drag and drop.')
+          return
+        }
+        
+        if (!base64 || base64.length === 0) {
+          toast.error('File appears to be empty.')
+          return
+        }
+        
+        const mimeTypes: Record<string, ImageAttachment['mimeType']> = {
+          'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+          'gif': 'image/gif', 'webp': 'image/webp'
+        }
+        const mimeType = mimeTypes[extension] || 'image/png'
+        
+        let fileSize: number
+        try {
+          const stat = await window.electronAPI.fs.stat(filePath)
+          fileSize = stat.size
+        } catch {
+          fileSize = Math.ceil(base64.length * 3 / 4)
+        }
+        
+        if (fileSize > 10 * 1024 * 1024) {
+          toast.error(`${fileName} is too large (max 10MB)`)
+          return
+        }
+        
+        const compressed = await compressBase64Image(base64, mimeType)
+        setAttachedImages(prev => [...prev, {
+          id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          base64: compressed.base64,
+          mimeType: compressed.mimeType,
+          name: fileName,
+          size: compressed.base64.length
+        }])
+        
+        toast.success(`📷 Added: ${fileName}`)
+        addBreadcrumb('Image attached via unified dialog', 'chat.image', { name: fileName, type: mimeType })
+      } else {
+        if (!window.electronAPI.fs?.readFileAsText) {
+          toast.error('File system access not available.')
+          return
+        }
+        
+        let content: string
+        try {
+          content = await window.electronAPI.fs.readFileAsText(filePath)
+        } catch (readError) {
+          console.error('[AttachFile] Failed to read code file:', readError)
+          toast.error('Cannot read file. Check permissions.')
+          return
+        }
+        
+        if (!content || content.length === 0) {
+          toast.error('File appears to be empty.')
+          return
+        }
+        
+        const language = CODE_FILE_EXTENSIONS[extension] || 'text'
+        
+        let fileSize: number
+        try {
+          const stat = await window.electronAPI.fs.stat(filePath)
+          fileSize = stat.size
+        } catch {
+          fileSize = new Blob([content]).size
+        }
+        
+        if (fileSize > 1 * 1024 * 1024) {
+          toast.error(`${fileName} is too large (max 1MB for code files)`)
+          return
+        }
+        
+        setAttachedFiles(prev => [...prev, {
+          id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          content,
+          name: fileName,
+          size: fileSize,
+          language
+        }])
+        
+        toast.success(`📄 Added: ${fileName}`)
+        addBreadcrumb('Code file attached via unified dialog', 'chat.file', { name: fileName, language })
+      }
+    } catch (error) {
+      const errorMessage = (error as Error).message || 'Unknown error'
+      console.error('[AttachFile] UNEXPECTED ERROR:', error)
+      addBreadcrumb('Unified file select error', 'error', { error: errorMessage }, 'error')
+      
+      if (errorMessage.includes('cancel') || errorMessage.includes('Cancel')) {
+        return
+      }
+      toast.error(`Failed to attach file: ${errorMessage.substring(0, 50)}`)
+    }
+  }
+
   // KAN-6 FIX: Remove attached code file
   const removeAttachedFile = (fileId: string) => {
     setAttachedFiles(prev => prev.filter(f => f.id !== fileId))
@@ -1863,6 +2023,7 @@ function App() {
     setIsDraggingOver(false)
   }
   
+  // KAN-96 FIX: Unified drag-and-drop handler — accepts both images and code files
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -1871,49 +2032,60 @@ function App() {
     const files = e.dataTransfer.files
     if (!files || files.length === 0) return
     
-    let addedCount = 0
+    const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp']
+    const codeExtensions = Object.keys(CODE_FILE_EXTENSIONS)
+    let imageCount = 0
+    let fileCount = 0
+    
     for (const file of Array.from(files)) {
-      // Only accept images
-      const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp']
       const extension = file.name.split('.').pop()?.toLowerCase() || ''
       const isImage = file.type.startsWith('image/') || imageExtensions.includes(extension)
+      const isCode = codeExtensions.includes(extension)
       
-      if (!isImage) {
-        toast.error(`${file.name} is not an image`)
-        continue
-      }
-      
-      // Check file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name} is too large (max 10MB)`)
-        continue
-      }
-      
-      try {
-        const { base64, mimeType } = await compressImage(file)
-        setAttachedImages(prev => [...prev, {
-          id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          base64,
-          mimeType,
-          name: file.name,
-          size: base64.length
-        }])
-        addBreadcrumb('Image dropped', 'chat.image', { 
-          name: file.name, 
-          originalSize: file.size,
-          compressedSize: base64.length,
-          type: mimeType 
-        })
-        addedCount++
-      } catch (error) {
-        console.error('Failed to process dropped file:', error)
-        toast.error(`Failed to process ${file.name}`)
+      if (isImage) {
+        if (file.size > 10 * 1024 * 1024) {
+          toast.error(`${file.name} is too large (max 10MB)`)
+          continue
+        }
+        try {
+          const { base64, mimeType } = await compressImage(file)
+          setAttachedImages(prev => [...prev, {
+            id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            base64, mimeType, name: file.name, size: base64.length
+          }])
+          addBreadcrumb('Image dropped', 'chat.image', { name: file.name, type: mimeType })
+          imageCount++
+        } catch (error) {
+          console.error('Failed to process dropped image:', error)
+          toast.error(`Failed to process ${file.name}`)
+        }
+      } else if (isCode) {
+        if (file.size > 1 * 1024 * 1024) {
+          toast.error(`${file.name} is too large (max 1MB for code files)`)
+          continue
+        }
+        try {
+          const content = await file.text()
+          const language = CODE_FILE_EXTENSIONS[extension] || 'text'
+          setAttachedFiles(prev => [...prev, {
+            id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            content, name: file.name, size: file.size, language
+          }])
+          addBreadcrumb('Code file dropped', 'chat.file', { name: file.name, language })
+          fileCount++
+        } catch (error) {
+          console.error('Failed to process dropped file:', error)
+          toast.error(`Failed to process ${file.name}`)
+        }
+      } else {
+        toast.error(`${file.name}: unsupported file type`)
       }
     }
     
-    if (addedCount > 0) {
-      toast.success(`📷 Added ${addedCount} image${addedCount > 1 ? 's' : ''}!`)
-    }
+    const parts: string[] = []
+    if (imageCount > 0) parts.push(`📷 ${imageCount} image${imageCount > 1 ? 's' : ''}`)
+    if (fileCount > 0) parts.push(`📄 ${fileCount} file${fileCount > 1 ? 's' : ''}`)
+    if (parts.length > 0) toast.success(`Added ${parts.join(' + ')}!`)
   }
   
   // Call AI with smart backend routing
@@ -4039,11 +4211,11 @@ Be concise and actionable. Use an alternative approach, not the same commands th
             </div>
           )}
           
-          {/* Supported file types hint (shown when no attachments) */}
-          {attachedImages.length === 0 && isDraggingOver && (
-            <div className="mb-3 px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30">
-              <p className="text-xs text-purple-300 text-center">
-                <span className="font-semibold">Supported formats:</span> PNG, JPG, GIF, WebP • Max 10MB per file
+          {/* Supported file types hint (shown during drag) */}
+          {isDraggingOver && (
+            <div className="mb-3 px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/30">
+              <p className="text-xs text-indigo-300 text-center">
+                <span className="font-semibold">Supported:</span> Images (PNG, JPG, GIF, WebP) • Code files (.ts, .js, .py, .java, etc.)
               </p>
             </div>
           )}
@@ -4070,8 +4242,9 @@ Be concise and actionable. Use an alternative approach, not the same commands th
             {isDraggingOver && (
               <div className="absolute inset-0 flex items-center justify-center rounded-3xl pointer-events-none z-10">
                 <div className="text-center">
-                  <ImageIcon className="w-12 h-12 text-purple-300 mx-auto mb-2 animate-bounce" />
-                  <p className="text-purple-200 font-bold text-lg">Drop images here!</p>
+                  <Paperclip className="w-12 h-12 text-indigo-300 mx-auto mb-2 animate-bounce" />
+                  <p className="text-indigo-200 font-bold text-lg">Drop files here!</p>
+                  <p className="text-indigo-300/60 text-xs mt-1">Images, code files, documents</p>
                 </div>
               </div>
             )}
@@ -4080,7 +4253,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.ts,.tsx,.js,.jsx,.py,.java,.cpp,.c,.go,.rs,.rb,.php,.html,.css,.json,.yaml,.md,.txt"
               multiple
               onChange={handleImageSelect}
               className="hidden"
@@ -4088,41 +4261,24 @@ Be concise and actionable. Use an alternative approach, not the same commands th
             
             {/* Main input row - properly aligned with items-center for vertical centering */}
             <div className="flex items-center gap-3 p-3 sm:p-4">
-              {/* Image Upload Button - Uses Electron native dialog */}
-              <Tooltip text="📷 Attach an image (screenshot, error, UI) for analysis">
+              {/* KAN-96 FIX: Single unified attachment button (Paperclip) */}
+              <Tooltip text="Attach file or image">
                 <button
                   type="button"
-                  onClick={handleImageSelectWithElectron}
+                  onClick={handleAttachFileWithElectron}
                   disabled={isLoading}
                   className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex-shrink-0 self-center"
                   style={{ 
-                    background: attachedImages.length > 0 
-                      ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' 
-                      : 'rgba(139, 92, 246, 0.2)',
-                    border: '2px solid #8b5cf6'
+                    background: (attachedImages.length > 0 || attachedFiles.length > 0)
+                      ? 'linear-gradient(135deg, #6366f1, #4f46e5)' 
+                      : 'rgba(99, 102, 241, 0.15)',
+                    border: (attachedImages.length > 0 || attachedFiles.length > 0)
+                      ? '2px solid #6366f1'
+                      : '2px solid rgba(99, 102, 241, 0.3)'
                   }}
-                  aria-label="Attach image"
+                  aria-label="Attach file or image"
                 >
-                  <ImageIcon className="w-5 h-5 text-purple-300" />
-                </button>
-              </Tooltip>
-              
-              {/* KAN-6 FIX: Code File Upload Button */}
-              <Tooltip text="📄 Attach code file (.ts, .js, .py, .java, etc.)">
-                <button
-                  type="button"
-                  onClick={handleCodeFileSelectWithElectron}
-                  disabled={isLoading}
-                  className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 flex-shrink-0 self-center"
-                  style={{ 
-                    background: attachedFiles.length > 0 
-                      ? 'linear-gradient(135deg, #10b981, #059669)' 
-                      : 'rgba(16, 185, 129, 0.2)',
-                    border: '2px solid #10b981'
-                  }}
-                  aria-label="Attach code file"
-                >
-                  <FileCode className="w-5 h-5 text-emerald-300" />
+                  <Paperclip className="w-5 h-5 text-indigo-300" />
                 </button>
               </Tooltip>
               
