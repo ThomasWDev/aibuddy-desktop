@@ -115,7 +115,8 @@ describe('v1.5.65 — Payload Size / 413 Auto-Truncation', () => {
   })
 
   it('auto-truncation strips images from old messages', () => {
-    expect(appContent).toContain("part.type !== 'image_url'")
+    // KAN-95 FIX: Desktop uses Anthropic image format (type: 'image'), not OpenAI (type: 'image_url')
+    expect(appContent).toContain("part.type !== 'image'")
     expect(appContent).toContain('auto-truncating')
   })
 

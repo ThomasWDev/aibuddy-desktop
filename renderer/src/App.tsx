@@ -2438,11 +2438,12 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       })
       
       // Add current message with images if present
+      // KAN-95 FIX: Use userMessage.content (includes code files) instead of trimmedInput
       if (currentImages.length > 0) {
         chatMessages.push({
           role: 'user',
           content: [
-            { type: 'text', text: trimmedInput || 'Please analyze this image and help me fix any issues you see.' },
+            { type: 'text', text: userMessage.content || 'Please analyze this image and help me fix any issues you see.' },
             ...currentImages.map(img => ({
               type: 'image',
               source: {
@@ -2569,9 +2570,10 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           let conversationMsgs = requestBody.messages.slice(1)
 
           // Step 1: Strip base64 images from all messages except the latest user message
+          // KAN-95 FIX: Desktop uses type 'image' (Anthropic format), not 'image_url'
           conversationMsgs = conversationMsgs.map((msg: any, idx: number) => {
             if (idx < conversationMsgs.length - 1 && msg.content && Array.isArray(msg.content)) {
-              return { ...msg, content: msg.content.filter((part: any) => part.type !== 'image_url') }
+              return { ...msg, content: msg.content.filter((part: any) => part.type !== 'image') }
             }
             return msg
           })
