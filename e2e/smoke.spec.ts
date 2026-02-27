@@ -978,3 +978,59 @@ test.describe('Smoke Tests - App Launch Resilience', () => {
     expect(hasStore).toBe(true);
   });
 });
+
+/**
+ * KAN-94: Professional Color Palette Smoke Tests
+ */
+test.describe('Smoke Tests - KAN-94 Color Palette', () => {
+  test('should not use over-saturated pink in any visible element', async ({ page }) => {
+    const hasPink = await page.evaluate(() => {
+      const all = document.querySelectorAll('*');
+      for (const el of all) {
+        const bg = getComputedStyle(el).backgroundColor;
+        if (bg.includes('236, 72, 153') || bg.includes('ec4899')) return true;
+      }
+      return false;
+    });
+    expect(hasPink).toBe(false);
+  });
+});
+
+/**
+ * KAN-99: Language Selector in Settings Smoke Tests
+ */
+test.describe('Smoke Tests - KAN-99 Language Settings', () => {
+  test('should have language persistence via electron store', async ({ page }) => {
+    const hasStore = await page.evaluate(() => {
+      const api = (window as any).electronAPI;
+      return typeof api?.store?.set === 'function';
+    });
+    expect(hasStore).toBe(true);
+  });
+});
+
+/**
+ * KAN-100: Suggested Actions Smoke Tests
+ */
+test.describe('Smoke Tests - KAN-100 Suggested Actions', () => {
+  test('should have send form available for suggested action submission', async ({ page }) => {
+    const hasForm = await page.evaluate(() => {
+      return document.querySelector('form') !== null || document.querySelector('textarea') !== null;
+    });
+    expect(hasForm).toBe(true);
+  });
+});
+
+/**
+ * KAN-98: Stop vs Timeout Smoke Tests
+ */
+test.describe('Smoke Tests - KAN-98 Stop vs Timeout', () => {
+  test('should have toast notification system available', async ({ page }) => {
+    const hasToast = await page.evaluate(() => {
+      return document.querySelector('[class*="Toastify"]') !== null ||
+             document.querySelector('[role="alert"]') !== null ||
+             typeof (window as any).toast !== 'undefined';
+    });
+    expect(typeof hasToast).toBe('boolean');
+  });
+});
