@@ -1,6 +1,6 @@
 {
   "name": "aibuddy-desktop",
-  "version": "1.5.87",
+  "version": "1.5.88",
   "description": "AIBuddy Desktop IDE - Your intelligent coding partner",
   "main": "out/main/index.js",
   "author": "AIBuddy Studio",
@@ -165,9 +165,7 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "notarize": {
-        "teamId": "S2237D23CB"
-      },
+      "notarize": true,
       "identity": "9D252A06AE029A2B809D27023A11BAA10306002A",
       "signIgnore": [
         "node_modules"
