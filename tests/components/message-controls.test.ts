@@ -277,14 +277,14 @@ describe('Message Controls & Feedback - Issue #8 Fix', () => {
       const statusColors: Record<string, string> = {
         idle: '#22c55e',     // green
         validating: '#f59e0b', // amber
-        thinking: '#f97316', // orange
-        generating: '#ec4899', // pink
+        thinking: '#6366f1', // indigo
+        generating: '#818cf8', // indigo-light
         done: '#22c55e',     // green
         error: '#ef4444'     // red
       }
       
-      expect(statusColors.thinking).toBe('#f97316')
-      expect(statusColors.generating).toBe('#ec4899')
+      expect(statusColors.thinking).toBe('#6366f1')
+      expect(statusColors.generating).toBe('#818cf8')
     })
   })
 

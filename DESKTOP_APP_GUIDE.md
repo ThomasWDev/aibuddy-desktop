@@ -496,7 +496,7 @@ When you want AIBuddy to **review or analyze a project that lives on your Deskto
 
 ---
 
-## Recent Fixes (v1.5.76)
+## Recent Fixes (v1.5.76 – post-v1.5.87)
 
 | Ticket | Issue | Fix Summary |
 |--------|-------|-------------|
@@ -505,6 +505,46 @@ When you want AIBuddy to **review or analyze a project that lives on your Deskto
 | KAN-45 | File reported created but not on disk | Post-write verification + `path.join()` + workspace boundary enforcement |
 | KAN-59 | Copy text not working on Mac | macOS app menu fix + Electron clipboard IPC fallback |
 | KAN-62 | Microphone error recording voice | `systemPreferences.askForMediaAccess('microphone')` + IPC for status |
+| KAN-95 | Server error with file attachment | Backend `transformImagesForProvider()` + truncation fix `'image'` (not `'image_url'`) |
+| KAN-17 | "Network error" on Voice Dictation | Replaced Web Speech API with `MediaRecorder` + backend Whisper transcription |
+| KAN-97 | Share modal copy fails | Added `electronAPI.clipboard.writeText()` nested try-catch fallback |
+| KAN-21 | App not notarized (Gatekeeper) | Explicit notarize config `{ teamId }` + CI env vars for API key + fallback password |
+| KAN-96 | Separate image/file upload buttons | Unified Paperclip button with auto-detect routing |
+
+### Voice Dictation Architecture (KAN-17)
+
+The desktop app uses `MediaRecorder` + OpenAI Whisper for voice input (Web Speech API does not work in Electron):
+
+1. `useVoiceInput.ts` hook captures audio via `MediaRecorder` (WebM/Opus)
+2. Audio blob is converted to base64 and sent to `AIBUDDY_API_TRANSCRIBE_URL`
+3. Backend `handleTranscription()` in `handler.js` calls OpenAI Whisper (`whisper-1`)
+4. Transcript is returned and inserted into the chat input
+
+The `InterviewPanel` uses the same pattern with 8-second auto-segmentation for continuous transcription.
+
+### Notarization (KAN-21)
+
+macOS DMGs must be Apple-notarized to pass Gatekeeper. Configuration:
+
+- **`package.json`**: `"notarize": { "teamId": "S2237D23CB" }` (not a boolean)
+- **CI primary**: `APPLE_API_KEY` (`.p8` file), `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`
+- **CI fallback**: `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`
+- **Local**: `xcrun notarytool` with `AIBuddy-notarize` Keychain profile
+
+### Clipboard (KAN-97)
+
+`navigator.clipboard.writeText()` can fail in Electron's sandboxed renderer. Always use:
+```typescript
+try {
+  await navigator.clipboard.writeText(text)
+} catch {
+  try {
+    await (window as any).electronAPI?.clipboard?.writeText(text)
+  } catch (err) {
+    setError('Failed to copy')
+  }
+}
+```
 
 ### Workspace Boundary Enforcement (KAN-45)
 

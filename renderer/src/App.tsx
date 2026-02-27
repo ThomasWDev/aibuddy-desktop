@@ -79,15 +79,15 @@ import {
 console.log('[App] API URL configured:', AIBUDDY_API_INFERENCE_URL)
 import { generateSystemPrompt, DESKTOP_PLATFORM_CONTEXT } from '../../src/constants/system-prompt'
 
-// Child-friendly tooltip with big text and emojis
+// KAN-41 FIX: Professional tooltip — compact, non-overlapping, viewport-constrained
 function Tooltip({ text, children, position = 'top' }: { text: string; children: React.ReactNode; position?: 'top' | 'bottom' | 'left' | 'right' }) {
   const [show, setShow] = useState(false)
   
   const positionStyles: Record<string, React.CSSProperties> = {
-    top: { bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '12px' },
-    bottom: { top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '12px' },
-    left: { right: '100%', top: '50%', transform: 'translateY(-50%)', marginRight: '12px' },
-    right: { left: '100%', top: '50%', transform: 'translateY(-50%)', marginLeft: '12px' },
+    top: { bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '6px' },
+    bottom: { top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '6px' },
+    left: { right: '100%', top: '50%', transform: 'translateY(-50%)', marginRight: '6px' },
+    right: { left: '100%', top: '50%', transform: 'translateY(-50%)', marginLeft: '6px' },
   }
   
   return (
@@ -99,48 +99,23 @@ function Tooltip({ text, children, position = 'top' }: { text: string; children:
       {children}
       {show && (
         <div 
-          className="absolute z-50 animate-bounce-in"
+          className="absolute z-50 pointer-events-none"
           style={{ 
             ...positionStyles[position],
-            background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
-            color: 'white',
-            padding: '12px 20px',
-            borderRadius: '16px',
-            fontSize: '16px',
-            fontWeight: 700,
-            whiteSpace: 'normal',
-            wordWrap: 'break-word',
-            boxShadow: '0 8px 32px rgba(124, 58, 237, 0.4)',
-            border: '3px solid rgba(255,255,255,0.3)',
-            maxWidth: '320px',
-            minWidth: '200px',
+            background: '#1e293b',
+            color: '#e2e8f0',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            fontSize: '12px',
+            fontWeight: 500,
+            whiteSpace: 'nowrap',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            border: '1px solid #334155',
+            maxWidth: '240px',
             textAlign: 'center',
-            lineHeight: '1.4',
+            lineHeight: '1.3',
           }}
         >
-          {/* Arrow */}
-          <div 
-            style={{
-              position: 'absolute',
-              width: 0,
-              height: 0,
-              ...(position === 'top' ? {
-                bottom: '-10px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                borderLeft: '10px solid transparent',
-                borderRight: '10px solid transparent',
-                borderTop: '10px solid #ec4899',
-              } : position === 'bottom' ? {
-                top: '-10px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                borderLeft: '10px solid transparent',
-                borderRight: '10px solid transparent',
-                borderBottom: '10px solid #7c3aed',
-              } : {})
-            }}
-          />
           {text}
         </div>
       )}
@@ -166,12 +141,13 @@ function BigButton({
   active?: boolean
   badge?: React.ReactNode
 }) {
+  // KAN-94 FIX: Professional, subdued color palette
   const colors = {
     blue: { bg: 'linear-gradient(135deg, #3b82f6, #2563eb)', hover: '#1d4ed8' },
     green: { bg: 'linear-gradient(135deg, #22c55e, #16a34a)', hover: '#15803d' },
-    pink: { bg: 'linear-gradient(135deg, #ec4899, #db2777)', hover: '#be185d' },
-    orange: { bg: 'linear-gradient(135deg, #f97316, #ea580c)', hover: '#c2410c' },
-    purple: { bg: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', hover: '#6d28d9' },
+    pink: { bg: 'linear-gradient(135deg, #6366f1, #4f46e5)', hover: '#4338ca' },
+    orange: { bg: 'linear-gradient(135deg, #3b82f6, #6366f1)', hover: '#4f46e5' },
+    purple: { bg: 'linear-gradient(135deg, #7c3aed, #6d28d9)', hover: '#5b21b6' },
   }
   
   return (
@@ -507,8 +483,8 @@ const statusConfig: Record<StatusStep, { text: string; icon: React.ReactNode; co
   validating: { text: '🔑 Checking your AIBuddy API key...', icon: <Key className="w-5 h-5" />, color: '#f59e0b' },
   reading: { text: '📂 Reading your files...', icon: <FileSearch className="w-5 h-5" />, color: '#3b82f6' },
   sending: { text: '☁️ Sending to AI...', icon: <Cloud className="w-5 h-5" />, color: '#8b5cf6' },
-  thinking: { text: '🧠 AIBuddy is thinking...', icon: <Loader2 className="w-5 h-5 animate-spin" />, color: '#f97316' },
-  generating: { text: '✍️ Writing response...', icon: <Zap className="w-5 h-5" />, color: '#ec4899' },
+  thinking: { text: '🧠 AIBuddy is thinking...', icon: <Loader2 className="w-5 h-5 animate-spin" />, color: '#6366f1' },
+  generating: { text: '✍️ Writing response...', icon: <Zap className="w-5 h-5" />, color: '#818cf8' },
   done: { text: '✅ Done!', icon: <CheckCircle className="w-5 h-5" />, color: '#22c55e' },
   error: { text: '❌ Something went wrong', icon: <AlertTriangle className="w-5 h-5" />, color: '#ef4444' },
 }
@@ -799,6 +775,8 @@ function App() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   // KAN-35 FIX: Store AbortController ref so user can cancel in-flight requests
   const abortControllerRef = useRef<AbortController | null>(null)
+  // KAN-98 FIX: Distinguish user-initiated stops from timeouts
+  const userAbortedRef = useRef(false)
   const terminalEndRef = useRef<HTMLDivElement>(null)
 
   // KAN-42 FIX: Click outside to close hamburger menu
@@ -1085,11 +1063,12 @@ function App() {
       if (e.key === 'Escape') {
         // KAN-35 FIX: Escape cancels in-flight requests first
         if (isLoading && abortControllerRef.current) {
+          userAbortedRef.current = true
           abortControllerRef.current.abort()
           abortControllerRef.current = null
           setIsLoading(false)
           setStatus('idle')
-          toast.info('Request cancelled')
+          toast.info('⏹ Response stopped by user')
           addBreadcrumb('User cancelled request via Escape', 'ui.action')
         } else if (showSettings) {
           setShowSettings(false)
@@ -2546,6 +2525,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
 
       try {
         toast.info(`🚀 Sending to AI...`)
+        userAbortedRef.current = false // KAN-98 FIX: Reset user-abort flag for each request
         const controller = new AbortController()
         abortControllerRef.current = controller // KAN-35 FIX: Store for cancel button
         const timeoutId = setTimeout(() => {
@@ -2631,12 +2611,17 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       } catch (fetchError: any) {
         console.log(`[App] Fetch error:`, fetchError.name, fetchError.message)
         
-        // Timeout/abort error
+        // KAN-98 FIX: Distinguish user-initiated stop from actual timeout
         if (fetchError.name === 'AbortError' || fetchError.message?.includes('aborted')) {
-          toast.error('⏱️ Request timed out. The AI is taking too long. Try a simpler question.')
-          addBreadcrumb('API timeout', 'api.timeout', { timeoutMs: TIMEOUT_MS })
+          if (userAbortedRef.current) {
+            addBreadcrumb('User stopped request (fetch catch)', 'ui.action')
+          } else {
+            toast.error('⏱️ Request timed out. The AI is taking too long. Try a simpler question.')
+            addBreadcrumb('API timeout', 'api.timeout', { timeoutMs: TIMEOUT_MS })
+          }
           setStatus('idle')
           setIsLoading(false)
+          userAbortedRef.current = false
           return
         }
         
@@ -3053,8 +3038,14 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         errorContent = `🌐 **Network Error**\n\nCouldn't reach the server. This could be:\n- Your internet connection\n- A temporary server issue\n\n**Click "Retry" below to try again.**`
         toastMessage = 'Network error - click Retry to try again'
       } else if (isAbortError) {
-        errorContent = `⏱️ **Request Timed Out**\n\nThe AI is taking too long to respond.\n\n**Try:**\n- Simplify your question\n- Click "Retry" to try again`
-        toastMessage = 'Request timed out - click Retry'
+        if (userAbortedRef.current) {
+          errorContent = `⏹ **Response Stopped**\n\nYou stopped the response.\n\n**Click "Retry" to try again, or start a new message.**`
+          toastMessage = '⏹ Response stopped by user'
+          userAbortedRef.current = false
+        } else {
+          errorContent = `⏱️ **Request Timed Out**\n\nThe AI is taking too long to respond.\n\n**Try:**\n- Simplify your question\n- Click "Retry" to try again`
+          toastMessage = 'Request timed out - click Retry'
+        }
       } else if (isAuthError) {
         errorContent = `🔑 **Invalid API Key**\n\nYour API key is invalid or has expired.\n\n👉 **Check Settings** to update your API key.\n\nGet a new key at [aibuddy.life](https://aibuddy.life)`
         toastMessage = '🔑 Invalid API key - check Settings'
@@ -3198,7 +3189,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       return (
         <code 
           className="px-1 py-0.5 rounded text-xs"
-          style={{ background: 'rgba(236, 72, 153, 0.2)', color: '#f472b6' }}
+          style={{ background: 'rgba(99, 102, 241, 0.2)', color: '#a5b4fc' }}
           {...props}
         >
           {children}
@@ -3216,8 +3207,8 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         <div 
           className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
           style={{ 
-            background: 'linear-gradient(135deg, #ec4899, #f97316)',
-            boxShadow: '0 4px 16px rgba(236, 72, 153, 0.4)'
+            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+            boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
           }}
         >
           <Bot className="w-7 h-7 text-white" />
@@ -3382,6 +3373,28 @@ Be concise and actionable. Use an alternative approach, not the same commands th
     </div>
   )), [messages, copiedId, messageFeedback, isLoading, markdownComponents, copyToClipboard, copyResponse, handleFeedback, handleRegenerate])
 
+  // KAN-100: Suggested Next Actions — contextual follow-up chips after last assistant message
+  const suggestedActions = useMemo(() => {
+    if (isLoading || messages.length === 0) return []
+    const lastMsg = messages[messages.length - 1]
+    if (lastMsg?.role !== 'assistant' || !lastMsg.content) return []
+    const content = lastMsg.content.toLowerCase()
+    const actions: string[] = []
+    if (content.includes('```') || content.includes('function') || content.includes('class') || content.includes('const ')) {
+      actions.push('Explain this code', 'Add tests for this', 'Optimize this')
+    }
+    if (content.includes('error') || content.includes('bug') || content.includes('fix')) {
+      actions.push('Show me the root cause', 'How do I prevent this?')
+    }
+    if (content.includes('created') || content.includes('wrote') || content.includes('generated')) {
+      actions.push('Review for issues', 'Add documentation')
+    }
+    if (actions.length === 0) {
+      actions.push('Tell me more', 'Give an example', 'Summarize this')
+    }
+    return actions.slice(0, 4)
+  }, [messages, isLoading])
+
   const collapsedTerminalLines = useMemo(() =>
     terminalOutput
       .filter(l => l.type === 'command' || l.type === 'success' || l.type === 'error' || l.type === 'info')
@@ -3446,9 +3459,9 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           <Tooltip text="AIBuddy - Your Coding Friend" position="bottom">
             <div 
               className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer hover:scale-110 transition-transform flex-shrink-0"
-              style={{ 
-                background: 'linear-gradient(135deg, #ec4899, #f97316)',
-                boxShadow: '0 4px 16px rgba(236, 72, 153, 0.4)'
+              style={{
+                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
               }}
             >
               <Sparkles className="w-6 h-6 text-white" />
@@ -3460,9 +3473,9 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               <h1 className="text-lg font-black text-white truncate">AIBuddy</h1>
               <span 
                 className="px-1.5 py-0.5 text-[10px] font-bold rounded-full flex-shrink-0"
-                style={{ 
-                  background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
-                  color: 'white',
+                style={{
+                  background: 'linear-gradient(135deg, #475569, #334155)',
+                  color: '#94a3b8',
                 }}
               >
                 {appVersion ? `v${appVersion}` : ''}
@@ -3512,6 +3525,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               onClick={() => {
                 trackButtonClick('New Chat', 'Header')
                 if (isLoading && abortControllerRef.current) {
+                  userAbortedRef.current = true
                   abortControllerRef.current.abort()
                   abortControllerRef.current = null
                   setIsLoading(false)
@@ -3786,8 +3800,8 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 <div 
                   className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
                   style={{ 
-                    background: 'linear-gradient(135deg, #ec4899, #f97316)',
-                    boxShadow: '0 8px 32px rgba(236, 72, 153, 0.4)'
+                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                boxShadow: '0 8px 32px rgba(99, 102, 241, 0.3)'
                   }}
                 >
                   <Sparkles className="w-10 h-10 text-white" />
@@ -3885,9 +3899,9 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 <div 
                   className="w-32 h-32 rounded-full flex items-center justify-center mb-6 animate-bounce"
                   style={{ 
-                    background: 'linear-gradient(135deg, #ec4899, #f97316)',
-                    boxShadow: '0 12px 48px rgba(236, 72, 153, 0.5)',
-                    animationDuration: '2s'
+                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                boxShadow: '0 12px 48px rgba(99, 102, 241, 0.3)',
+                animationDuration: '2s'
                   }}
                 >
                   <Sparkles className="w-16 h-16 text-white" />
@@ -3906,7 +3920,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   <Tooltip text={t('welcome.newUser.typeWhat')}>
                     <div 
                       className="px-6 py-4 rounded-2xl text-lg font-bold cursor-help transition-transform hover:scale-105"
-                      style={{ background: 'rgba(236, 72, 153, 0.15)', color: '#f472b6', border: '2px solid #f472b6' }}
+                      style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#a5b4fc', border: '2px solid #818cf8' }}
                     >
                       💬 {t('welcome.newUser.typeWhat')}
                     </div>
@@ -3964,6 +3978,28 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           <div className="max-w-4xl mx-auto space-y-6">
             {renderedMessages}
 
+            {/* KAN-100: Suggested Next Actions */}
+            {suggestedActions.length > 0 && !isLoading && (
+              <div className="flex flex-wrap gap-2 ml-14 mt-1">
+                {suggestedActions.map((action) => (
+                  <button
+                    key={action}
+                    onClick={() => {
+                      setInput(action)
+                      setTimeout(() => inputRef.current?.form?.requestSubmit(), 50)
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-300 transition-all hover:scale-105 active:scale-95"
+                    style={{
+                      background: 'rgba(99, 102, 241, 0.1)',
+                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                    }}
+                  >
+                    {action}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Loading */}
             {/* Enhanced Loading/Streaming Indicator */}
             {isLoading && (
@@ -3971,8 +4007,8 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 <div 
                   className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 animate-pulse"
                   style={{ 
-                    background: 'linear-gradient(135deg, #ec4899, #f97316)',
-                    boxShadow: '0 4px 16px rgba(236, 72, 153, 0.4)'
+                    background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                    boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
                   }}
                 >
                   <Bot className="w-7 h-7 text-white" />
@@ -4046,8 +4082,8 @@ Be concise and actionable. Use an alternative approach, not the same commands th
             }}
             className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:scale-105"
             style={{ 
-              background: 'linear-gradient(135deg, #f97316, #ec4899)',
-              boxShadow: '0 4px 16px rgba(249, 115, 22, 0.3)'
+              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
             }}
           >
             <RefreshCw className="w-4 h-4 text-white" />
@@ -4375,13 +4411,14 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   <button
                     type="button"
                     onClick={() => {
+                      userAbortedRef.current = true
                       if (abortControllerRef.current) {
                         abortControllerRef.current.abort()
                         abortControllerRef.current = null
                       }
                       setIsLoading(false)
                       setStatus('idle')
-                      toast.info('⏹ Response stopped')
+                      toast.info('⏹ Response stopped by user')
                       addBreadcrumb('User stopped request', 'ui.action')
                     }}
                     className="flex items-center justify-center gap-1.5 px-4 h-10 sm:h-11 rounded-xl transition-all hover:scale-105 active:scale-95 flex-shrink-0 self-center animate-pulse"
@@ -4405,11 +4442,11 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   disabled={(!input.trim() && attachedImages.length === 0) || isLoading}
                   className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex-shrink-0 self-center"
                   style={{ 
-                    background: (input.trim() || attachedImages.length > 0) && !isLoading 
-                      ? 'linear-gradient(135deg, #ec4899, #f97316)'
+                    background: (input.trim() || attachedImages.length > 0) && !isLoading
+                      ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
                       : 'rgba(100,100,100,0.3)',
-                    boxShadow: (input.trim() || attachedImages.length > 0) && !isLoading 
-                      ? '0 4px 16px rgba(236, 72, 153, 0.4)'
+                    boxShadow: (input.trim() || attachedImages.length > 0) && !isLoading
+                      ? '0 4px 16px rgba(99, 102, 241, 0.3)'
                       : 'none'
                   }}
                   aria-label="Send message"
@@ -4613,6 +4650,31 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   </button>
                 ))}
               </div>
+            </div>
+            
+            {/* KAN-99 FIX: Language Selection in Settings */}
+            <div className="mb-4">
+              <label className="block text-sm font-bold text-slate-400 mb-2">Language</label>
+              <select
+                value={i18n.language}
+                onChange={(e) => {
+                  const lang = e.target.value
+                  i18n.changeLanguage(lang)
+                  localStorage.setItem('aibuddy_language', lang)
+                  localStorage.setItem('aibuddy_language_selected', 'true')
+                  const electronAPI = (window as any).electronAPI
+                  if (electronAPI?.store?.set) electronAPI.store.set('uiLanguage', lang)
+                  trackSettingsChange('language', true)
+                }}
+                className="w-full px-3 py-2 rounded-lg text-sm text-white"
+                style={{ background: '#0f172a', border: '2px solid #334155', outline: 'none' }}
+              >
+                {SUPPORTED_LANGUAGES.map(lang => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.flag} {lang.nativeName} ({lang.englishName})
+                  </option>
+                ))}
+              </select>
             </div>
             
             {/* Keyboard Shortcuts Reference */}

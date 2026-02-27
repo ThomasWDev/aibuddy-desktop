@@ -40,8 +40,8 @@ const STATUS_CONFIG: Record<StatusStep, StatusConfig> = {
   validating: { text: '🔑 Checking your AIBuddy API key...', icon: 'Key', color: '#f59e0b' },
   reading: { text: '📂 Reading workspace files...', icon: 'FileSearch', color: '#3b82f6' },
   sending: { text: '☁️ Sending to AI...', icon: 'Cloud', color: '#8b5cf6' },
-  thinking: { text: '🧠 AIBuddy is thinking...', icon: 'Loader2', color: '#f97316' },
-  generating: { text: '✍️ Writing response...', icon: 'Zap', color: '#ec4899' },
+  thinking: { text: '🧠 AIBuddy is thinking...', icon: 'Loader2', color: '#6366f1' },
+  generating: { text: '✍️ Writing response...', icon: 'Zap', color: '#818cf8' },
   done: { text: '✅ Done!', icon: 'CheckCircle', color: '#22c55e' },
   error: { text: '❌ Something went wrong', icon: 'AlertTriangle', color: '#ef4444' }
 }
@@ -369,8 +369,8 @@ Couldn't reach the server. This could be:
 
     it('should have gradient on loading avatar', () => {
       const avatarStyle = {
-        background: 'linear-gradient(135deg, #ec4899, #f97316)',
-        boxShadow: '0 4px 16px rgba(236, 72, 153, 0.4)'
+        background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+        boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
       }
       
       expect(avatarStyle.background).toContain('gradient')
@@ -378,8 +378,8 @@ Couldn't reach the server. This could be:
 
     it('should have gradient on retry button', () => {
       const retryButtonStyle = {
-        background: 'linear-gradient(135deg, #f97316, #ec4899)',
-        boxShadow: '0 4px 16px rgba(249, 115, 22, 0.3)'
+        background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+        boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
       }
       
       expect(retryButtonStyle.background).toContain('gradient')

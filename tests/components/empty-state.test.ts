@@ -322,8 +322,8 @@ describe('Empty State Intelligence - Issue #16 Fix', () => {
   describe('Visual Styling', () => {
     it('should have gradient on icon', () => {
       const iconStyle = {
-        background: 'linear-gradient(135deg, #ec4899, #f97316)',
-        boxShadow: '0 8px 32px rgba(236, 72, 153, 0.4)'
+        background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+        boxShadow: '0 8px 32px rgba(99, 102, 241, 0.3)'
       }
       
       expect(iconStyle.background).toContain('gradient')
