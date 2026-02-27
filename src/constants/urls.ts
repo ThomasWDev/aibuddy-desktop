@@ -39,6 +39,8 @@ export const AIBUDDY_API_BASE_URL = AIBUDDY_ALB_URL
 export const AIBUDDY_API_INFERENCE_URL = `${AIBUDDY_ALB_URL}/`
 // Use ALB for validation too (consistent with inference)
 export const AIBUDDY_API_VALIDATE_KEY_URL = `${AIBUDDY_ALB_URL}/`
+// KAN-17: Transcription endpoint (same ALB, uses mode: 'transcribe' in body)
+export const AIBUDDY_API_TRANSCRIBE_URL = `${AIBUDDY_ALB_URL}/`
 
 // Documentation
 export const AIBUDDY_DOCS_URL = 'https://aibuddy.life/docs'

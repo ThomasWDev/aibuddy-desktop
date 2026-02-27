@@ -112,16 +112,16 @@ describe('KAN-62 — Regression guards', () => {
     expect(mainTs).toContain('setPermissionCheckHandler')
   })
 
-  it('useVoiceInput hook must still use SpeechRecognition', () => {
+  it('useVoiceInput hook must use MediaRecorder (KAN-17 replaced SpeechRecognition)', () => {
     const hook = read('renderer/src/hooks/useVoiceInput.ts')
-    expect(hook).toContain('SpeechRecognition')
-    expect(hook).toContain('webkitSpeechRecognition')
+    expect(hook).toContain('MediaRecorder')
+    expect(hook).toContain('getUserMedia')
   })
 
   it('voice error messages must still exist', () => {
     const hook = read('renderer/src/hooks/useVoiceInput.ts')
-    expect(hook).toContain('not-allowed')
-    expect(hook).toContain('audio-capture')
-    expect(hook).toContain('no-speech')
+    expect(hook).toContain('NotAllowedError')
+    expect(hook).toContain('NotFoundError')
+    expect(hook).toContain('Microphone')
   })
 })

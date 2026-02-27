@@ -1,19 +1,22 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { AIBUDDY_API_TRANSCRIBE_URL } from '../../../src/constants/urls'
 
 /**
- * Voice Input Hook - Issue #17 / KAN-62
- * 
- * Provides voice-to-text functionality using the Web Speech API.
- * Designed for use in the chat input area.
+ * Voice Input Hook — KAN-17 FIX
  *
- * KAN-62 FIX: Callbacks (onResult, onError) are stored in refs so
- * the useEffect that creates the SpeechRecognition instance only
- * depends on config values (language, continuous, interimResults).
- * Without this, inline callbacks from the parent cause re-renders that
- * abort recognition immediately after it starts.
+ * Root cause: Web Speech API (SpeechRecognition) requires Google's server-side
+ * speech service. Electron's Chromium build doesn't embed the API key, so
+ * recognition.start() fires a "network" error immediately.
+ *
+ * Fix: Use MediaRecorder to capture audio from the microphone, then send the
+ * base64 audio to the AIBuddy backend which calls OpenAI Whisper for
+ * transcription. This works offline-first (recording) and only needs network
+ * for the transcription call, with a clear error message if it fails.
  */
 
 export type VoiceInputState = 'idle' | 'listening' | 'processing' | 'error'
+
+const MAX_RECORDING_MS = 60_000
 
 interface UseVoiceInputOptions {
   language?: string
@@ -24,45 +27,25 @@ interface UseVoiceInputOptions {
 }
 
 interface UseVoiceInputReturn {
-  /** Current state of voice input */
   state: VoiceInputState
-  /** Whether voice input is supported in this browser */
   isSupported: boolean
-  /** Current interim transcript (while speaking) */
   interimTranscript: string
-  /** Start voice recognition */
   startListening: () => void
-  /** Stop voice recognition */
   stopListening: () => void
-  /** Toggle voice recognition on/off */
   toggleListening: () => void
-  /** Last error message */
   errorMessage: string | null
 }
 
-// Get the SpeechRecognition constructor (with webkit prefix fallback)
-const SpeechRecognition = typeof window !== 'undefined' 
-  ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-  : null
-
 export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInputReturn {
-  const {
-    language = 'en-US',
-    continuous = false,
-    interimResults = true,
-    onResult,
-    onError
-  } = options
+  const { language, onResult, onError } = options
 
   const [state, setState] = useState<VoiceInputState>('idle')
   const [interimTranscript, setInterimTranscript] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  
-  const recognitionRef = useRef<any>(null)
-  const isSupported = !!SpeechRecognition
+  const [isSupported] = useState(() =>
+    typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
+  )
 
-  // KAN-62 FIX: Store callbacks in refs so the recognition setup effect
-  // doesn't re-run when parent re-renders with new inline functions.
   const onResultRef = useRef(onResult)
   const onErrorRef = useRef(onError)
   useEffect(() => {
@@ -70,128 +53,173 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
     onErrorRef.current = onError
   }, [onResult, onError])
 
-  // Initialize recognition instance — depends only on config, NOT callbacks
-  useEffect(() => {
-    if (!isSupported) return
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-    const recognition = new SpeechRecognition()
-    recognition.lang = language
-    recognition.continuous = continuous
-    recognition.interimResults = interimResults
-
-    recognition.onstart = () => {
-      setState('listening')
-      setErrorMessage(null)
-      setInterimTranscript('')
+  const cleanup = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
     }
-
-    recognition.onend = () => {
-      setState('idle')
-      setInterimTranscript('')
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
     }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
+    mediaRecorderRef.current = null
+  }, [])
 
-    recognition.onresult = (event: any) => {
-      let interim = ''
-      let final = ''
+  const setError = useCallback((msg: string) => {
+    setErrorMessage(msg)
+    setState('error')
+    onErrorRef.current?.(msg)
+    setTimeout(() => { setState('idle'); setErrorMessage(null) }, 5000)
+  }, [])
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript
-        if (event.results[i].isFinal) {
-          final += transcript
-        } else {
-          interim += transcript
-        }
+  const sendToWhisper = useCallback(async (audioBlob: Blob) => {
+    setState('processing')
+    setInterimTranscript('Transcribing…')
+
+    try {
+      const electronAPI = (window as any).electronAPI
+      const apiKey = electronAPI?.store?.get?.('apiKey') || localStorage.getItem('aibuddy_api_key') || ''
+
+      const arrayBuffer = await audioBlob.arrayBuffer()
+      const base64 = btoa(
+        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      )
+
+      const res = await fetch(AIBUDDY_API_TRANSCRIBE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-AIBuddy-API-Key': apiKey,
+          'X-Requested-With': 'AIBuddy-Desktop',
+        },
+        body: JSON.stringify({
+          mode: 'transcribe',
+          api_key: apiKey,
+          audio_base64: base64,
+          audio_format: 'webm',
+          language: language || undefined,
+        }),
+      })
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({ message: 'Transcription failed' }))
+        throw new Error(errBody.message || `Server error ${res.status}`)
       }
 
-      setInterimTranscript(interim)
+      const data = await res.json()
 
-      if (final) {
-        setState('processing')
-        onResultRef.current?.(final, true)
-        setTimeout(() => setState('idle'), 100)
-      } else if (interim) {
-        onResultRef.current?.(interim, false)
-      }
-    }
-
-    recognition.onerror = (event: any) => {
-      const errorMessages: Record<string, string> = {
-        'not-allowed': 'Microphone permission denied. Please allow microphone access.',
-        'no-speech': 'No speech detected. Please try again.',
-        'network': 'Network error. Please check your connection.',
-        'audio-capture': 'Microphone not available. Please check your audio settings.',
-        'aborted': '' // Not a real error, user cancelled
-      }
-
-      const message = errorMessages[event.error] || `Voice input error: ${event.error}`
-      
-      if (event.error !== 'aborted') {
-        setErrorMessage(message)
-        setState('error')
-        onErrorRef.current?.(message)
-        
-        // Reset to idle after 3 seconds
-        setTimeout(() => {
-          setState('idle')
-          setErrorMessage(null)
-        }, 3000)
+      if (data.text && data.text.trim()) {
+        setInterimTranscript('')
+        onResultRef.current?.(data.text.trim(), true)
       } else {
-        setState('idle')
+        setInterimTranscript('')
+        setError('No speech detected. Please try again.')
+        return
       }
-    }
 
-    recognitionRef.current = recognition
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.abort()
-      }
+      setState('idle')
+    } catch (err: any) {
+      setInterimTranscript('')
+      setError(err.message || 'Failed to transcribe audio. Please try again.')
     }
-  }, [language, continuous, interimResults, isSupported])
+  }, [language, setError])
 
   const startListening = useCallback(async () => {
-    if (!isSupported || !recognitionRef.current) {
-      setErrorMessage('Voice input not supported in this browser')
+    if (!isSupported) {
+      setError('Microphone not available in this environment')
       return
     }
 
-    // KAN-62: Check macOS microphone permission before starting
+    // Check Electron microphone permissions
     try {
       const electronAPI = (window as any).electronAPI
       if (electronAPI?.microphone?.getStatus) {
         const status = await electronAPI.microphone.getStatus()
         if (status === 'denied') {
-          setErrorMessage('Microphone access denied. Open System Settings > Privacy & Security > Microphone to grant access.')
-          setState('error')
-          onErrorRef.current?.('Microphone access denied. Open System Settings > Privacy & Security > Microphone to grant access.')
-          setTimeout(() => { setState('idle'); setErrorMessage(null) }, 5000)
+          setError('Microphone access denied. Open System Settings > Privacy & Security > Microphone to grant access.')
           return
         }
         if (status !== 'granted') {
           const granted = await electronAPI.microphone.requestAccess()
           if (!granted) {
-            setErrorMessage('Microphone permission not granted. Please allow access in System Settings.')
-            setState('error')
-            onErrorRef.current?.('Microphone permission not granted.')
-            setTimeout(() => { setState('idle'); setErrorMessage(null) }, 5000)
+            setError('Microphone permission not granted. Please allow access in System Settings.')
             return
           }
         }
       }
     } catch {
-      // Not in Electron or IPC unavailable — proceed with web API attempt
+      // Not in Electron or IPC unavailable
     }
 
     try {
-      recognitionRef.current.start()
-    } catch (err) {
-      console.warn('Speech recognition start error:', err)
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      chunksRef.current = []
+
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' })
+      mediaRecorderRef.current = recorder
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        chunksRef.current = []
+        if (blob.size > 0) {
+          sendToWhisper(blob)
+        } else {
+          setState('idle')
+        }
+      }
+
+      recorder.onerror = () => {
+        cleanup()
+        setError('Microphone recording failed. Please check your audio settings.')
+      }
+
+      recorder.start()
+      setState('listening')
+      setErrorMessage(null)
+      setInterimTranscript('Listening…')
+
+      timerRef.current = setTimeout(() => {
+        if (mediaRecorderRef.current?.state === 'recording') {
+          mediaRecorderRef.current.stop()
+        }
+      }, MAX_RECORDING_MS)
+
+    } catch (err: any) {
+      cleanup()
+      if (err.name === 'NotAllowedError') {
+        setError('Microphone access denied. Please allow microphone access in your browser/system settings.')
+      } else if (err.name === 'NotFoundError') {
+        setError('No microphone found. Please connect a microphone and try again.')
+      } else {
+        setError(`Microphone error: ${err.message}`)
+      }
     }
-  }, [isSupported])
+  }, [isSupported, cleanup, sendToWhisper, setError])
 
   const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
     }
   }, [])
 

@@ -49,9 +49,8 @@ interface InterviewPanelProps {
 
 type InterviewMode = 'realtime' | 'manual'
 
-const SpeechRecognitionAPI = typeof window !== 'undefined'
-  ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-  : null
+// KAN-17 FIX: Use MediaRecorder + Whisper instead of broken SpeechRecognition
+const hasMediaRecorder = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
 
 export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: InterviewPanelProps) {
   const [isListening, setIsListening] = useState(false)
@@ -65,15 +64,18 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
   const [autoScroll, setAutoScroll] = useState(true)
   const [silenceTimer, setSilenceTimer] = useState<number>(0)
 
-  const recognitionRef = useRef<any>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const chunksRef = useRef<Blob[]>([])
   const transcriptEndRef = useRef<HTMLDivElement>(null)
   const responsesEndRef = useRef<HTMLDivElement>(null)
   const silenceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastSpeechRef = useRef<number>(Date.now())
   const pendingTextRef = useRef<string>('')
   const abortControllerRef = useRef<AbortController | null>(null)
+  const segmentTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const isSupported = !!SpeechRecognitionAPI
+  const isSupported = hasMediaRecorder
 
   // Auto-scroll transcript
   useEffect(() => {
@@ -185,13 +187,56 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
     }
   }, [isListening, sendToAI])
 
+  // KAN-17 FIX: Helper to transcribe a recorded segment via Whisper
+  const transcribeSegment = useCallback(async (audioBlob: Blob) => {
+    try {
+      const arrayBuffer = await audioBlob.arrayBuffer()
+      const base64 = btoa(
+        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      )
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-AIBuddy-API-Key': apiKey,
+          'X-Requested-With': 'AIBuddy-Desktop',
+        },
+        body: JSON.stringify({
+          mode: 'transcribe',
+          api_key: apiKey,
+          audio_base64: base64,
+          audio_format: 'webm',
+        }),
+      })
+
+      if (!res.ok) return
+      const data = await res.json()
+      if (!data.text?.trim()) return
+
+      const finalText = data.text.trim()
+      lastSpeechRef.current = Date.now()
+      pendingTextRef.current += ' ' + finalText
+
+      setTranscript(prev => [...prev, {
+        id: `t-${Date.now()}`,
+        text: finalText,
+        timestamp: new Date(),
+        isFinal: true,
+      }])
+      setCurrentInterim('')
+    } catch (err) {
+      console.error('[Interview] Transcription segment error:', err)
+    }
+  }, [apiKey, apiUrl])
+
   const startListening = useCallback(async () => {
     if (!isSupported) {
-      setError('Speech recognition is not supported in this environment')
+      setError('Microphone is not available in this environment')
       return
     }
 
-    // KAN-62: Check macOS microphone permission before starting
+    // KAN-62: Check macOS microphone permission
     try {
       const electronAPI = (window as any).electronAPI
       if (electronAPI?.microphone?.getStatus) {
@@ -209,78 +254,74 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
         }
       }
     } catch {
-      // Not in Electron or IPC unavailable — proceed
+      // Not in Electron or IPC unavailable
     }
 
     setError(null)
-    const recognition = new SpeechRecognitionAPI()
-    recognition.lang = 'en-US'
-    recognition.continuous = true
-    recognition.interimResults = true
 
-    recognition.onstart = () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      chunksRef.current = []
+
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' })
+      mediaRecorderRef.current = recorder
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        chunksRef.current = []
+        if (blob.size > 0) transcribeSegment(blob)
+      }
+
+      recorder.onerror = () => {
+        setError('Microphone recording failed. Please check your audio settings.')
+        setIsListening(false)
+      }
+
+      recorder.start()
       setIsListening(true)
       lastSpeechRef.current = Date.now()
       pendingTextRef.current = ''
-      console.log('[Interview] Listening started')
-    }
+      setCurrentInterim('Listening…')
+      console.log('[Interview] MediaRecorder listening started')
 
-    recognition.onresult = (event: any) => {
-      let interim = ''
-      let finalText = ''
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i]
-        if (result.isFinal) {
-          finalText += result[0].transcript
-        } else {
-          interim += result[0].transcript
+      // Auto-segment every 8 seconds for continuous transcription
+      segmentTimerRef.current = setInterval(() => {
+        if (mediaRecorderRef.current?.state === 'recording') {
+          mediaRecorderRef.current.stop()
+          chunksRef.current = []
+          mediaRecorderRef.current.start()
         }
-      }
+      }, 8000)
 
-      if (finalText) {
-        lastSpeechRef.current = Date.now()
-        pendingTextRef.current += ' ' + finalText
-
-        setTranscript(prev => [...prev, {
-          id: `t-${Date.now()}`,
-          text: finalText.trim(),
-          timestamp: new Date(),
-          isFinal: true,
-        }])
-        setCurrentInterim('')
-      } else if (interim) {
-        lastSpeechRef.current = Date.now()
-        setCurrentInterim(interim)
+    } catch (err: any) {
+      if (err.name === 'NotAllowedError') {
+        setError('Microphone access denied. Please allow microphone access.')
+      } else if (err.name === 'NotFoundError') {
+        setError('No microphone found. Please connect a microphone.')
+      } else {
+        setError(`Microphone error: ${err.message}`)
       }
     }
-
-    recognition.onerror = (event: any) => {
-      if (event.error === 'aborted' || event.error === 'no-speech') return
-      console.error('[Interview] Speech error:', event.error)
-      setError(`Microphone error: ${event.error}`)
-    }
-
-    recognition.onend = () => {
-      // Auto-restart if still supposed to be listening
-      if (recognitionRef.current === recognition) {
-        try {
-          recognition.start()
-        } catch {
-          setIsListening(false)
-        }
-      }
-    }
-
-    recognitionRef.current = recognition
-    recognition.start()
-  }, [isSupported])
+  }, [isSupported, transcribeSegment])
 
   const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      const recognition = recognitionRef.current
-      recognitionRef.current = null
-      recognition.stop()
+    // KAN-17 FIX: Stop MediaRecorder and clean up stream
+    if (segmentTimerRef.current) {
+      clearInterval(segmentTimerRef.current)
+      segmentTimerRef.current = null
+    }
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    }
+    mediaRecorderRef.current = null
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
     }
     setIsListening(false)
     setCurrentInterim('')

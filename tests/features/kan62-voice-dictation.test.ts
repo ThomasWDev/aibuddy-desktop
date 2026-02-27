@@ -1,21 +1,16 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 
 /**
  * KAN-62: Voice dictation button doesn't trigger anything on Mac
  *
- * Root cause: useVoiceInput's useEffect depended on onResult/onError callbacks
- * that were inline functions from the parent (App.tsx). Every render created new
- * callback references, which triggered the effect cleanup (abort) and re-creation
- * of the SpeechRecognition instance, killing active recognition immediately.
+ * Original root cause: useVoiceInput's useEffect depended on onResult/onError
+ * callbacks that were inline functions, causing re-creation of recognition.
  *
- * Fix: Store callbacks in refs (onResultRef, onErrorRef) so the recognition
- * setup effect only depends on config values (language, continuous, interimResults).
- *
- * Secondary fixes:
- * - Added NSMicrophoneUsageDescription to package.json extendInfo and afterPack.js
- * - Added audio-input entitlement to entitlements.mas.inherit.plist for helpers
+ * KAN-17 UPDATE: SpeechRecognition was replaced with MediaRecorder + Whisper
+ * because Web Speech API doesn't work in Electron. The callback ref pattern
+ * is still used for onResult/onError stability.
  */
 
 const HOOK_PATH = resolve(__dirname, '../../renderer/src/hooks/useVoiceInput.ts')
@@ -46,34 +41,6 @@ describe('KAN-62: Voice Dictation — Callback Ref Pattern', () => {
     expect(hookSource).toMatch(/onErrorRef\.current\s*=\s*onError/)
   })
 
-  it('recognition setup useEffect should NOT depend on onResult or onError', () => {
-    const setupEffectMatch = hookSource.match(
-      /\/\/ Initialize recognition instance.*?\n\s*useEffect\(\(\) => \{[\s\S]*?\}, \[([^\]]*)\]\)/
-    )
-    expect(setupEffectMatch).toBeTruthy()
-    const deps = setupEffectMatch![1]
-    expect(deps).not.toContain('onResult')
-    expect(deps).not.toContain('onError')
-    expect(deps).toContain('language')
-    expect(deps).toContain('continuous')
-    expect(deps).toContain('interimResults')
-    expect(deps).toContain('isSupported')
-  })
-
-  it('recognition onresult handler should use onResultRef.current, not onResult directly', () => {
-    const onresultBlock = hookSource.match(/recognition\.onresult\s*=[\s\S]*?(?=recognition\.onerror)/)
-    expect(onresultBlock).toBeTruthy()
-    expect(onresultBlock![0]).toContain('onResultRef.current')
-    expect(onresultBlock![0]).not.toMatch(/[^R]onResult\?\./)
-  })
-
-  it('recognition onerror handler should use onErrorRef.current, not onError directly', () => {
-    const onerrorBlock = hookSource.match(/recognition\.onerror\s*=[\s\S]*?recognitionRef\.current = recognition/)
-    expect(onerrorBlock).toBeTruthy()
-    expect(onerrorBlock![0]).toContain('onErrorRef.current')
-    expect(onerrorBlock![0]).not.toMatch(/[^R]onError\?\./)
-  })
-
   it('startListening should use onErrorRef.current, not onError directly', () => {
     const startBlock = hookSource.match(/const startListening[\s\S]*?(?=const stopListening)/)
     expect(startBlock).toBeTruthy()
@@ -92,43 +59,50 @@ describe('KAN-62: Voice Dictation — Callback Ref Pattern', () => {
   })
 })
 
-describe('KAN-62: Voice Dictation — SpeechRecognition API Resilience', () => {
+describe('KAN-62/KAN-17: Voice Dictation — MediaRecorder + Whisper (replaces SpeechRecognition)', () => {
   let hookSource: string
 
   beforeEach(() => {
     hookSource = readFileSync(HOOK_PATH, 'utf-8')
   })
 
-  it('should check for SpeechRecognition with webkit prefix fallback', () => {
-    expect(hookSource).toContain('SpeechRecognition')
-    expect(hookSource).toContain('webkitSpeechRecognition')
+  it('should use MediaRecorder for audio capture', () => {
+    expect(hookSource).toContain('MediaRecorder')
   })
 
-  it('should set isSupported based on SpeechRecognition constructor availability', () => {
-    expect(hookSource).toMatch(/isSupported\s*=\s*!!SpeechRecognition/)
+  it('should use getUserMedia for microphone access', () => {
+    expect(hookSource).toContain('getUserMedia')
+  })
+
+  it('should NOT use SpeechRecognition as primary API (broken in Electron)', () => {
+    const hasSpeechRecogAsMain = hookSource.includes("new SpeechRecognition()")
+      || hookSource.includes("new (window as any).SpeechRecognition()")
+    expect(hasSpeechRecogAsMain).toBe(false)
+  })
+
+  it('should send audio to backend for Whisper transcription', () => {
+    expect(hookSource).toContain('transcribe')
+  })
+
+  it('should encode audio as base64 for transmission', () => {
+    expect(hookSource).toContain('base64')
+  })
+
+  it('should have a max recording duration limit', () => {
+    expect(hookSource).toMatch(/MAX_RECORDING|maxDuration|60000|60_000/)
   })
 
   it('should guard startListening with isSupported check', () => {
     expect(hookSource).toMatch(/if\s*\(!isSupported/)
   })
 
-  it('should wrap recognition.start() in try-catch', () => {
-    const startSection = hookSource.match(/recognition(?:Ref\.current)?\.start\(\)/)
-    expect(startSection).toBeTruthy()
-    const tryBlock = hookSource.match(/try\s*\{\s*\n\s*recognitionRef\.current\.start\(\)/)
-    expect(tryBlock).toBeTruthy()
+  it('should handle microphone permission errors', () => {
+    expect(hookSource).toContain('NotAllowedError')
+    expect(hookSource).toContain('NotFoundError')
   })
 
-  it('should handle all standard SpeechRecognition error types', () => {
-    expect(hookSource).toContain("'not-allowed'")
-    expect(hookSource).toContain("'no-speech'")
-    expect(hookSource).toContain("'network'")
-    expect(hookSource).toContain("'audio-capture'")
-    expect(hookSource).toContain("'aborted'")
-  })
-
-  it('should silently handle aborted errors (user cancelled)', () => {
-    expect(hookSource).toMatch(/if\s*\(event\.error\s*!==\s*'aborted'\)/)
+  it('should clean up media stream on stop', () => {
+    expect(hookSource).toContain('stop()')
   })
 })
 

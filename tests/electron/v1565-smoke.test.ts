@@ -48,12 +48,11 @@ describe('v1.5.65 — Interview Mode', () => {
     expect(panelContent).toContain("mode === 'manual'")
   })
 
-  it('InterviewPanel uses SpeechRecognition API', () => {
+  it('InterviewPanel uses MediaRecorder + Whisper (KAN-17 replaced SpeechRecognition)', () => {
     const panelContent = readFileSync(interviewPanelPath, 'utf-8')
-    expect(panelContent).toContain('SpeechRecognition')
-    expect(panelContent).toContain('webkitSpeechRecognition')
-    expect(panelContent).toContain('continuous')
-    expect(panelContent).toContain('interimResults')
+    expect(panelContent).toContain('MediaRecorder')
+    expect(panelContent).toContain('getUserMedia')
+    expect(panelContent).toContain('transcribe')
   })
 
   it('InterviewPanel has silence detection (3 seconds)', () => {
