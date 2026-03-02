@@ -46,6 +46,7 @@ import { ShareModal } from './components/ShareModal'
 import { UsageLimitsPanel } from './components/UsageLimitsPanel'
 import { InterviewPanel } from './components/InterviewPanel'
 import { LanguageSelector } from './components/LanguageSelector'
+import { PrivacyConsent } from './components/PrivacyConsent'
 import { WelcomeScreen } from './components/welcome/WelcomeScreen'
 import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LANGUAGES } from './i18n/languages'
@@ -78,6 +79,7 @@ import {
 // Debug: Log the API URL at module load time
 console.log('[App] API URL configured:', AIBUDDY_API_INFERENCE_URL)
 import { generateSystemPrompt, DESKTOP_PLATFORM_CONTEXT } from '../../src/constants/system-prompt'
+import { appendIfNotDuplicate, isDuplicateFile } from './utils/file-dedup'
 
 // KAN-41 FIX: Professional tooltip — compact, non-overlapping, viewport-constrained
 function Tooltip({ text, children, position = 'top' }: { text: string; children: React.ReactNode; position?: 'top' | 'bottom' | 'left' | 'right' }) {
@@ -663,6 +665,10 @@ function isRetryableError(error: ApiErrorResponse | null, httpStatus?: number): 
 
 function App() {
   const { t, i18n } = useTranslation()
+  // Apple 5.1.1(i)/5.1.2(i): Privacy consent must be shown before any data is sent
+  const [showPrivacyConsent, setShowPrivacyConsent] = useState(
+    () => !localStorage.getItem('aibuddy_privacy_accepted')
+  )
   const [showLanguageSelector, setShowLanguageSelector] = useState(
     () => !localStorage.getItem('aibuddy_language_selected')
   )
@@ -736,6 +742,7 @@ function App() {
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const codeFileInputRef = useRef<HTMLInputElement>(null) // KAN-6 FIX
+  const fileDialogOpen = useRef(false) // KAN-132 FIX: Prevent double-click on Paperclip
   
   // Chat history
   const [showHistory, setShowHistory] = useState(false)
@@ -1702,7 +1709,7 @@ function App() {
         language
       }
       
-      setAttachedFiles(prev => [...prev, newFile])
+      setAttachedFiles(prev => appendIfNotDuplicate(prev, newFile))
       console.log('[CodeFileSelect] SUCCESS: File attached:', fileName)
       
       toast.success(`📄 Added: ${fileName}`)
@@ -1737,7 +1744,10 @@ function App() {
   }
   
   // KAN-96 FIX: Unified attachment handler — single Paperclip button for images + code files
+  // KAN-132 FIX: fileDialogOpen guard prevents duplicate cards from double-click
   const handleAttachFileWithElectron = async () => {
+    if (fileDialogOpen.current) return
+    fileDialogOpen.current = true
     console.log('[AttachFile] Starting unified file selection...')
     
     try {
@@ -1873,13 +1883,13 @@ function App() {
           return
         }
         
-        setAttachedFiles(prev => [...prev, {
+        setAttachedFiles(prev => appendIfNotDuplicate(prev, {
           id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           content,
           name: fileName,
           size: fileSize,
           language
-        }])
+        }))
         
         toast.success(`📄 Added: ${fileName}`)
         addBreadcrumb('Code file attached via unified dialog', 'chat.file', { name: fileName, language })
@@ -1893,6 +1903,8 @@ function App() {
         return
       }
       toast.error(`Failed to attach file: ${errorMessage.substring(0, 50)}`)
+    } finally {
+      fileDialogOpen.current = false
     }
   }
 
@@ -2046,10 +2058,10 @@ function App() {
         try {
           const content = await file.text()
           const language = CODE_FILE_EXTENSIONS[extension] || 'text'
-          setAttachedFiles(prev => [...prev, {
+          setAttachedFiles(prev => appendIfNotDuplicate(prev, {
             id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             content, name: file.name, size: file.size, language
-          }])
+          }))
           addBreadcrumb('Code file dropped', 'chat.file', { name: file.name, language })
           fileCount++
         } catch (error) {
@@ -3401,6 +3413,21 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       .slice(-COLLAPSED_VISIBLE_LINES),
     [terminalOutput]
   )
+
+  // Apple 5.1.1(i)/5.1.2(i): Show privacy consent before anything else
+  if (showPrivacyConsent) {
+    return (
+      <PrivacyConsent
+        onAccept={() => {
+          localStorage.setItem('aibuddy_privacy_accepted', 'true')
+          const electronAPI = (window as any).electronAPI
+          if (electronAPI?.store?.set) electronAPI.store.set('privacyAccepted', true)
+          setShowPrivacyConsent(false)
+          addBreadcrumb('Privacy consent accepted', 'ui.action')
+        }}
+      />
+    )
+  }
 
   if (showLanguageSelector) {
     return (
