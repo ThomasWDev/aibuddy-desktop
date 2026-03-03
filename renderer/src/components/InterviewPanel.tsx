@@ -346,7 +346,29 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
     setManualQuestion('')
   }
 
-  const clearAll = () => {
+  const clearAll = async () => {
+    if (transcript.length === 0 && responses.length === 0) return
+
+    const electronAPI = (window as any).electronAPI
+    let confirmed = false
+    if (electronAPI?.dialog?.showMessage) {
+      const result = await electronAPI.dialog.showMessage({
+        type: 'warning',
+        title: 'Clear Interview History',
+        message: 'Are you sure you want to clear all interview history?',
+        detail: 'This action cannot be undone.',
+        buttons: ['Cancel', 'Clear All'],
+        defaultId: 0,
+        cancelId: 0
+      })
+      confirmed = result.response === 1
+    } else {
+      confirmed = window.confirm(
+        'Are you sure you want to clear all interview history?\n\nThis action cannot be undone.'
+      )
+    }
+    if (!confirmed) return
+
     stopListening()
     setTranscript([])
     setResponses([])
