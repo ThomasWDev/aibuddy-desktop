@@ -29,10 +29,9 @@ describe('Post-v1.5.87 — Lockfile Consistency (no duplicate package managers p
 describe('Post-v1.5.87 — KAN-21 Notarization Config Regression Guard', () => {
   const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'))
 
-  it('package.json notarize must have teamId for API key notarization', () => {
+  it('package.json notarize must be true (team ID passed via env vars for electron-builder 26.7.0)', () => {
     const notarize = pkg.build?.mac?.notarize
-    expect(typeof notarize).toBe('object')
-    expect(notarize.teamId).toBe('S2237D23CB')
+    expect(notarize).toBe(true)
   })
 
   it('hardenedRuntime must be enabled for notarization', () => {
@@ -50,9 +49,10 @@ describe('Post-v1.5.87 — KAN-21 Notarization Config Regression Guard', () => {
     expect(workflow).toContain('APPLE_API_ISSUER')
   })
 
-  it('CI workflow must have fallback app-specific password for notarization', () => {
+  it('CI workflow must verify API key file before build', () => {
     const workflow = readFileSync(join(REPO_ROOT, '.github/workflows/release-on-master.yml'), 'utf-8')
-    expect(workflow).toContain('APPLE_APP_SPECIFIC_PASSWORD')
+    expect(workflow).toContain('Verify notarization credentials before build')
+    expect(workflow).toContain('/tmp/AuthKey.p8')
   })
 
   it('entitlements.mac.plist must allow JIT and network client', () => {

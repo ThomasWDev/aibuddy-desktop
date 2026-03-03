@@ -153,12 +153,11 @@ describe('Code Signing Status', () => {
     it('should have notarization enabled with team ID', () => {
       const notarizeConfig = packageJson.build.mac?.notarize
       
-      expect(typeof notarizeConfig).toBe('object')
-      expect(notarizeConfig.teamId).toBe('S2237D23CB')
+      expect(notarizeConfig).toBe(true)
       
       console.log('✅ macOS notarization is ENABLED')
-      console.log('   Team ID: S2237D23CB')
-      console.log('   Credentials stored in keychain as "AC_PASSWORD"')
+      console.log('   Team ID: S2237D23CB (via APPLE_TEAM_ID env var)')
+      console.log('   Credentials via env: APPLE_API_KEY + APPLE_API_KEY_ID + APPLE_API_ISSUER')
     })
 
     it('should have identity configured (even if not used)', () => {
