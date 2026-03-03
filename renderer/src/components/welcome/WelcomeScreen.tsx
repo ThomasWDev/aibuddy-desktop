@@ -513,14 +513,20 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
           )}
           
           {/* API Key Status */}
-          <span style={{
-            ...styles.statusBadge(hasApiKey),
-            background: hasApiKey ? 'rgba(72, 219, 251, 0.2)' : 'rgba(255, 193, 7, 0.2)',
-            color: hasApiKey ? '#48dbfb' : '#ffc107',
-          }}>
+          <button
+            onClick={handleOpenSettings}
+            style={{
+              ...styles.statusBadge(hasApiKey),
+              background: hasApiKey ? 'rgba(72, 219, 251, 0.2)' : 'rgba(255, 193, 7, 0.2)',
+              color: hasApiKey ? '#48dbfb' : '#ffc107',
+              cursor: 'pointer',
+              border: 'none',
+            }}
+            title={hasApiKey ? 'Click to manage API key' : 'Click to add API key'}
+          >
             <Key size={14} />
             {hasApiKey ? 'API Key Set' : 'No API Key'}
-          </span>
+          </button>
           
           {/* Settings Button */}
           <Tooltip text="⚙️ Settings - Add your API key here!" position="bottom">
