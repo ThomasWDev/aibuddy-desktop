@@ -151,16 +151,10 @@ describe('Code Signing Status', () => {
     })
 
     it('should have notarization enabled with team ID', () => {
-      // Notarization is now enabled - verify it's configured correctly
       const notarizeConfig = packageJson.build.mac?.notarize
-      const hasNotarizeEnabled = notarizeConfig && notarizeConfig !== false
       
-      expect(hasNotarizeEnabled).toBe(true)
-      
-      // Verify team ID is configured
-      if (typeof notarizeConfig === 'object') {
-        expect(notarizeConfig.teamId).toBe('S2237D23CB')
-      }
+      expect(typeof notarizeConfig).toBe('object')
+      expect(notarizeConfig.teamId).toBe('S2237D23CB')
       
       console.log('✅ macOS notarization is ENABLED')
       console.log('   Team ID: S2237D23CB')
