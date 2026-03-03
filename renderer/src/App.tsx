@@ -1233,6 +1233,18 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // KAN-189: Sync apiKeyInput with masked key when settings modal opens
+  useEffect(() => {
+    if (showSettings && apiKey) {
+      const masked = apiKey.length > 8
+        ? apiKey.slice(0, 4) + '••••' + apiKey.slice(-4)
+        : '••••••••'
+      setApiKeyInput(masked)
+    } else if (showSettings && !apiKey) {
+      setApiKeyInput('')
+    }
+  }, [showSettings, apiKey])
+
   // Focus input
   useEffect(() => {
     if (!showSettings) {
@@ -4529,7 +4541,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 >
                   <Key className="w-7 h-7 text-white" />
                 </div>
-                API Key 🔑
+                {apiKey ? 'Manage API Key 🔑' : 'Add API Key 🔑'}
               </h2>
               <Tooltip text="Close this window">
                 <button
@@ -4576,7 +4588,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
             {/* Input Field - Big */}
             <div className="mb-6">
               <label className="block text-base font-bold text-slate-400 mb-2">
-                Paste your API key here:
+                {apiKey ? 'Replace your API key:' : 'Paste your API key here:'}
               </label>
               <input
                 type="password"
@@ -4589,7 +4601,10 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   border: '3px solid #334155',
                   outline: 'none'
                 }}
-                onFocus={(e) => e.target.style.borderColor = '#06b6d4'}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#06b6d4'
+                  if (apiKeyInput.includes('••••')) setApiKeyInput('')
+                }}
                 onBlur={(e) => e.target.style.borderColor = '#334155'}
               />
             </div>
@@ -4609,7 +4624,9 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                     : 'none'
                 }}
               >
-                {apiKeyInput.trim() ? '✅ Save My Key!' : '⬆️ Enter your key above'}
+                {apiKeyInput.trim()
+                  ? (apiKey ? '🔄 Update API Key' : '✅ Save My Key!')
+                  : '⬆️ Enter your key above'}
               </button>
             </Tooltip>
 
