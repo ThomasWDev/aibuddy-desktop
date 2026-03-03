@@ -37,6 +37,11 @@ interface AIResponse {
   answer: string
   timestamp: Date
   isLoading: boolean
+  cost?: number
+  tokensIn?: number
+  tokensOut?: number
+  model?: string
+  responseTime?: number
 }
 
 interface InterviewPanelProps {
@@ -95,6 +100,7 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
     if (!apiKey || !question.trim()) return
 
     const responseId = `resp-${Date.now()}`
+    const startTime = Date.now()
     const newResponse: AIResponse = {
       id: responseId,
       question: question.trim(),
@@ -143,13 +149,23 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
       }
 
       const data = await response.json()
+      const responseTime = (Date.now() - startTime) / 1000
       const aiText = data?.choices?.[0]?.message?.content
         || data?.response
         || data?.content
         || 'No response received'
 
       setResponses(prev =>
-        prev.map(r => r.id === responseId ? { ...r, answer: aiText, isLoading: false } : r)
+        prev.map(r => r.id === responseId ? {
+          ...r,
+          answer: aiText,
+          isLoading: false,
+          cost: data.api_cost,
+          tokensIn: data.usage?.input_tokens,
+          tokensOut: data.usage?.output_tokens,
+          model: data.model,
+          responseTime,
+        } : r)
       )
     } catch (err: any) {
       if (err.name === 'AbortError') return
@@ -646,23 +662,64 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
                       )}
 
                       {!resp.isLoading && (
-                        <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-700/20">
-                          <button
-                            onClick={() => sendToAI(resp.question)}
-                            className="flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-400 hover:text-purple-300 hover:bg-purple-600/10 transition-colors"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            Regenerate
-                          </button>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(resp.answer)
-                            }}
-                            className="flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-400 hover:text-cyan-300 hover:bg-cyan-600/10 transition-colors"
-                          >
-                            Copy
-                          </button>
-                        </div>
+                        <>
+                          {(resp.cost || resp.tokensIn || resp.tokensOut || resp.responseTime) && (
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 pt-2 border-t border-slate-700/20 text-xs">
+                              {typeof resp.cost === 'number' && (
+                                <span className="flex items-center gap-1 text-green-400/80">
+                                  💲 ${resp.cost.toFixed(4)}
+                                </span>
+                              )}
+                              {(resp.tokensIn || resp.tokensOut) && (
+                                <span className="flex items-center gap-2 text-slate-500">
+                                  {resp.tokensIn && (
+                                    <span className="flex items-center gap-0.5">
+                                      <span className="text-blue-400">↑</span>
+                                      {resp.tokensIn.toLocaleString()} in
+                                    </span>
+                                  )}
+                                  {resp.tokensOut && (
+                                    <span className="flex items-center gap-0.5">
+                                      <span className="text-purple-400">↓</span>
+                                      {resp.tokensOut.toLocaleString()} out
+                                    </span>
+                                  )}
+                                </span>
+                              )}
+                              {typeof resp.responseTime === 'number' && (
+                                <span className="flex items-center gap-1 text-slate-500">
+                                  <Clock className="w-3 h-3" />
+                                  {resp.responseTime.toFixed(1)}s
+                                </span>
+                              )}
+                              {resp.model && (
+                                <span className="text-slate-600 text-[10px] bg-slate-800 px-1.5 py-0.5 rounded">
+                                  {resp.model}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-700/20 text-xs text-slate-500">
+                            <span>{resp.timestamp.toLocaleString()}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <button
+                              onClick={() => sendToAI(resp.question)}
+                              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-400 hover:text-purple-300 hover:bg-purple-600/10 transition-colors"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              Regenerate
+                            </button>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(resp.answer)
+                              }}
+                              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-400 hover:text-cyan-300 hover:bg-cyan-600/10 transition-colors"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </>
                       )}
                     </div>
                   )}
