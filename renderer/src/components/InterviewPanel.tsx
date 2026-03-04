@@ -80,6 +80,7 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
   const pendingTextRef = useRef<string>('')
   const abortControllerRef = useRef<AbortController | null>(null)
   const segmentTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const isListeningRef = useRef<boolean>(false)
 
   const isSupported = hasMediaRecorder
 
@@ -204,9 +205,11 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
     }
   }, [isListening, sendToAI])
 
-  // KAN-17 FIX: Helper to transcribe a recorded segment via Whisper
+  // KAN-17 + KAN-185 FIX: Transcribe a recorded segment via Whisper
   const transcribeSegment = useCallback(async (audioBlob: Blob) => {
     try {
+      setCurrentInterim('Transcribing…')
+
       const arrayBuffer = await audioBlob.arrayBuffer()
       const base64 = btoa(
         new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
@@ -227,9 +230,18 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
         }),
       })
 
-      if (!res.ok) return
+      if (!res.ok) {
+        console.error(`[Interview] Transcription API error: ${res.status}`)
+        setError(`Transcription failed (${res.status}). Check your API key or try again.`)
+        setCurrentInterim(isListeningRef.current ? 'Listening…' : '')
+        return
+      }
+
       const data = await res.json()
-      if (!data.text?.trim()) return
+      if (!data.text?.trim()) {
+        setCurrentInterim(isListeningRef.current ? 'Listening…' : '')
+        return
+      }
 
       const finalText = data.text.trim()
       lastSpeechRef.current = Date.now()
@@ -241,9 +253,11 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
         timestamp: new Date(),
         isFinal: true,
       }])
-      setCurrentInterim('')
-    } catch (err) {
+      setCurrentInterim(isListeningRef.current ? 'Listening…' : '')
+    } catch (err: any) {
       console.error('[Interview] Transcription segment error:', err)
+      setError(`Transcription error: ${err.message}`)
+      setCurrentInterim(isListeningRef.current ? 'Listening…' : '')
     }
   }, [apiKey, apiUrl])
 
@@ -288,30 +302,52 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
         if (e.data.size > 0) chunksRef.current.push(e.data)
       }
 
+      // KAN-185 FIX: onstop handles blob creation and restarts recording.
+      // Previously, the segment timer cleared chunksRef and called start()
+      // synchronously after stop(), before dataavailable could deliver the
+      // audio data — causing all recorded audio to be lost.
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
         chunksRef.current = []
         if (blob.size > 0) transcribeSegment(blob)
+
+        // Restart recording if still listening (segment continuation)
+        if (isListeningRef.current && streamRef.current) {
+          try {
+            const next = new MediaRecorder(streamRef.current, { mimeType: 'audio/webm;codecs=opus' })
+            next.ondataavailable = (e) => {
+              if (e.data.size > 0) chunksRef.current.push(e.data)
+            }
+            next.onstop = recorder.onstop
+            next.onerror = recorder.onerror
+            mediaRecorderRef.current = next
+            next.start()
+          } catch (err) {
+            console.error('[Interview] Failed to restart recording:', err)
+          }
+        }
       }
 
       recorder.onerror = () => {
         setError('Microphone recording failed. Please check your audio settings.')
+        isListeningRef.current = false
         setIsListening(false)
       }
 
       recorder.start()
+      isListeningRef.current = true
       setIsListening(true)
       lastSpeechRef.current = Date.now()
       pendingTextRef.current = ''
       setCurrentInterim('Listening…')
       console.log('[Interview] MediaRecorder listening started')
 
-      // Auto-segment every 8 seconds for continuous transcription
+      // KAN-185 FIX: Timer only calls stop(). onstop handles blob processing
+      // and restarting. This prevents the race condition where start() was
+      // called before dataavailable delivered audio from the previous segment.
       segmentTimerRef.current = setInterval(() => {
         if (mediaRecorderRef.current?.state === 'recording') {
           mediaRecorderRef.current.stop()
-          chunksRef.current = []
-          mediaRecorderRef.current.start()
         }
       }, 8000)
 
@@ -327,7 +363,8 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
   }, [isSupported, transcribeSegment])
 
   const stopListening = useCallback(() => {
-    // KAN-17 FIX: Stop MediaRecorder and clean up stream
+    // KAN-185: Set ref FIRST so onstop knows not to restart
+    isListeningRef.current = false
     if (segmentTimerRef.current) {
       clearInterval(segmentTimerRef.current)
       segmentTimerRef.current = null
