@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Mic, MicOff, X, Play, Square, Trash2, ChevronDown, ChevronUp,
   Lightbulb, GraduationCap, Volume2, Loader2, AlertCircle,
@@ -58,6 +59,7 @@ type InterviewMode = 'realtime' | 'manual'
 const hasMediaRecorder = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
 
 export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: InterviewPanelProps) {
+  const { t } = useTranslation()
   const [isListening, setIsListening] = useState(false)
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
   const [currentInterim, setCurrentInterim] = useState('')
@@ -560,11 +562,11 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
               {transcript.length === 0 && !currentInterim && (
                 <div className="flex flex-col items-center justify-center h-full text-slate-500 text-center px-4">
                   <Mic className="w-8 h-8 mb-3 opacity-30" />
-                  <p className="text-sm font-medium">No transcript yet</p>
+                  <p className="text-sm font-medium">{t('interview.noTranscript')}</p>
                   <p className="text-xs mt-1">
                     {mode === 'realtime'
-                      ? 'Click the mic button to start listening to the interview'
-                      : 'Type a question below to get AI coaching'
+                      ? t('interview.clickMic')
+                      : t('interview.typeBelow')
                     }
                   </p>
                 </div>
@@ -625,7 +627,7 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
                     value={manualQuestion}
                     onChange={(e) => setManualQuestion(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
-                    placeholder="Type the interview question..."
+                    placeholder={t('interview.typeQuestion')}
                     className="flex-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
                   />
                   <button
@@ -633,13 +635,13 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
                     disabled={!manualQuestion.trim()}
                     className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
                   >
-                    Ask AI
+                    {t('interview.askAI')}
                   </button>
                 </div>
               )}
               {!isSupported && mode === 'realtime' && (
                 <p className="text-xs text-amber-400 mt-2 text-center">
-                  Speech recognition not available. Use "Type Question" mode instead.
+                  {t('interview.speechNotAvailable')}
                 </p>
               )}
             </div>

@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { 
   MessageSquare, 
   Plus, 
@@ -44,6 +45,7 @@ export function HistorySidebar({
   activeThreadId,
   refreshTrigger = 0
 }: HistorySidebarProps) {
+  const { t } = useTranslation()
   const [threads, setThreads] = useState<ChatThread[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -79,13 +81,20 @@ export function HistorySidebar({
 
   // Group threads by date (pinned threads shown separately at top)
   const groupedThreads = useMemo(() => {
+    const pinned = t('historySidebar.pinned')
+    const todayLabel = t('historySidebar.today')
+    const yesterdayLabel = t('historySidebar.yesterday')
+    const thisWeekLabel = t('historySidebar.thisWeek')
+    const thisMonthLabel = t('historySidebar.thisMonth')
+    const olderLabel = t('historySidebar.older')
+
     const groups: { [key: string]: ChatThread[] } = {
-      'Pinned': [],
-      'Today': [],
-      'Yesterday': [],
-      'This Week': [],
-      'This Month': [],
-      'Older': []
+      [pinned]: [],
+      [todayLabel]: [],
+      [yesterdayLabel]: [],
+      [thisWeekLabel]: [],
+      [thisMonthLabel]: [],
+      [olderLabel]: []
     }
 
     const now = new Date()
@@ -95,32 +104,31 @@ export function HistorySidebar({
     const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
 
     filteredThreads.forEach(thread => {
-      // Pinned threads go to top section
       if (thread.isPinned) {
-        groups['Pinned'].push(thread)
+        groups[pinned].push(thread)
         return
       }
       
       const threadDate = new Date(thread.updatedAt)
       if (threadDate >= today) {
-        groups['Today'].push(thread)
+        groups[todayLabel].push(thread)
       } else if (threadDate >= yesterday) {
-        groups['Yesterday'].push(thread)
+        groups[yesterdayLabel].push(thread)
       } else if (threadDate >= weekAgo) {
-        groups['This Week'].push(thread)
+        groups[thisWeekLabel].push(thread)
       } else if (threadDate >= monthAgo) {
-        groups['This Month'].push(thread)
+        groups[thisMonthLabel].push(thread)
       } else {
-        groups['Older'].push(thread)
+        groups[olderLabel].push(thread)
       }
     })
 
     return groups
-  }, [filteredThreads])
+  }, [filteredThreads, t])
 
   const handleDelete = async (threadId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (confirm('Delete this chat thread?')) {
+    if (confirm(t('historySidebar.deleteConfirm'))) {
       await window.electronAPI.history.deleteThread(threadId)
       loadThreads()
     }
@@ -164,7 +172,7 @@ export function HistorySidebar({
       <div className="flex items-center justify-between p-4 border-b border-[#2a2a4a]">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <Clock className="w-5 h-5 text-purple-400" />
-          Chat History
+          {t('historySidebar.title')}
         </h2>
         <button
           onClick={onClose}
@@ -181,7 +189,7 @@ export function HistorySidebar({
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-lg font-medium transition-all"
         >
           <Plus className="w-4 h-4" />
-          New Chat
+          {t('historySidebar.newChat')}
         </button>
       </div>
 
@@ -191,7 +199,7 @@ export function HistorySidebar({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
             type="text"
-            placeholder="Search chats..."
+            placeholder={t('historySidebar.search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-[#0d0d1a] border border-[#2a2a4a] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-sm"
@@ -203,13 +211,13 @@ export function HistorySidebar({
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center h-32 text-gray-500">
-            Loading...
+            {t('historySidebar.loading')}
           </div>
         ) : filteredThreads.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 text-gray-500 px-4 text-center">
             <MessageSquare className="w-8 h-8 mb-2 opacity-50" />
-            <p className="text-sm">No chat history yet</p>
-            <p className="text-xs mt-1">Start a new chat to begin</p>
+            <p className="text-sm">{t('historySidebar.noHistory')}</p>
+            <p className="text-xs mt-1">{t('historySidebar.startNew')}</p>
           </div>
         ) : (
           Object.entries(groupedThreads).map(([group, groupThreads]) => {
@@ -217,11 +225,11 @@ export function HistorySidebar({
             return (
               <div key={group}>
                 <div className={`px-4 py-2 text-xs font-medium uppercase tracking-wider ${
-                  group === 'Pinned' 
+                  group === t('historySidebar.pinned') 
                     ? 'bg-yellow-500/10 text-yellow-400 flex items-center gap-1.5' 
                     : 'bg-[#0d0d1a]/50 text-gray-500'
                 }`}>
-                  {group === 'Pinned' && <Star className="w-3 h-3 fill-current" />}
+                  {group === t('historySidebar.pinned') && <Star className="w-3 h-3 fill-current" />}
                   {group}
                 </div>
                 {groupThreads.map(thread => (
@@ -278,7 +286,7 @@ export function HistorySidebar({
                             <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
                               <span>{formatTime(thread.updatedAt)}</span>
                               <span>•</span>
-                              <span>{thread.messages.length} messages</span>
+                              <span>{thread.messages.length} {t('historySidebar.messages')}</span>
                               {thread.totalCost && (
                                 <>
                                   <span>•</span>
@@ -295,21 +303,21 @@ export function HistorySidebar({
                                   ? 'text-yellow-400 hover:text-yellow-300' 
                                   : 'text-gray-400 hover:text-yellow-400'
                               }`}
-                              title={thread.isPinned ? 'Unpin chat' : 'Pin chat'}
+                              title={thread.isPinned ? t('historySidebar.unpinChat') : t('historySidebar.pinChat')}
                             >
                               <Star className={`w-3.5 h-3.5 ${thread.isPinned ? 'fill-current' : ''}`} />
                             </button>
                             <button
                               onClick={(e) => startEditing(thread, e)}
                               className="p-1 text-gray-400 hover:text-white rounded"
-                              title="Rename chat"
+                              title={t('historySidebar.renameChat')}
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={(e) => handleDelete(thread.id, e)}
                               className="p-1 text-gray-400 hover:text-red-400 rounded"
-                              title="Delete chat"
+                              title={t('historySidebar.deleteChat')}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -327,7 +335,7 @@ export function HistorySidebar({
 
       {/* Footer */}
       <div className="p-3 border-t border-[#2a2a4a] text-xs text-gray-500 text-center">
-        {threads.length} chat{threads.length !== 1 ? 's' : ''} saved
+        {threads.length} {t('historySidebar.chatsSaved')}
       </div>
     </div>
   )
