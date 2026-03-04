@@ -133,7 +133,16 @@
     "unpinChat": "取消置頂",
     "renameChat": "重新命名聊天",
     "deleteChat": "刪除聊天",
-    "chatsSaved": "聊天已儲存"
+    "chatsSaved": "聊天已儲存",
+    "deleteAll": "Delete all chats",
+    "deleteAllTitle": "Delete All Chats",
+    "deleteAllMessage": "Are you sure you want to delete all chat history?",
+    "deleteAllDetail": "This will permanently remove all {{count}} conversations, including pinned chats. This action cannot be undone.",
+    "deleteAllConfirm": "Delete All",
+    "deleteSingleTitle": "Delete Chat",
+    "deleteSingleMessage": "Are you sure you want to delete this chat?",
+    "deleteSingleDetail": "This action cannot be undone.",
+    "deleteSingleConfirm": "Delete"
   },
   "interview": {
     "typeQuestion": "輸入面試問題...",

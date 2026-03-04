@@ -126,11 +126,52 @@ export function HistorySidebar({
     return groups
   }, [filteredThreads, t])
 
+  const showConfirmDialog = async (
+    title: string, message: string, detail: string, confirmLabel: string
+  ): Promise<boolean> => {
+    const electronAPI = (window as any).electronAPI
+    if (electronAPI?.dialog?.showMessage) {
+      const result = await electronAPI.dialog.showMessage({
+        type: 'warning',
+        title,
+        message,
+        detail,
+        buttons: ['Cancel', confirmLabel],
+        defaultId: 0,
+        cancelId: 0
+      })
+      return result.response === 1
+    }
+    return window.confirm(`${message}\n\n${detail}`)
+  }
+
   const handleDelete = async (threadId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (confirm(t('historySidebar.deleteConfirm'))) {
+    const confirmed = await showConfirmDialog(
+      t('historySidebar.deleteSingleTitle'),
+      t('historySidebar.deleteSingleMessage'),
+      t('historySidebar.deleteSingleDetail'),
+      t('historySidebar.deleteSingleConfirm')
+    )
+    if (confirmed) {
       await window.electronAPI.history.deleteThread(threadId)
       loadThreads()
+    }
+  }
+
+  const handleDeleteAll = async () => {
+    const confirmed = await showConfirmDialog(
+      t('historySidebar.deleteAllTitle'),
+      t('historySidebar.deleteAllMessage'),
+      t('historySidebar.deleteAllDetail', { count: threads.length }),
+      t('historySidebar.deleteAllConfirm')
+    )
+    if (!confirmed) return
+    try {
+      await window.electronAPI.history.clearAll()
+      loadThreads()
+    } catch (error) {
+      console.error('[HistorySidebar] Failed to clear all chats:', error)
     }
   }
 
@@ -334,8 +375,20 @@ export function HistorySidebar({
       </div>
 
       {/* Footer */}
-      <div className="p-3 border-t border-[#2a2a4a] text-xs text-gray-500 text-center">
-        {threads.length} {t('historySidebar.chatsSaved')}
+      <div className="p-3 border-t border-[#2a2a4a] flex items-center justify-between">
+        <span className="text-xs text-gray-500">
+          {threads.length} {t('historySidebar.chatsSaved')}
+        </span>
+        {threads.length > 0 && (
+          <button
+            onClick={handleDeleteAll}
+            className="flex items-center gap-1 px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
+            title={t('historySidebar.deleteAll')}
+          >
+            <Trash2 className="w-3 h-3" />
+            {t('historySidebar.deleteAllConfirm')}
+          </button>
+        )}
       </div>
     </div>
   )

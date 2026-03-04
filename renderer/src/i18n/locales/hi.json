@@ -133,7 +133,16 @@
     "unpinChat": "चैट अनपिन करें",
     "renameChat": "चैट का नाम बदलें",
     "deleteChat": "चैट हटाएं",
-    "chatsSaved": "चैट सेव हुईं"
+    "chatsSaved": "चैट सेव हुईं",
+    "deleteAll": "Delete all chats",
+    "deleteAllTitle": "Delete All Chats",
+    "deleteAllMessage": "Are you sure you want to delete all chat history?",
+    "deleteAllDetail": "This will permanently remove all {{count}} conversations, including pinned chats. This action cannot be undone.",
+    "deleteAllConfirm": "Delete All",
+    "deleteSingleTitle": "Delete Chat",
+    "deleteSingleMessage": "Are you sure you want to delete this chat?",
+    "deleteSingleDetail": "This action cannot be undone.",
+    "deleteSingleConfirm": "Delete"
   },
   "interview": {
     "typeQuestion": "साक्षात्कार का प्रश्न टाइप करें...",

@@ -133,7 +133,16 @@
     "unpinChat": "Frigør samtale",
     "renameChat": "Omdøb samtale",
     "deleteChat": "Slet samtale",
-    "chatsSaved": "samtaler gemt"
+    "chatsSaved": "samtaler gemt",
+    "deleteAll": "Delete all chats",
+    "deleteAllTitle": "Delete All Chats",
+    "deleteAllMessage": "Are you sure you want to delete all chat history?",
+    "deleteAllDetail": "This will permanently remove all {{count}} conversations, including pinned chats. This action cannot be undone.",
+    "deleteAllConfirm": "Delete All",
+    "deleteSingleTitle": "Delete Chat",
+    "deleteSingleMessage": "Are you sure you want to delete this chat?",
+    "deleteSingleDetail": "This action cannot be undone.",
+    "deleteSingleConfirm": "Delete"
   },
   "interview": {
     "typeQuestion": "Skriv interviewspørgsmålet...",

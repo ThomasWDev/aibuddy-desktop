@@ -133,7 +133,16 @@
     "unpinChat": "고정 해제",
     "renameChat": "대화 이름 변경",
     "deleteChat": "대화 삭제",
-    "chatsSaved": "대화 저장됨"
+    "chatsSaved": "대화 저장됨",
+    "deleteAll": "Delete all chats",
+    "deleteAllTitle": "Delete All Chats",
+    "deleteAllMessage": "Are you sure you want to delete all chat history?",
+    "deleteAllDetail": "This will permanently remove all {{count}} conversations, including pinned chats. This action cannot be undone.",
+    "deleteAllConfirm": "Delete All",
+    "deleteSingleTitle": "Delete Chat",
+    "deleteSingleMessage": "Are you sure you want to delete this chat?",
+    "deleteSingleDetail": "This action cannot be undone.",
+    "deleteSingleConfirm": "Delete"
   },
   "interview": {
     "typeQuestion": "면접 질문을 입력하세요...",

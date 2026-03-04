@@ -3,6 +3,63 @@ import { vi } from 'vitest'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, opts?: Record<string, any>) => {
+      const translations: Record<string, string> = {
+        'header.credits': 'Credits: {{amount}}',
+        'header.buyCredits': 'Buy Credits',
+        'header.new': 'New',
+        'header.openFolder': 'Open Folder',
+        'header.settings': 'Settings',
+        'header.moreActions': 'More actions',
+        'header.history': 'Chat History',
+        'header.interview': 'Interview Mode',
+        'welcome.hero.greeting': 'Hey there, Coder! 👋',
+        'welcome.hero.subtitle': "I'm your AI coding buddy! Let's build something awesome together! 🚀",
+        'welcome.hero.openProject': 'Open Project',
+        'welcome.hero.opening': 'Opening...',
+        'welcome.hero.openProjectDesc': 'Pick a folder with your code',
+        'welcome.hero.startChatting': 'Start Chatting',
+        'welcome.hero.startChattingDesc': 'Ask me anything about code!',
+        'welcome.hero.recentProjects': 'Recent Projects',
+        'welcome.hero.poweredBy': 'Powered by AIBuddy',
+        'welcome.hero.smartHelper': 'Smart Code Helper',
+        'welcome.hero.superFast': 'Super Fast',
+        'welcome.hero.footer': 'Made with 💖 for young coders',
+        'welcome.hero.apiKeySet': 'API Key Set',
+        'welcome.hero.noApiKey': 'No API Key',
+        'apiKey.title': 'API Key Required',
+        'apiKey.description': 'Add your AIBuddy API key to start chatting with AI',
+        'apiKey.addKey': 'Add Key',
+        'apiKey.configured': 'API Key configured',
+        'apiKey.notConfigured': 'Add your API key',
+        'status.ready': 'Ready',
+        'status.loading': 'Loading...',
+        'app.version': 'v{{version}}',
+        'historySidebar.deleteAllTitle': 'Delete All Chats',
+        'historySidebar.deleteAllMessage': 'Are you sure you want to delete all chat history?',
+        'historySidebar.deleteAllDetail': 'This will permanently remove all {{count}} conversations, including pinned chats. This action cannot be undone.',
+        'historySidebar.deleteAllConfirm': 'Delete All',
+        'historySidebar.deleteSingleTitle': 'Delete Chat',
+        'historySidebar.deleteSingleMessage': 'Are you sure you want to delete this chat?',
+        'historySidebar.deleteSingleDetail': 'This action cannot be undone.',
+        'historySidebar.deleteSingleConfirm': 'Delete',
+      }
+      let result = translations[key] || key
+      if (opts) {
+        Object.entries(opts).forEach(([k, v]) => {
+          result = result.replace(`{{${k}}}`, String(v))
+        })
+      }
+      return result
+    },
+    i18n: { language: 'en', changeLanguage: vi.fn() }
+  }),
+  Trans: ({ children }: any) => children,
+  initReactI18next: { type: '3rdParty', init: () => {} }
+}))
+
 vi.mock('electron', () => ({
   ipcMain: {
     handle: vi.fn(),
