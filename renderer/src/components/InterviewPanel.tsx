@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Mic, MicOff, X, Play, Square, Trash2, ChevronDown, ChevronUp,
   Lightbulb, GraduationCap, Volume2, Loader2, AlertCircle,
-  RotateCcw, Settings2, Clock, Copy, Check
+  RotateCcw, Settings2, Clock, Calendar, Copy, Check
 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 
@@ -716,11 +716,23 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
 
                       {!resp.isLoading && (
                         <>
-                          {(resp.cost || resp.tokensIn || resp.tokensOut || resp.responseTime) && (
+                          {(resp.cost || resp.tokensIn || resp.tokensOut || resp.responseTime || resp.timestamp) && (
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 pt-2 border-t border-slate-700/20 text-xs">
                               {typeof resp.cost === 'number' && (
                                 <span className="flex items-center gap-1 text-green-400/80">
                                   💲 ${resp.cost.toFixed(4)}
+                                </span>
+                              )}
+                              {typeof resp.responseTime === 'number' && (
+                                <span className="flex items-center gap-1 text-slate-500">
+                                  <Clock className="w-3 h-3" />
+                                  {resp.responseTime.toFixed(1)}s
+                                </span>
+                              )}
+                              {resp.timestamp && (
+                                <span className="flex items-center gap-1 text-slate-500">
+                                  <Calendar className="w-3 h-3" />
+                                  {resp.timestamp.toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
                                 </span>
                               )}
                               {(resp.tokensIn || resp.tokensOut) && (
@@ -739,12 +751,6 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
                                   )}
                                 </span>
                               )}
-                              {typeof resp.responseTime === 'number' && (
-                                <span className="flex items-center gap-1 text-slate-500">
-                                  <Clock className="w-3 h-3" />
-                                  {resp.responseTime.toFixed(1)}s
-                                </span>
-                              )}
                               {resp.model && (
                                 <span className="text-slate-600 text-[10px] bg-slate-800 px-1.5 py-0.5 rounded">
                                   {resp.model}
@@ -752,9 +758,6 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
                               )}
                             </div>
                           )}
-                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-700/20 text-xs text-slate-500">
-                            <span>{resp.timestamp.toLocaleString()}</span>
-                          </div>
                           <div className="flex items-center gap-2 mt-1">
                             <button
                               onClick={() => sendToAI(resp.question)}

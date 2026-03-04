@@ -38,7 +38,9 @@ import {
   FileCode, // KAN-6 FIX
   Menu, // KAN-42 FIX: Hamburger menu icon
   Square, // KAN-35 FIX: Stop button icon
-  GraduationCap // Interview Mode icon
+  GraduationCap, // Interview Mode icon
+  Clock,
+  Calendar
 } from 'lucide-react'
 import { CloudKnowledgePanel } from './components/knowledge'
 import { HistorySidebar } from './components/HistorySidebar'
@@ -269,6 +271,8 @@ interface Message {
   model?: string
   tokensIn?: number
   tokensOut?: number
+  responseTime?: number
+  timestamp?: string
   executionResults?: CommandResult[]
   images?: ImageAttachment[]
 }
@@ -3022,6 +3026,8 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         model: data.model,
         tokensIn: data.usage?.input_tokens,
         tokensOut: data.usage?.output_tokens,
+        responseTime,
+        timestamp: new Date().toISOString(),
         executionResults
       }
 
@@ -3038,7 +3044,9 @@ Be concise and actionable. Use an alternative approach, not the same commands th
             cost: data.api_cost,
             model: data.model,
             tokensIn: data.usage?.input_tokens,
-            tokensOut: data.usage?.output_tokens
+            tokensOut: data.usage?.output_tokens,
+            responseTime,
+            timestamp: assistantMessage.timestamp
           })
           // Update thread metadata with cost/tokens
           await window.electronAPI.history.updateMetadata(threadId, {
@@ -3342,13 +3350,27 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           </div>
         )}
         
-        {message.role === 'assistant' && (message.cost || message.tokensIn || message.tokensOut) && (
+        {message.role === 'assistant' && (message.cost || message.tokensIn || message.tokensOut || message.responseTime || message.timestamp) && (
           <div className="mt-3 pt-2 border-t border-slate-700">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
               {message.cost && (
                 <div className="flex items-center gap-1 text-green-400/80">
                   <Coins className="w-3 h-3" />
                   <span className="font-medium">${message.cost.toFixed(4)}</span>
+                </div>
+              )}
+
+              {typeof message.responseTime === 'number' && (
+                <div className="flex items-center gap-1 text-slate-500">
+                  <Clock className="w-3 h-3" />
+                  <span>{(message.responseTime / 1000).toFixed(1)}s</span>
+                </div>
+              )}
+
+              {message.timestamp && (
+                <div className="flex items-center gap-1 text-slate-500">
+                  <Calendar className="w-3 h-3" />
+                  <span>{new Date(message.timestamp).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</span>
                 </div>
               )}
               
