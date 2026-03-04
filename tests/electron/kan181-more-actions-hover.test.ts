@@ -58,12 +58,13 @@ describe('KAN-181: More Actions Button Hover Glitch', () => {
 
     it('Tooltip must not render when disabled is true', () => {
       // When disabled, the tooltip content should not render
+      // v2: CSS-only hover uses !disabled to conditionally render the tooltip element
       const tooltipComponent = APP_SOURCE.slice(
         APP_SOURCE.indexOf('function Tooltip('),
         APP_SOURCE.indexOf('function Tooltip(') + 1200
       )
 
-      expect(tooltipComponent).toMatch(/!disabled\s*&&\s*show|show\s*&&\s*!disabled/)
+      expect(tooltipComponent).toContain('!disabled')
     })
   })
 

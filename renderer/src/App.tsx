@@ -85,29 +85,25 @@ import { generateSystemPrompt, DESKTOP_PLATFORM_CONTEXT } from '../../src/consta
 import { appendIfNotDuplicate, isDuplicateFile } from './utils/file-dedup'
 
 // KAN-41 FIX: Professional tooltip — compact, non-overlapping, viewport-constrained
-// KAN-181 FIX: Added disabled prop to suppress tooltip when dropdown is open;
-// changed inline-block to inline-flex for correct sizing inside flex containers
+// KAN-181 v2 FIX: CSS-only hover via group/group-hover — eliminates React state
+// re-renders and the pointer-events-none flicker bug (mouseLeave fires when cursor
+// enters a pointer-events:none child, causing rapid show/hide cycles).
+// Uses opacity transition instead of mount/unmount for smooth animation.
 function Tooltip({ text, children, position = 'top', disabled = false }: { text: string; children: React.ReactNode; position?: 'top' | 'bottom' | 'left' | 'right'; disabled?: boolean }) {
-  const [show, setShow] = useState(false)
-  
   const positionStyles: Record<string, React.CSSProperties> = {
     top: { bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: '6px' },
     bottom: { top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '6px' },
     left: { right: '100%', top: '50%', transform: 'translateY(-50%)', marginRight: '6px' },
     right: { left: '100%', top: '50%', transform: 'translateY(-50%)', marginLeft: '6px' },
   }
-  
+
   return (
-    <div 
-      className="relative inline-flex"
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-    >
+    <div className="group relative inline-flex">
       {children}
-      {show && !disabled && (
-        <div 
-          className="absolute z-50 pointer-events-none"
-          style={{ 
+      {!disabled && (
+        <div
+          className="absolute z-[60] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+          style={{
             ...positionStyles[position],
             background: '#1e293b',
             color: '#e2e8f0',
