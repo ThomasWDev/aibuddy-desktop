@@ -111,7 +111,12 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
 
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({ message: 'Transcription failed' }))
-        throw new Error(errBody.message || `Server error ${res.status}`)
+        const rawMsg = errBody.message || `Server error ${res.status}`
+        // KAN-178: Replace raw backend validation errors with user-friendly messages
+        const friendlyMsg = rawMsg.includes('Messages array')
+          ? 'Transcription service temporarily unavailable. Please type your message instead.'
+          : rawMsg
+        throw new Error(friendlyMsg)
       }
 
       const data = await res.json()
