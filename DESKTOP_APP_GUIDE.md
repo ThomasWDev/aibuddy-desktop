@@ -1,6 +1,6 @@
 # AIBuddy Desktop IDE - Complete Guide
 
-**Version:** 1.5.91  
+**Version:** 1.5.92  
 **Last Updated:** March 4, 2026  
 **Repository:** https://github.com/ThomasWDev/aibuddy-desktop
 
@@ -496,7 +496,31 @@ When you want AIBuddy to **review or analyze a project that lives on your Deskto
 
 ---
 
-## Recent Fixes (v1.5.76 – post-v1.5.87)
+## Recent Fixes (v1.5.92 — March 4, 2026)
+
+| Ticket | Issue | Fix Summary |
+|--------|-------|-------------|
+| KAN-191 | No "Delete All Chats" option | Added bulk delete button with native Electron dialog, 9 i18n keys, 34 locales. 17 TDD tests |
+| KAN-180 | Token metrics lost after restart | Added missing fields to all 4 message hydration paths. 23 TDD tests |
+| KAN-179 | No response time display | Added `responseTime` + `timestamp` to Message interface + metadata row. 21 TDD tests |
+| KAN-21 | App not notarized (v2) | `notarize: false` + separate `xcrun notarytool submit` step. 35 TDD tests |
+| KAN-178 | Voice dictation "Messages required" | Added `mode=transcribe` early routing in backend. 16 TDD tests |
+| KAN-32 | File creation fails (v2) | `looksLikeShellCommand()` fallback for untagged code blocks. 41 TDD tests |
+| KAN-33 | 2-minute response time (v2) | Full streaming pipeline: backend SSE + Lambda RESPONSE_STREAM + frontend reader. 39 TDD tests |
+| KAN-95 | File attachment error (v3) | 6 Sentry-driven root causes fixed: array content, image transform, streaming rotation. 80 TDD tests |
+| KAN-182 | File picker images-only | `mainWindow` + `multiSelections` + code file routing via `CODE_FILE_EXTENSIONS`. 22 TDD tests |
+| KAN-181 | Tooltip hover flicker (v2) | CSS-only hover (`group-hover`), removed React state. 28 TDD tests |
+| KAN-185 | Interview audio race condition | Timer only calls `stop()`, restart in `onstop` handler. 9 TDD tests |
+| KAN-186 | Copy button broken | Electron clipboard fallback + "Copied!" feedback. 7 TDD tests |
+| KAN-187 | No cost/tokens in interview mode | Metadata row with cost, tokens, response time, model badge. 18 TDD tests |
+| KAN-188 | window.confirm behind overlay | Native `dialog.showMessage()` for interview mode clear. 7 TDD tests |
+| KAN-189 | API Key Modal out of sync | Masked preview + dynamic titles on open. 4 TDD tests |
+| KAN-190 | API Key chip not clickable | Changed `<span>` to `<button>` with settings click handler. 5 TDD tests |
+| KAN-193 | AWS URLs exposed in source | All URLs → `process.env` config, secrets redacted. 15 TDD tests |
+| CI | TypeScript errors blocking builds | Fixed 4 type errors in `App.tsx` + `aibuddy.ts`. All CI green |
+| CI | Notarize config mismatch | `mac.notarize: false` + `APPLE_API_KEY_ISSUER` env var fix |
+
+### Older Fixes (v1.5.76 – v1.5.87)
 
 | Ticket | Issue | Fix Summary |
 |--------|-------|-------------|
@@ -505,10 +529,10 @@ When you want AIBuddy to **review or analyze a project that lives on your Deskto
 | KAN-45 | File reported created but not on disk | Post-write verification + `path.join()` + workspace boundary enforcement |
 | KAN-59 | Copy text not working on Mac | macOS app menu fix + Electron clipboard IPC fallback |
 | KAN-62 | Microphone error recording voice | `systemPreferences.askForMediaAccess('microphone')` + IPC for status |
-| KAN-95 | Server error with file attachment | Backend `transformImagesForProvider()` + truncation fix `'image'` (not `'image_url'`) |
+| KAN-95 | Server error with file attachment (v1) | Backend `transformImagesForProvider()` + truncation fix |
 | KAN-17 | "Network error" on Voice Dictation | Replaced Web Speech API with `MediaRecorder` + backend Whisper transcription |
 | KAN-97 | Share modal copy fails | Added `electronAPI.clipboard.writeText()` nested try-catch fallback |
-| KAN-21 | App not notarized (Gatekeeper) | Explicit notarize config `{ teamId }` + CI env vars for API key + fallback password |
+| KAN-21 | App not notarized (v1) | Initial notarize config + CI env vars |
 | KAN-96 | Separate image/file upload buttons | Unified Paperclip button with auto-detect routing |
 
 ### Voice Dictation Architecture (KAN-17)
@@ -522,14 +546,27 @@ The desktop app uses `MediaRecorder` + OpenAI Whisper for voice input (Web Speec
 
 The `InterviewPanel` uses the same pattern with 8-second auto-segmentation for continuous transcription.
 
-### Notarization (KAN-21)
+### Notarization (KAN-21) — Updated March 4, 2026
 
-macOS DMGs must be Apple-notarized to pass Gatekeeper. Configuration:
+macOS DMGs must be Apple-notarized to pass Gatekeeper. Our approach uses **two-phase signing**:
 
-- **`package.json`**: `"notarize": { "teamId": "S2237D23CB" }` (not a boolean)
-- **CI primary**: `APPLE_API_KEY` (`.p8` file), `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`
-- **CI fallback**: `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`
-- **Local**: `xcrun notarytool` with `AIBuddy-notarize` Keychain profile
+1. **Phase 1 — Code Signing** (electron-builder): `package.json` has `"notarize": false` (boolean). electron-builder 26.7.0 only accepts a boolean here. Signing uses `CSC_LINK` (base64 .p12) + `CSC_KEY_PASSWORD` + `APPLE_TEAM_ID`.
+2. **Phase 2 — Notarization** (separate CI step): `xcrun notarytool submit` with `--key AuthKey.p8 --key-id $APPLE_API_KEY_ID --issuer $APPLE_API_KEY_ISSUER --wait`, followed by `xcrun stapler staple`.
+
+**Why not electron-builder's built-in notarize?** electron-builder's notarize API changed between versions (object → boolean). The separate `xcrun notarytool` step gives full control over retries, logging, and env var naming.
+
+| Env Var | Purpose |
+|---------|---------|
+| `CSC_LINK` | Base64-encoded .p12 signing certificate |
+| `CSC_KEY_PASSWORD` | Certificate password |
+| `APPLE_TEAM_ID` | Team ID for code signing |
+| `APPLE_API_KEY_ID` | API key identifier for notarization |
+| `APPLE_API_KEY_ISSUER` | Issuer UUID (note: `_KEY_` in name — electron-builder requires this exact format) |
+| `APP_STORE_AUTH_KEY` | Base64-encoded AuthKey .p8 file |
+
+**Local notarization**: `xcrun notarytool` with `AIBuddy-notarize` Keychain profile
+
+**Lesson learned:** `APPLE_API_ISSUER` (without `_KEY_`) is wrong and causes electron-builder to fall back to `APPLE_APP_SPECIFIC_PASSWORD`. Always use `APPLE_API_KEY_ISSUER`.
 
 ### Clipboard (KAN-97)
 
