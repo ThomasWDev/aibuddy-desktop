@@ -12,7 +12,7 @@ export interface ElectronAPI {
   // Dialog operations
   dialog: {
     openFolder: (defaultPath?: string | null) => Promise<string | null>
-    openFile: (filters?: Electron.FileFilter[]) => Promise<string | null>
+    openFile: (filters?: Electron.FileFilter[]) => Promise<string[] | null>
     saveFile: (defaultPath?: string) => Promise<string | null>
     showMessage: (options: Electron.MessageBoxOptions) => Promise<Electron.MessageBoxReturnValue>
   }

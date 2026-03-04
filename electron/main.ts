@@ -730,11 +730,16 @@ function initMainProcessHandlers(): void {
   })
 
   ipcMain.handle('dialog:openFile', async (_event, filters?: Electron.FileFilter[]) => {
-    const result = await dialog.showOpenDialog({
-      properties: ['openFile'],
+    // KAN-182: Pass mainWindow for proper macOS sheet behavior and filter rendering.
+    // Include multiSelections so users can attach multiple files at once.
+    const options: Electron.OpenDialogOptions = {
+      properties: ['openFile', 'multiSelections'],
       filters
-    })
-    return result.canceled ? null : result.filePaths[0]
+    }
+    const result = mainWindow
+      ? await dialog.showOpenDialog(mainWindow, options)
+      : await dialog.showOpenDialog(options)
+    return result.canceled ? null : result.filePaths
   })
 
   ipcMain.handle('dialog:saveFile', async (_event, defaultPath?: string) => {
