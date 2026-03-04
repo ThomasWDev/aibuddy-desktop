@@ -40,6 +40,10 @@ const defaultProps = {
 describe('KAN-191: Delete All Chats', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(window.electronAPI.history.getThreads).mockReset().mockResolvedValue([])
+    vi.mocked(window.electronAPI.history.clearAll).mockReset().mockResolvedValue(true)
+    vi.mocked(window.electronAPI.history.deleteThread).mockReset().mockResolvedValue(true)
+    vi.mocked(window.electronAPI.dialog.showMessage).mockReset().mockResolvedValue({ response: 0 })
   })
 
   describe('Delete All button visibility', () => {
@@ -199,13 +203,13 @@ describe('KAN-191: Delete All Chats', () => {
       render(<HistorySidebar {...defaultProps} />)
 
       await waitFor(() => {
-        expect(screen.getByText(/3/)).toBeInTheDocument()
+        expect(screen.getByText(/^3\s.*chatsSaved/)).toBeInTheDocument()
       })
 
       fireEvent.click(screen.getByTitle('historySidebar.deleteAll'))
 
       await waitFor(() => {
-        expect(screen.getByText(/0/)).toBeInTheDocument()
+        expect(screen.getByText(/^0\s.*chatsSaved/)).toBeInTheDocument()
       })
     })
   })

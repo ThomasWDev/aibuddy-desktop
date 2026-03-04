@@ -21,8 +21,9 @@ describe("KAN-34: JSON parse error from HTML server responses must be handled gr
 	})
 
 	it("must set error status on parse failure", () => {
-		const catchBlock = appSrc.match(/catch\s*\(parseErr\)[\s\S]{0,500}/)
-		expect(catchBlock).toBeTruthy()
-		expect(catchBlock![0]).toContain("setStatus('error')")
+		const allMatches = [...appSrc.matchAll(/catch\s*\(parseErr\)[\s\S]{0,500}/g)]
+		const jsonParseCatch = allMatches.find(m => m[0].includes('JSON parse failed'))
+		expect(jsonParseCatch).toBeTruthy()
+		expect(jsonParseCatch![0]).toContain("setStatus('error')")
 	})
 })

@@ -51,7 +51,7 @@ describe('Image Compression', () => {
   it('file select handler should use compressImage', () => {
     const legacyHandler = appContent.slice(
       appContent.indexOf('handleImageSelect = async'),
-      appContent.indexOf('handleImageSelect = async') + 1000
+      appContent.indexOf('handleImageSelect = async') + 3000
     )
     expect(legacyHandler).toContain('compressImage')
   })

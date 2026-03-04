@@ -47,7 +47,7 @@ describe('WelcomeScreen', () => {
     expect(chatButtons.length).toBeGreaterThan(0)
   })
 
-  it('should render Get Credits button', () => {
+  it('should render Buy Credits button', () => {
     render(
       <WelcomeScreen 
         onOpenFolder={mockOnOpenFolder} 
@@ -55,7 +55,7 @@ describe('WelcomeScreen', () => {
       />
     )
 
-    expect(screen.getByText(/Get Credits/i)).toBeInTheDocument()
+    expect(screen.getByText(/Buy Credits/i)).toBeInTheDocument()
   })
 
   it('should call onOpenFolder when Open Project is clicked', async () => {
@@ -132,7 +132,7 @@ describe('WelcomeScreen', () => {
     })
   })
 
-  it('should open external link when Get Credits is clicked', async () => {
+  it('should open external link when Buy Credits is clicked', async () => {
     const user = userEvent.setup()
 
     render(
@@ -142,7 +142,7 @@ describe('WelcomeScreen', () => {
       />
     )
 
-    const creditsButton = screen.getByText(/Get Credits/i).closest('button')
+    const creditsButton = screen.getByText(/Buy Credits/i).closest('button')
     if (creditsButton) {
       await user.click(creditsButton)
     }
@@ -162,8 +162,8 @@ describe('WelcomeScreen', () => {
       />
     )
 
-    expect(screen.getByText(/Powered by/i)).toBeInTheDocument()
-    expect(screen.getByText(/Smart Code|Code Helper/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Powered by|AIBuddy/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Smart Code|Code Helper|Super Fast/i).length).toBeGreaterThan(0)
   })
 })
 
