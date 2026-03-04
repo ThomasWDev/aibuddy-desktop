@@ -75,6 +75,7 @@ import {
 import { 
   AIBUDDY_BUY_CREDITS_URL, 
   AIBUDDY_API_INFERENCE_URL,
+  AIBUDDY_API_STREAM_URL,
   AIBUDDY_WEBSITE 
 } from '../../src/constants/urls'
 
@@ -2691,6 +2692,91 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           toast.info(`📋 Trimmed conversation history to fit server limits (${conversationMsgs.length} messages kept)`)
         }
 
+        // KAN-33 v2: Attempt streaming first for real-time token display
+        let streamingSucceeded = false
+        let streamData: any = null
+        const streamMsgId = `stream-${Date.now()}`
+
+        try {
+          const streamResponse = await fetch(AIBUDDY_API_STREAM_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-AIBuddy-API-Key': apiKey || '',
+              'X-Requested-With': 'AIBuddy-Desktop',
+              'User-Agent': `AIBuddy-Desktop/${appVersion || 'unknown'}`,
+            },
+            body: serializedBody,
+            signal: controller.signal
+          })
+
+          if (streamResponse.ok && streamResponse.body) {
+            const reader = streamResponse.body.getReader()
+            const decoder = new TextDecoder()
+            let accumulatedText = ''
+            let streamMetadata: any = {}
+
+            setMessages(prev => [...prev, {
+              id: streamMsgId, role: 'assistant' as const, content: ''
+            }])
+            setStatus('generating')
+
+            let buffer = ''
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+
+              buffer += decoder.decode(value, { stream: true })
+              const lines = buffer.split('\n')
+              buffer = lines.pop() || ''
+
+              for (const line of lines) {
+                if (!line.startsWith('data: ')) continue
+                const payload = line.slice(6).trim()
+                if (payload === '[DONE]') continue
+                try {
+                  const event = JSON.parse(payload)
+                  if (event.type === 'delta' && event.text) {
+                    accumulatedText += event.text
+                    setMessages(prev => prev.map(m =>
+                      m.id === streamMsgId ? { ...m, content: accumulatedText } : m
+                    ))
+                  } else if (event.type === 'stream_end') {
+                    streamMetadata = event
+                  } else if (event.type === 'error') {
+                    throw new Error(event.message || 'Stream error')
+                  }
+                } catch (parseErr) {
+                  if ((parseErr as Error).message?.includes('Stream error')) throw parseErr
+                }
+              }
+            }
+
+            if (accumulatedText.length > 0) {
+              streamingSucceeded = true
+              streamData = {
+                success: true,
+                response: accumulatedText,
+                model: streamMetadata.model,
+                usage: streamMetadata.usage,
+                remaining_credits: streamMetadata.remaining_credits,
+                api_cost: streamMetadata.cost,
+                provider: streamMetadata.provider,
+                request_id: streamMetadata.request_id,
+              }
+              setMessages(prev => prev.filter(m => m.id !== streamMsgId))
+              console.log(`[App] Streaming succeeded: ${accumulatedText.length} chars, model: ${streamMetadata.model}`)
+            }
+          }
+        } catch (streamError: any) {
+          console.log('[App] Streaming fallback:', streamError.message)
+          setMessages(prev => prev.filter(m => m.id !== streamMsgId))
+          addBreadcrumb('Streaming failed, using non-streaming fallback', 'api.fallback', {
+            error: streamError.message
+          })
+        }
+
+        if (!streamingSucceeded) {
         response = await fetch(AIBUDDY_API_INFERENCE_URL, {
           method: 'POST',
           headers: {
@@ -2702,6 +2788,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           body: serializedBody,
           signal: controller.signal
         })
+        }
 
         clearTimeout(timeoutId)
         
@@ -2737,6 +2824,20 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         throw fetchError
       }
 
+      // KAN-33 v2: If streaming succeeded, use stream data; otherwise parse non-streaming response
+      const responseTime = Date.now() - startTime
+      let data: any
+
+      if (streamingSucceeded && streamData) {
+        data = streamData
+        console.log('[App] Using streaming response data')
+        addBreadcrumb('Streaming response used', 'api.response', {
+          responseTime,
+          model: streamData.model,
+          streaming: true
+        })
+        setStatus('generating')
+      } else {
       // If no response
       if (!response) {
         console.error('[App] No response received')
@@ -2746,7 +2847,6 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         return
       }
 
-      const responseTime = Date.now() - startTime
       console.log('[App] API response status:', response.status)
       
       // Track response status
@@ -2758,8 +2858,6 @@ Be concise and actionable. Use an alternative approach, not the same commands th
 
       // Handle specific HTTP errors with user-friendly messages
       if (response.status === 504) {
-        // Gateway Timeout - shouldn't happen with ALB (no timeout limit)
-        // But handle it just in case
         toast.error('⏱️ Request timed out. The AI is taking too long. Try a simpler question.')
         addBreadcrumb('Gateway timeout', 'api.error', { status: 504, responseTime })
         setStatus('idle')
@@ -2808,7 +2906,6 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       
       // KAN-34 FIX: Wrap JSON parsing with try-catch for HTML error pages
       const JSON_PARSE_TIMEOUT = 60_000
-      let data: any
       try {
         data = await Promise.race([
           response.json(),
@@ -2824,6 +2921,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         setIsLoading(false)
         return
       }
+      } // end non-streaming block
       console.log('[App] API response data:', data)
 
       // KAN-31 FIX: Check for API-level errors in response body
