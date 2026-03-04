@@ -82,7 +82,9 @@ import { generateSystemPrompt, DESKTOP_PLATFORM_CONTEXT } from '../../src/consta
 import { appendIfNotDuplicate, isDuplicateFile } from './utils/file-dedup'
 
 // KAN-41 FIX: Professional tooltip — compact, non-overlapping, viewport-constrained
-function Tooltip({ text, children, position = 'top' }: { text: string; children: React.ReactNode; position?: 'top' | 'bottom' | 'left' | 'right' }) {
+// KAN-181 FIX: Added disabled prop to suppress tooltip when dropdown is open;
+// changed inline-block to inline-flex for correct sizing inside flex containers
+function Tooltip({ text, children, position = 'top', disabled = false }: { text: string; children: React.ReactNode; position?: 'top' | 'bottom' | 'left' | 'right'; disabled?: boolean }) {
   const [show, setShow] = useState(false)
   
   const positionStyles: Record<string, React.CSSProperties> = {
@@ -94,12 +96,12 @@ function Tooltip({ text, children, position = 'top' }: { text: string; children:
   
   return (
     <div 
-      className="relative inline-block"
+      className="relative inline-flex"
       onMouseEnter={() => setShow(true)}
       onMouseLeave={() => setShow(false)}
     >
       {children}
-      {show && (
+      {show && !disabled && (
         <div 
           className="absolute z-50 pointer-events-none"
           style={{ 
@@ -236,14 +238,19 @@ interface CodeFileAttachment {
 // Code file extensions and their languages
 const CODE_FILE_EXTENSIONS: Record<string, string> = {
   'ts': 'typescript', 'tsx': 'typescript', 'js': 'javascript', 'jsx': 'javascript',
-  'py': 'python', 'java': 'java', 'cpp': 'cpp', 'c': 'c', 'h': 'c',
+  'py': 'python', 'java': 'java', 'cpp': 'cpp', 'c': 'c', 'h': 'c', 'hpp': 'cpp',
   'cs': 'csharp', 'go': 'go', 'rs': 'rust', 'rb': 'ruby', 'php': 'php',
-  'swift': 'swift', 'kt': 'kotlin', 'scala': 'scala', 'r': 'r',
+  'swift': 'swift', 'kt': 'kotlin', 'kts': 'kotlin', 'scala': 'scala', 'r': 'r',
+  'gradle': 'groovy', 'groovy': 'groovy',
   'sql': 'sql', 'sh': 'bash', 'bash': 'bash', 'zsh': 'bash',
   'html': 'html', 'css': 'css', 'scss': 'scss', 'sass': 'sass', 'less': 'less',
   'json': 'json', 'yaml': 'yaml', 'yml': 'yaml', 'xml': 'xml',
-  'md': 'markdown', 'txt': 'text', 'env': 'env', 'conf': 'config',
-  'dockerfile': 'dockerfile', 'makefile': 'makefile', 'cmake': 'cmake'
+  'toml': 'toml', 'ini': 'ini', 'cfg': 'config', 'properties': 'properties',
+  'md': 'markdown', 'txt': 'text', 'env': 'env', 'conf': 'config', 'log': 'text',
+  'tf': 'hcl', 'hcl': 'hcl',
+  'lock': 'text', 'gitignore': 'text', 'editorconfig': 'text',
+  'dockerfile': 'dockerfile', 'makefile': 'makefile', 'cmake': 'cmake',
+  'vue': 'vue', 'svelte': 'svelte', 'astro': 'astro',
 }
 
 export interface OpenFile {
@@ -3546,7 +3553,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 setWorkspacePath(null)
                 setChatWithoutWorkspace(false)
               }}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-xl font-semibold text-xs transition-all hover:scale-105 h-8"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-xl font-semibold text-xs transition-all hover:brightness-125 h-8"
               style={{
                 background: 'rgba(255,255,255,0.08)',
                 border: '1px solid rgba(255,255,255,0.15)',
@@ -3580,7 +3587,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 toast.info(t('chat.startedNewChat'))
                 addBreadcrumb('New chat from header button', 'ui.action')
               }}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl font-semibold text-xs transition-all hover:scale-105 h-8"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl font-semibold text-xs transition-all hover:brightness-125 h-8"
               style={{
                 background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
                 color: 'white',
@@ -3649,7 +3656,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 trackButtonClick('History', 'App')
                 setShowHistory(true)
               }}
-              className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:scale-105"
+              className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:brightness-125"
               style={{ 
                 background: showHistory ? 'rgba(6, 182, 212, 0.3)' : 'rgba(6, 182, 212, 0.1)',
                 border: '1px solid rgba(6, 182, 212, 0.4)',
@@ -3666,7 +3673,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 trackButtonClick('Interview Mode', 'App')
                 setShowInterviewMode(true)
               }}
-              className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:scale-105"
+              className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:brightness-125"
               style={{ 
                 background: showInterviewMode ? 'rgba(168, 85, 247, 0.3)' : 'rgba(168, 85, 247, 0.1)',
                 border: '1px solid rgba(168, 85, 247, 0.4)',
@@ -3683,7 +3690,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 trackButtonClick('Settings', 'App', { hasApiKey: !!apiKey })
                 setShowSettings(true)
               }}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl font-semibold text-xs transition-all hover:scale-105 h-8"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl font-semibold text-xs transition-all hover:brightness-125 h-8"
               style={{ 
                 background: 'rgba(100, 116, 139, 0.2)',
                 color: '#94a3b8',
@@ -3696,11 +3703,12 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           </Tooltip>
 
           {/* KAN-42 FIX: Hamburger menu for secondary actions */}
+          {/* KAN-181 FIX: disabled tooltip when menu open; hover:brightness instead of hover:scale to prevent layout reflow */}
           <div className="relative" ref={moreMenuRef}>
-            <Tooltip text="More actions" position="bottom">
+            <Tooltip text="More actions" position="bottom" disabled={showMoreMenu}>
               <button
                 onClick={() => setShowMoreMenu(!showMoreMenu)}
-                className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:scale-105"
+                className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:brightness-125"
                 style={{ 
                   background: showMoreMenu ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
                   border: '1px solid rgba(255,255,255,0.2)',
