@@ -321,14 +321,27 @@ function parseCodeBlocks(content: string): { language: string; code: string }[] 
     const language = match[1].toLowerCase()
     const code = match[2].trim()
     
-    // ONLY include explicitly marked shell/bash commands
-    // Do NOT include blocks without a language tag (they're usually output examples)
     if (['bash', 'sh', 'shell', 'zsh'].includes(language)) {
+      blocks.push({ language: 'bash', code })
+    } else if (looksLikeShellCommand(code)) {
+      // KAN-32 v2: Capture blocks containing heredoc or shell commands even
+      // without a bash tag — AI sometimes omits the tag or uses the content
+      // language (e.g. ```c for a heredoc creating a C file)
       blocks.push({ language: 'bash', code })
     }
   }
   
   return blocks
+}
+
+// KAN-32 v2: Detect heredoc / shell commands in code blocks missing a bash tag
+function looksLikeShellCommand(code: string): boolean {
+  const firstLine = code.split('\n')[0].trim()
+  // Heredoc patterns: cat > file << 'EOF', tee file << 'EOF'
+  if (/cat\s+.*<<|tee\s+.*<</.test(code)) return true
+  // Common shell commands at the start of the block
+  if (/^(mkdir|cat|chmod|cd|cp|mv|rm|touch|echo|npm|npx|yarn|pnpm|pip|git|curl|wget|apt|brew|make)\b/.test(firstLine)) return true
+  return false
 }
 
 // Extract individual commands from a code block
