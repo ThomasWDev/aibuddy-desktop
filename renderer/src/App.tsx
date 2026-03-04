@@ -1535,12 +1535,12 @@ function App() {
       addBreadcrumb('Opening image file dialog', 'ui.action', { action: 'openFile' })
       
       // Use Electron's native dialog to select images (fixes macOS sandbox issue)
-      let filePath: string | null = null
+      let filePaths: string[] | null = null
       try {
-        filePath = await window.electronAPI.dialog.openFile([
+        filePaths = await window.electronAPI.dialog.openFile([
           { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }
         ])
-        console.log('[ImageSelect] Dialog returned:', filePath ? 'path received' : 'cancelled/null')
+        console.log('[ImageSelect] Dialog returned:', filePaths ? `${filePaths.length} path(s)` : 'cancelled/null')
       } catch (dialogError) {
         console.error('[ImageSelect] Dialog threw error:', dialogError)
         addBreadcrumb('Image dialog threw error', 'error', { error: (dialogError as Error).message }, 'error')
@@ -1548,12 +1548,13 @@ function App() {
         return
       }
       
-      if (!filePath) {
+      if (!filePaths || filePaths.length === 0) {
         console.log('[ImageSelect] User cancelled dialog')
         addBreadcrumb('Image dialog cancelled by user', 'ui.action')
-        return // User cancelled
+        return
       }
       
+      const filePath = filePaths[0]
       console.log('[ImageSelect] Image selected:', filePath)
       addBreadcrumb('Image file selected', 'ui.action', { path: filePath })
       
@@ -1704,13 +1705,13 @@ function App() {
       
       addBreadcrumb('Opening code file dialog', 'ui.action', { action: 'openFile', extensionCount: codeExtensions.length })
       
-      let filePath: string | null = null
+      let codePaths: string[] | null = null
       try {
-        filePath = await window.electronAPI.dialog.openFile([
+        codePaths = await window.electronAPI.dialog.openFile([
           { name: 'Code Files', extensions: codeExtensions },
           { name: 'All Files', extensions: ['*'] }
         ])
-        console.log('[CodeFileSelect] Dialog returned:', filePath ? 'path received' : 'cancelled/null')
+        console.log('[CodeFileSelect] Dialog returned:', codePaths ? `${codePaths.length} path(s)` : 'cancelled/null')
       } catch (dialogError) {
         console.error('[CodeFileSelect] Dialog threw error:', dialogError)
         addBreadcrumb('Dialog threw error', 'error', { error: (dialogError as Error).message }, 'error')
@@ -1718,12 +1719,13 @@ function App() {
         return
       }
       
-      if (!filePath) {
+      if (!codePaths || codePaths.length === 0) {
         console.log('[CodeFileSelect] User cancelled dialog')
         addBreadcrumb('Code file dialog cancelled by user', 'ui.action')
-        return // User cancelled
+        return
       }
       
+      const filePath = codePaths[0]
       console.log('[CodeFileSelect] File selected:', filePath)
       addBreadcrumb('Code file selected', 'ui.action', { path: filePath })
       
@@ -2669,6 +2671,9 @@ Be concise and actionable. Use an alternative approach, not the same commands th
 
       let serializedBody = JSON.stringify(requestBody)
 
+      let streamingSucceeded = false
+      let streamData: any = null
+
       try {
         toast.info(`🚀 Sending to AI...`)
         userAbortedRef.current = false // KAN-98 FIX: Reset user-abort flag for each request
@@ -2737,8 +2742,6 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         }
 
         // KAN-33 v2: Attempt streaming first for real-time token display
-        let streamingSucceeded = false
-        let streamData: any = null
         const streamMsgId = `stream-${Date.now()}`
 
         try {
@@ -2978,13 +2981,13 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         if (apiError) {
           const userMessage = mapErrorToUserMessage(apiError)
           const chatContent = formatErrorForChat(userMessage)
-          const canRetry = isRetryableError(apiError, response.status)
+          const canRetry = isRetryableError(apiError, response!.status)
           
           // Track error details for debugging
           addBreadcrumb('API error response', 'api.error', {
             errorCode: apiError.error,
             errorMessage: apiError.message,
-            httpStatus: response.status,
+            httpStatus: response!.status,
             canRetry,
             responseTime
           }, 'error')
@@ -3023,13 +3026,13 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         model: data.model || 'unknown',
         outputTokens: data.usage?.output_tokens || 0,
         responseTime,
-        success: response.ok && !data.error
+        success: (response?.ok ?? streamingSucceeded) && !data.error
       })
 
       // Track slow operations
       trackSlowOperation('AI Response', responseTime, 5000, {
         model: data.model,
-        status: response.status
+        status: response?.status ?? 200
       })
 
       // Update credits
