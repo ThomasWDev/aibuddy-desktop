@@ -167,7 +167,7 @@ export class AIBuddyClient {
 
   // API Gateway endpoint - HTTPS required for Electron CSP
   // Note: Has 29-second timeout, but most requests complete faster
-  constructor(baseUrl = 'https://i6f81wuqo0.execute-api.us-east-2.amazonaws.com/dev/v1/inference') {
+  constructor(baseUrl = process.env.AIBUDDY_APIGW_URL ? `${process.env.AIBUDDY_APIGW_URL}/v1/inference` : '') {
     this.baseUrl = baseUrl
   }
 

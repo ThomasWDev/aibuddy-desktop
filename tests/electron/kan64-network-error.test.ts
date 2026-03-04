@@ -27,13 +27,14 @@ const urlsTs = readFileSync(resolve(ROOT, 'src/constants/urls.ts'), 'utf-8')
 const appTsx = readFileSync(resolve(ROOT, 'renderer/src/App.tsx'), 'utf-8')
 
 describe('KAN-64: API URL Configuration', () => {
-  it('uses the current ALB URL (not the decommissioned one)', () => {
-    expect(urlsTs).toContain('aibuddy-api-alb-90164252')
-    expect(urlsTs).not.toContain('aibuddy-api-all-981625629')
+  it('ALB URL is loaded from environment variable (KAN-193)', () => {
+    expect(urlsTs).toContain('process.env.AIBUDDY_ALB_URL')
+    expect(urlsTs).not.toMatch(/aibuddy-api-alb-\d+\.us-east-2\.elb\.amazonaws\.com/)
   })
 
-  it('ALB URL is HTTP (not HTTPS) — required for no-timeout Lambda support', () => {
-    expect(urlsTs).toMatch(/AIBUDDY_ALB_URL\s*=\s*'http:\/\//)
+  it('ALB URL is not hardcoded — loaded from env at runtime', () => {
+    expect(urlsTs).toContain('ENV_ALB_URL')
+    expect(urlsTs).toContain('process.env')
   })
 
   it('API inference URL is derived from ALB URL', () => {

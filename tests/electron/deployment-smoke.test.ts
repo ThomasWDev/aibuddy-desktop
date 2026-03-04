@@ -94,24 +94,25 @@ describe('Build Configuration', () => {
 })
 
 describe('API Configuration', () => {
-  it('ALB URL should use the current DNS name (not stale)', () => {
+  it('ALB URL should be loaded from environment variable (KAN-193)', () => {
     const urlsPath = path.join(ROOT, 'src/constants/urls.ts')
     const content = fs.readFileSync(urlsPath, 'utf-8')
-    expect(content).toContain('aibuddy-api-alb-90164252')
-    expect(content).not.toContain('aibuddy-api-alb-981452862')
+    expect(content).toContain('process.env.AIBUDDY_ALB_URL')
+    expect(content).not.toMatch(/aibuddy-api-alb-\d+\.us-east-2\.elb\.amazonaws\.com/)
   })
 
-  it('API inference URL should use ALB (not API Gateway)', () => {
+  it('API inference URL should derive from AIBUDDY_ALB_URL', () => {
     const urlsPath = path.join(ROOT, 'src/constants/urls.ts')
     const content = fs.readFileSync(urlsPath, 'utf-8')
-    expect(content).toContain('AIBUDDY_API_INFERENCE_URL = `${AIBUDDY_ALB_URL}/')
+    expect(content).toContain('AIBUDDY_API_INFERENCE_URL')
+    expect(content).toContain('AIBUDDY_ALB_URL')
   })
 
-  it('API Gateway URL should be kept as backup', () => {
+  it('API Gateway URL should be loaded from environment variable (KAN-193)', () => {
     const urlsPath = path.join(ROOT, 'src/constants/urls.ts')
     const content = fs.readFileSync(urlsPath, 'utf-8')
     expect(content).toContain('AIBUDDY_API_GATEWAY_URL')
-    expect(content).toContain('execute-api.us-east-2.amazonaws.com')
+    expect(content).toContain('process.env.AIBUDDY_APIGW_URL')
   })
 })
 

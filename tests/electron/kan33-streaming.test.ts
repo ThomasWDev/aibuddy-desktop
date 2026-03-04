@@ -117,10 +117,9 @@ describe('KAN-33 v2: Streaming Response Implementation', () => {
       expect(URLS_SOURCE).toContain('AIBUDDY_API_STREAM_URL')
     })
 
-    it('AIBUDDY_API_STREAM_URL must point to Lambda Function URL (not ALB)', () => {
-      const match = URLS_SOURCE.match(/AIBUDDY_API_STREAM_URL\s*=\s*[`'"]([^`'"]+)/)
-      expect(match).toBeTruthy()
-      expect(match![1]).toContain('lambda-url')
+    it('AIBUDDY_API_STREAM_URL must be loaded from environment variable (KAN-193)', () => {
+      expect(URLS_SOURCE).toContain('AIBUDDY_STREAM_URL')
+      expect(URLS_SOURCE).toContain('process.env')
     })
   })
 

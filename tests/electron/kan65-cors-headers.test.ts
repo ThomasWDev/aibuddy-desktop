@@ -87,8 +87,8 @@ describe('KAN-65: Credit caching and fallback behavior', () => {
 })
 
 describe('KAN-65: API URL is HTTP (requires CORS headers)', () => {
-  it('ALB URL uses HTTP (not HTTPS)', () => {
-    expect(urlsTs).toMatch(/AIBUDDY_ALB_URL\s*=\s*'http:\/\//)
+  it('ALB URL is loaded from environment variable (KAN-193)', () => {
+    expect(urlsTs).toContain('process.env.AIBUDDY_ALB_URL')
   })
 
   it('inference URL derives from ALB URL', () => {
