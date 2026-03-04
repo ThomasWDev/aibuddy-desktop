@@ -3676,8 +3676,8 @@ Be concise and actionable. Use an alternative approach, not the same commands th
             </button>
           </Tooltip>
 
-          {/* KAN-39 FIX: Settings/API Key - clear text */}
-          <Tooltip text={apiKey ? 'API Key configured' : 'Add your API key'} position="bottom">
+          {/* KAN-184 FIX: Renamed from "API Key" to "Settings" — button opens multi-section panel */}
+          <Tooltip text="Settings" position="bottom">
             <button
               onClick={() => {
                 trackButtonClick('Settings', 'App', { hasApiKey: !!apiKey })
@@ -3685,15 +3685,13 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl font-semibold text-xs transition-all hover:scale-105 h-8"
               style={{ 
-                background: apiKey 
-                  ? 'rgba(34, 197, 94, 0.2)' 
-                  : 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-                color: apiKey ? '#22c55e' : 'white',
-                border: `1px solid ${apiKey ? '#22c55e' : '#fbbf24'}`,
+                background: 'rgba(100, 116, 139, 0.2)',
+                color: '#94a3b8',
+                border: '1px solid #475569',
               }}
             >
-              <Key className="w-3.5 h-3.5" />
-              <span>{apiKey ? 'API Key ✓' : 'Add Key'}</span>
+              <Settings className="w-3.5 h-3.5" />
+              <span>Settings</span>
             </button>
           </Tooltip>
 
@@ -4537,11 +4535,11 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               <h2 className="text-3xl font-black text-white flex items-center gap-3">
                 <div 
                   className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)' }}
+                  style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
                 >
-                  <Key className="w-7 h-7 text-white" />
+                  <Settings className="w-7 h-7 text-white" />
                 </div>
-                {apiKey ? 'Manage API Key 🔑' : 'Add API Key 🔑'}
+                Settings ⚙️
               </h2>
               <Tooltip text="Close this window">
                 <button
