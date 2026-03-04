@@ -5,6 +5,25 @@
     "version": "v{{version}}"
   },
   "welcome": {
+    "hero": {
+      "greeting": "Hey, Programmierer! 👋",
+      "subtitle": "Ich bin dein KI-Coding-Buddy! Lass uns zusammen etwas Tolles bauen! 🚀",
+      "openProject": "Projekt Öffnen",
+      "opening": "Öffne...",
+      "openProjectDesc": "Wähle einen Ordner mit deinem Code",
+      "startChatting": "Chat Starten",
+      "startChattingDesc": "Frag mich alles über Code!",
+      "recentProjects": "Letzte Projekte",
+      "poweredBy": "Betrieben von AIBuddy",
+      "smartHelper": "Intelligenter Helfer",
+      "superFast": "Super Schnell",
+      "footer": "Mit 💖 für Programmierer gemacht",
+      "apiKeySet": "API-Schlüssel Gesetzt",
+      "noApiKey": "Kein API-Schlüssel",
+      "addYourApiKey": "API-Schlüssel Hinzufügen",
+      "appRestart": "Die App muss neu gestartet werden. Schließe und öffne AIBuddy!",
+      "openFolderFirst": "Öffne zuerst einen Ordner mit deinem Code-Projekt!"
+    },
     "newUser": {
       "greeting": "Hallo!",
       "subtitle": "Ich bin AIBuddy, dein Programmier-Freund!\nSag mir, was du bauen willst!",

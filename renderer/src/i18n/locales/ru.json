@@ -5,6 +5,25 @@
     "version": "v{{version}}"
   },
   "welcome": {
+    "hero": {
+      "greeting": "Привет, Кодер! 👋",
+      "subtitle": "Я твой AI-помощник! Давай создадим что-то крутое вместе! 🚀",
+      "openProject": "Открыть Проект",
+      "opening": "Открытие...",
+      "openProjectDesc": "Выбери папку с твоим кодом",
+      "startChatting": "Начать Чат",
+      "startChattingDesc": "Спроси меня о коде!",
+      "recentProjects": "Недавние Проекты",
+      "poweredBy": "На базе AIBuddy",
+      "smartHelper": "Умный Помощник",
+      "superFast": "Супер Быстрый",
+      "footer": "Сделано с 💖 для программистов",
+      "apiKeySet": "Ключ API Установлен",
+      "noApiKey": "Нет Ключа API",
+      "addYourApiKey": "Добавь Свой Ключ API",
+      "appRestart": "Приложение нужно перезапустить. Закройте и откройте AIBuddy!",
+      "openFolderFirst": "Сначала откройте папку с вашим проектом!"
+    },
     "newUser": {
       "greeting": "Привет!",
       "subtitle": "Я AIBuddy, твой друг-программист!\nРасскажи мне, что ты хочешь создать!",

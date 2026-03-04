@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { FolderOpen, MessageSquare, CreditCard, Rocket, Star, Sparkles, Code, Zap, Key, Settings, X, Check, HelpCircle, Info } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { trackButtonClick, trackError, addBreadcrumb } from '../../lib/sentry'
 import { AIBUDDY_BUY_CREDITS_URL } from '../../../../src/constants/urls'
 
@@ -65,6 +66,7 @@ interface WelcomeScreenProps {
 }
 
 export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
+  const { t } = useTranslation()
   const [recentWorkspaces, setRecentWorkspaces] = useState<string[]>([])
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<string | null>(null)
@@ -508,7 +510,7 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
                 borderRadius: '50%', 
                 background: apiAvailable ? '#48dbfb' : '#ff6b6b' 
               }} />
-              {apiAvailable ? '✓ Ready' : 'Loading...'}
+              {apiAvailable ? `✓ ${t('status.ready')}` : t('status.loading')}
             </span>
           )}
           
@@ -522,10 +524,10 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
               cursor: 'pointer',
               border: 'none',
             }}
-            title={hasApiKey ? 'Click to manage API key' : 'Click to add API key'}
+            title={hasApiKey ? t('apiKey.configured') : t('apiKey.notConfigured')}
           >
             <Key size={14} />
-            {hasApiKey ? 'API Key Set' : 'No API Key'}
+            {hasApiKey ? t('welcome.hero.apiKeySet') : t('welcome.hero.noApiKey')}
           </button>
           
           {/* Settings Button */}
@@ -550,7 +552,7 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
               }}
             >
               <Settings size={18} />
-              <span>Settings</span>
+              <span>{t('header.settings')}</span>
             </button>
           </Tooltip>
           
@@ -562,7 +564,7 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
               style={styles.buyButton}
             >
               <CreditCard size={18} />
-              Get Credits
+              {t('header.buyCredits')}
             </button>
           </Tooltip>
         </div>
@@ -577,10 +579,10 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
 
         {/* Title */}
         <h1 style={styles.title}>
-          Hey there, Coder! 👋
+          {t('welcome.hero.greeting')}
         </h1>
         <p style={styles.subtitle}>
-          I'm your AI coding buddy! Let's build something awesome together! 🚀
+          {t('welcome.hero.subtitle')}
         </p>
 
         {/* API Key Warning Banner */}
@@ -611,10 +613,10 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
             </div>
             <div style={{ flex: 1 }}>
               <p style={{ color: '#ffc107', fontWeight: 700, fontSize: '16px', marginBottom: '4px' }}>
-                🔑 API Key Required
+                🔑 {t('apiKey.title')}
               </p>
               <p style={{ color: '#a0aec0', fontSize: '14px' }}>
-                Add your AIBuddy API key to start chatting with AI
+                {t('apiKey.description')}
               </p>
             </div>
             <button
@@ -631,7 +633,7 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
                 whiteSpace: 'nowrap',
               }}
             >
-              Add Key
+              {t('apiKey.addKey')}
             </button>
           </div>
         )}
@@ -655,10 +657,10 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
               )}
             </div>
             <span style={styles.buttonTitle}>
-              {isLoading === 'folder' ? 'Opening...' : 'Open Project'}
+              {isLoading === 'folder' ? t('welcome.hero.opening') : t('welcome.hero.openProject')}
             </span>
             <span style={styles.buttonDesc}>
-              Pick a folder with your code
+              {t('welcome.hero.openProjectDesc')}
             </span>
           </button>
 
@@ -671,9 +673,9 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
             <div style={styles.buttonIcon('#ff6b6b')}>
               <MessageSquare size={32} color="#ffffff" />
             </div>
-            <span style={styles.buttonTitle}>Start Chatting</span>
+            <span style={styles.buttonTitle}>{t('welcome.hero.startChatting')}</span>
             <span style={styles.buttonDesc}>
-              Ask me anything about code!
+              {t('welcome.hero.startChattingDesc')}
             </span>
           </button>
         </div>
@@ -683,7 +685,7 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
           <div style={styles.recentSection}>
             <h2 style={styles.recentTitle}>
               <Star size={16} color="#feca57" />
-              Recent Projects
+              {t('welcome.hero.recentProjects')}
             </h2>
             {recentWorkspaces.slice(0, 3).map((path, index) => (
               <div

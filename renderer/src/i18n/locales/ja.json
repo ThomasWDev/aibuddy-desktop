@@ -5,6 +5,25 @@
     "version": "v{{version}}"
   },
   "welcome": {
+    "hero": {
+      "greeting": "やあ、コーダー！ 👋",
+      "subtitle": "AIコーディングバディだよ！一緒にすごいものを作ろう！ 🚀",
+      "openProject": "プロジェクトを開く",
+      "opening": "開いています...",
+      "openProjectDesc": "コードのあるフォルダを選択",
+      "startChatting": "チャット開始",
+      "startChattingDesc": "コードについて何でも聞いて！",
+      "recentProjects": "最近のプロジェクト",
+      "poweredBy": "AIBuddy搭載",
+      "smartHelper": "スマートヘルパー",
+      "superFast": "超高速",
+      "footer": "💖 コーダーのために作りました",
+      "apiKeySet": "APIキー設定済み",
+      "noApiKey": "APIキーなし",
+      "addYourApiKey": "APIキーを追加",
+      "appRestart": "アプリを再起動してください。AIBuddyを閉じて再度開いてください！",
+      "openFolderFirst": "まずコードプロジェクトのフォルダを開いてください！"
+    },
     "newUser": {
       "greeting": "こんにちは！",
       "subtitle": "AIBuddyです、あなたのコーディング仲間です！\n何を作りたいか教えてください！",

@@ -5,6 +5,25 @@
     "version": "v{{version}}"
   },
   "welcome": {
+    "hero": {
+      "greeting": "E aí, Programador! 👋",
+      "subtitle": "Sou seu parceiro de código AI! Vamos construir algo incrível juntos! 🚀",
+      "openProject": "Abrir Projeto",
+      "opening": "Abrindo...",
+      "openProjectDesc": "Escolha uma pasta com seu código",
+      "startChatting": "Começar a Conversar",
+      "startChattingDesc": "Me pergunte qualquer coisa sobre código!",
+      "recentProjects": "Projetos Recentes",
+      "poweredBy": "Powered by AIBuddy",
+      "smartHelper": "Assistente Inteligente",
+      "superFast": "Super Rápido",
+      "footer": "Feito com 💖 para programadores",
+      "apiKeySet": "Chave API Configurada",
+      "noApiKey": "Sem Chave API",
+      "addYourApiKey": "Adicione Sua Chave API",
+      "appRestart": "O app precisa reiniciar. Feche e reabra o AIBuddy!",
+      "openFolderFirst": "Primeiro, abra uma pasta com seu projeto de código!"
+    },
     "newUser": {
       "greeting": "Olá!",
       "subtitle": "Eu sou o AIBuddy, seu amigo de programação!\nMe diga o que você quer criar!",

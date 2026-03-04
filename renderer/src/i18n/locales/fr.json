@@ -5,6 +5,25 @@
     "version": "v{{version}}"
   },
   "welcome": {
+    "hero": {
+      "greeting": "Salut, Codeur ! 👋",
+      "subtitle": "Je suis ton compagnon de code IA ! Construisons quelque chose d'incroyable ensemble ! 🚀",
+      "openProject": "Ouvrir un Projet",
+      "opening": "Ouverture...",
+      "openProjectDesc": "Choisis un dossier avec ton code",
+      "startChatting": "Commencer à Discuter",
+      "startChattingDesc": "Demande-moi tout sur le code !",
+      "recentProjects": "Projets Récents",
+      "poweredBy": "Propulsé par AIBuddy",
+      "smartHelper": "Assistant Intelligent",
+      "superFast": "Super Rapide",
+      "footer": "Fait avec 💖 pour les codeurs",
+      "apiKeySet": "Clé API Configurée",
+      "noApiKey": "Pas de Clé API",
+      "addYourApiKey": "Ajoute Ta Clé API",
+      "appRestart": "L'app doit redémarrer. Fermez et rouvrez AIBuddy !",
+      "openFolderFirst": "D'abord, ouvrez un dossier avec votre projet !"
+    },
     "newUser": {
       "greeting": "Salut !",
       "subtitle": "Je suis AIBuddy, ton ami codeur !\nDis-moi ce que tu veux construire !",

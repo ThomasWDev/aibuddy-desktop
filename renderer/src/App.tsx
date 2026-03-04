@@ -707,6 +707,7 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState<StatusStep>('idle')
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [workspacePath, setWorkspacePath] = useState<string | null>(null)
   const [apiKey, setApiKey] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
@@ -1010,6 +1011,19 @@ function App() {
     }
   }, [terminalOutput])
   
+  // KAN-33: Elapsed-time counter during loading — prevents "app is frozen" perception
+  useEffect(() => {
+    if (!isLoading) {
+      setElapsedSeconds(0)
+      return
+    }
+    setElapsedSeconds(0)
+    const intervalId = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1)
+    }, 1000)
+    return () => clearInterval(intervalId)
+  }, [isLoading])
+
   // Track online/offline status
   useEffect(() => {
     const handleOnline = () => {
@@ -4046,7 +4060,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
             )}
 
             {/* Loading */}
-            {/* Enhanced Loading/Streaming Indicator */}
+            {/* Enhanced Loading/Streaming Indicator — KAN-33: Live elapsed timer + reassurance */}
             {isLoading && (
               <div className="flex gap-3">
                 <div 
@@ -4065,9 +4079,12 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   <div className="flex items-center gap-3">
                     <div style={{ color: currentStatus.color }}>{currentStatus.icon}</div>
                     <span className="text-sm text-white font-semibold">{currentStatus.text}</span>
+                    {(status === 'thinking' || status === 'generating') && elapsedSeconds > 0 && (
+                      <span className="text-xs text-slate-400 tabular-nums">{`${elapsedSeconds}s`}</span>
+                    )}
                   </div>
                   
-                  {/* Progress bar */}
+                  {/* Progress bar — animated during thinking to avoid "frozen" look */}
                   <div className="mt-3 h-1.5 bg-slate-700 rounded-full overflow-hidden w-48">
                     <div 
                       className="h-full rounded-full transition-all duration-500"
@@ -4075,8 +4092,8 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                         width: status === 'validating' ? '15%' : 
                                status === 'reading' ? '30%' : 
                                status === 'sending' ? '50%' : 
-                               status === 'thinking' ? '70%' : 
-                               status === 'generating' ? '90%' : '100%',
+                               status === 'thinking' ? `${Math.min(70 + elapsedSeconds * 0.2, 92)}%` : 
+                               status === 'generating' ? '95%' : '100%',
                         background: `linear-gradient(90deg, ${currentStatus.color}, ${currentStatus.color}88)`
                       }}
                     />
@@ -4092,6 +4109,17 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                         <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                       </span>
                     </div>
+                  )}
+
+                  {/* KAN-33: Reassurance messages at time thresholds */}
+                  {(status === 'thinking' || status === 'generating') && elapsedSeconds >= 15 && elapsedSeconds < 30 && (
+                    <p className="mt-2 text-xs text-slate-400">Complex tasks may take a bit longer — hang tight!</p>
+                  )}
+                  {(status === 'thinking' || status === 'generating') && elapsedSeconds >= 30 && elapsedSeconds < 60 && (
+                    <p className="mt-2 text-xs text-slate-400">Still working — deep analysis can take up to 2 minutes.</p>
+                  )}
+                  {(status === 'thinking' || status === 'generating') && elapsedSeconds >= 60 && (
+                    <p className="mt-2 text-xs text-amber-400">Still processing your request — the AI is working on a detailed response.</p>
                   )}
                 </div>
               </div>
