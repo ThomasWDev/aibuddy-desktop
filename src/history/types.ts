@@ -26,6 +26,8 @@ export interface ChatMessage {
   tokensIn?: number
   /** Output tokens generated - KAN-27 */
   tokensOut?: number
+  /** Response time in milliseconds - KAN-179 */
+  responseTime?: number
 }
 
 export interface ChatThread {

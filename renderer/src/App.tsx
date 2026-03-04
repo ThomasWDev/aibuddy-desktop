@@ -904,6 +904,10 @@ function App() {
                   content: msg.content || '',
                   cost: msg.cost,
                   model: msg.model,
+                  tokensIn: msg.tokensIn,
+                  tokensOut: msg.tokensOut,
+                  responseTime: msg.responseTime,
+                  timestamp: msg.timestamp ? new Date(msg.timestamp).toISOString() : undefined,
                   images: msg.images?.map((img: any) => ({
                     id: img.id,
                     base64: img.base64,
@@ -930,6 +934,10 @@ function App() {
                     content: msg.content || '',
                     cost: msg.cost,
                     model: msg.model,
+                    tokensIn: msg.tokensIn,
+                    tokensOut: msg.tokensOut,
+                    responseTime: msg.responseTime,
+                    timestamp: msg.timestamp ? new Date(msg.timestamp).toISOString() : undefined,
                   }))
                   setMessages(loadedMessages)
                   setActiveThreadId(fullThread.id)
@@ -3935,11 +3943,17 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                         <button
                           key={thread.id}
                           onClick={() => {
-                            setMessages(thread.messages.map((m, i) => ({
+                            setMessages(thread.messages.map((m: any, i: number) => ({
                               id: m.id || i.toString(),
                               role: m.role,
                               content: m.content,
-                              images: m.images?.map(img => ({
+                              cost: m.cost,
+                              model: m.model,
+                              tokensIn: m.tokensIn,
+                              tokensOut: m.tokensOut,
+                              responseTime: m.responseTime,
+                              timestamp: m.timestamp ? new Date(m.timestamp).toISOString() : undefined,
+                              images: m.images?.map((img: any) => ({
                                 id: img.id,
                                 base64: img.base64,
                                 mimeType: img.mimeType as ImageAttachment['mimeType'],
@@ -5017,19 +5031,22 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         activeThreadId={activeThreadId}
         onSelectThread={(thread) => {
           // Load thread messages into chat
-          const loadedMessages: Message[] = thread.messages.map(msg => ({
+          const loadedMessages: Message[] = thread.messages.map((msg: any) => ({
             id: msg.id,
             role: msg.role,
             content: msg.content,
-            // KAN-27 FIX: Include cost and model in loaded messages
-            cost: (msg as any).cost,
-            model: (msg as any).model,
-            images: msg.images?.map(img => ({
+            cost: msg.cost,
+            model: msg.model,
+            tokensIn: msg.tokensIn,
+            tokensOut: msg.tokensOut,
+            responseTime: msg.responseTime,
+            timestamp: msg.timestamp ? new Date(msg.timestamp).toISOString() : undefined,
+            images: msg.images?.map((img: any) => ({
               id: img.id,
               base64: img.base64,
               mimeType: img.mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
               name: img.name,
-              size: 0 // Size not stored in history, default to 0
+              size: 0
             }))
           }))
           setMessages(loadedMessages)
