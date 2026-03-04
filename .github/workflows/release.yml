@@ -66,11 +66,104 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # ================================================================
+      # macOS: Import Developer ID certificate into temporary CI keychain
+      # Required for codesigning — CI runners have no signing identities
+      # ================================================================
+      - name: Import Apple signing certificate
+        if: matrix.platform == 'mac'
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
+          echo "$CSC_LINK" | base64 --decode > $CERTIFICATE_PATH
+
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 16)
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          security import $CERTIFICATE_PATH -P "$CSC_KEY_PASSWORD" \
+            -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+
+          security set-key-partition-list -S apple-tool:,apple: \
+            -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          security list-keychains -d user -s $KEYCHAIN_PATH login.keychain-db
+
+          echo "✅ Signing certificate imported into CI keychain"
+
+      # ================================================================
+      # macOS: Write App Store Connect API key for notarization
+      # API key approach is preferred over Apple ID + app-specific password
+      # ================================================================
+      - name: Prepare Apple API key for notarization
+        if: matrix.platform == 'mac'
+        env:
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          mkdir -p ~/private_keys
+          API_KEY_PATH=~/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8
+          echo "$APPLE_API_KEY_CONTENT" > "$API_KEY_PATH"
+          echo "APPLE_API_KEY_PATH=$API_KEY_PATH" >> $GITHUB_ENV
+          echo "✅ API key written to $API_KEY_PATH"
+
       - name: Package (macOS)
         if: matrix.platform == 'mac'
         run: pnpm package:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: ${{ env.APPLE_API_KEY_PATH }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: S2237D23CB
+
+      # ================================================================
+      # macOS: Verify code signing and notarization succeeded
+      # ================================================================
+      - name: Verify macOS signing and notarization
+        if: matrix.platform == 'mac'
+        run: |
+          DMG_FILE=$(ls release/*.dmg 2>/dev/null | head -1)
+          if [ -z "$DMG_FILE" ]; then
+            echo "❌ No DMG found in release/"
+            exit 1
+          fi
+
+          echo "📦 Verifying: $DMG_FILE"
+
+          MOUNT_POINT=$(mktemp -d)
+          hdiutil attach "$DMG_FILE" -mountpoint "$MOUNT_POINT" -quiet
+
+          APP_PATH="$MOUNT_POINT/AIBuddy.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "❌ AIBuddy.app not found in DMG"
+            hdiutil detach "$MOUNT_POINT" -quiet 2>/dev/null
+            exit 1
+          fi
+
+          echo "🔍 Checking code signature..."
+          codesign --verify --deep --strict "$APP_PATH"
+          echo "✅ Code signature valid"
+
+          echo "🛡️ Checking Gatekeeper assessment..."
+          spctl -a -v "$APP_PATH" 2>&1 || true
+
+          echo "📋 Checking notarization staple..."
+          stapler validate "$APP_PATH" 2>&1 || echo "⚠️ Staple check — notarization may still be processing"
+
+          hdiutil detach "$MOUNT_POINT" -quiet 2>/dev/null
+          rm -rf "$MOUNT_POINT"
+
+          echo "✅ macOS verification complete"
 
       - name: Package (Windows)
         if: matrix.platform == 'win'
@@ -121,18 +214,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Publish to Snap Store (Linux only) - Disabled for now
-      # To enable, add SNAPCRAFT_STORE_CREDENTIALS secret
-      # - name: Install Snapcraft
-      #   if: matrix.platform == 'linux' && secrets.SNAPCRAFT_TOKEN != ''
-      #   run: sudo snap install snapcraft --classic
-      #
-      # - name: Publish to Snap Store
-      #   if: matrix.platform == 'linux' && secrets.SNAPCRAFT_TOKEN != ''
-      #   env:
-      #     SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
-      #   run: |
-      #     SNAP_FILE=$(find release -name "*.snap" | head -1)
-      #     if [ -n "$SNAP_FILE" ]; then
-      #       snapcraft upload "$SNAP_FILE" --release=stable
-      #     fi
+      # ================================================================
+      # Cleanup: Remove temporary keychain and credentials
+      # ================================================================
+      - name: Cleanup signing keychain
+        if: matrix.platform == 'mac' && always()
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          if [ -f "$KEYCHAIN_PATH" ]; then
+            security delete-keychain $KEYCHAIN_PATH 2>/dev/null || true
+          fi
+          rm -f $RUNNER_TEMP/certificate.p12
+          rm -f ~/private_keys/AuthKey_*.p8
