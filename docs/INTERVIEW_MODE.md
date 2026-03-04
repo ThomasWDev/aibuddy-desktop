@@ -116,6 +116,7 @@ interface AIResponse {
 |--------|-----|-------|
 | KAN-17 | Replaced broken `SpeechRecognition` with `MediaRecorder` + Whisper API | — |
 | KAN-62 | Added macOS microphone permission checking before recording | 2 |
+| KAN-185 | Live Audio race condition: segment timer lost audio by clearing chunks before async events | 9 |
 | KAN-186 | Copy button: Electron clipboard fallback + "Copied!" feedback | 7 |
 | KAN-187 | Added cost, token usage, response time, timestamp to responses | 18 |
 | KAN-188 | Clear All: native Electron dialog instead of window.confirm | 7 |
@@ -182,6 +183,7 @@ Interview Mode uses the same API endpoint as regular chat (`apiUrl` prop):
 
 | Test File | Tests | Coverage |
 |-----------|-------|----------|
+| `tests/electron/kan185-live-audio-detection.test.ts` | 9 | Segment timer race fix, onstop restart, error feedback |
 | `tests/electron/kan186-interview-copy.test.ts` | 7 | Copy button: try/catch, Electron fallback, feedback |
 | `tests/electron/kan187-interview-metadata.test.ts` | 18 | Cost, tokens, timestamp, model display |
 | `tests/electron/kan188-interview-clear-confirmation.test.ts` | 7 | Native dialog, fallback, early return |
