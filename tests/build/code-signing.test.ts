@@ -150,15 +150,18 @@ describe('Code Signing Status', () => {
       builderConfig = fs.existsSync(configPath) ? fs.readFileSync(configPath, 'utf-8') : ''
     })
 
-    it('should have notarization enabled with team ID object', () => {
+    it('should have notarization enabled (boolean) with team ID via CI env var', () => {
       const notarizeConfig = packageJson.build.mac?.notarize
       
-      expect(typeof notarizeConfig).toBe('object')
-      expect(notarizeConfig.teamId).toBe('S2237D23CB')
+      expect(notarizeConfig).toBe(true)
+
+      const workflowPath = path.join(PROJECT_ROOT, '..', '.github/workflows/release-on-master.yml')
+      const workflow = fs.readFileSync(workflowPath, 'utf-8')
+      expect(workflow).toContain('APPLE_TEAM_ID')
       
       console.log('✅ macOS notarization is ENABLED')
-      console.log('   Team ID: S2237D23CB (explicit in notarize config)')
-      console.log('   Credentials via env: APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD')
+      console.log('   notarize: true (electron-builder 26.7.0 boolean format)')
+      console.log('   Team ID passed via APPLE_TEAM_ID env var in CI workflow')
     })
 
     it('should have identity configured (even if not used)', () => {

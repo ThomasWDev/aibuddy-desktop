@@ -8,15 +8,17 @@ import * as yaml from 'js-yaml'
  *
  * Root causes:
  * 1. release.yml macOS step only passes GH_TOKEN — no Apple credentials
- * 2. package.json had "notarize": true (boolean) instead of { teamId }
+ * 2. package.json notarize must be boolean true (electron-builder 26.7.0);
+ *    team ID is passed via APPLE_TEAM_ID env var in CI workflow
  * 3. No certificate import step in CI — runners have no signing identities
  * 4. No post-build verification step to confirm notarization
  *
  * Fixes:
  * 1. release.yml: Add certificate import, pass all signing/notarization
- *    env vars (CSC_LINK, CSC_KEY_PASSWORD, APPLE_ID, etc.), add verify step
- * 2. package.json: Change notarize to { teamId: "S2237D23CB" }
- * 3. Existing code-signing.test.ts: Update to expect object notarize config
+ *    env vars (CSC_LINK, CSC_KEY_PASSWORD, APPLE_ID, APPLE_TEAM_ID, etc.),
+ *    add verify step
+ * 2. package.json: notarize: true (boolean); team ID via APPLE_TEAM_ID env
+ * 3. Existing code-signing.test.ts: Update to expect boolean notarize config
  */
 
 const PROJECT_ROOT = path.resolve(__dirname, '../..')
@@ -45,11 +47,10 @@ describe('KAN-21: Notarization CI Pipeline', () => {
   // 1. package.json notarize config
   // ==========================================================================
   describe('package.json — notarize config', () => {
-    it('notarize must be an object with teamId, not a boolean', () => {
+    it('notarize must be true (boolean); team ID passed via APPLE_TEAM_ID env var', () => {
       const notarize = PACKAGE_JSON.build.mac.notarize
-      expect(typeof notarize).toBe('object')
-      expect(notarize).not.toBe(true)
-      expect(notarize.teamId).toBe('S2237D23CB')
+      expect(notarize).toBe(true)
+      expect(RELEASE_YML).toContain('APPLE_TEAM_ID')
     })
 
     it('hardenedRuntime must be true', () => {

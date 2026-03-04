@@ -117,10 +117,13 @@ describe('Build Configuration', () => {
     expect(pkg.build?.mac?.hardenedRuntime).toBe(true)
   })
 
-  it('mac build should have notarize enabled with team ID', () => {
+  it('mac build should have notarize enabled (boolean) with team ID via CI env var', () => {
     const notarize = pkg.build?.mac?.notarize
-    expect(typeof notarize).toBe('object')
-    expect(notarize?.teamId).toBe('S2237D23CB')
+    expect(notarize).toBe(true)
+
+    const workflowPath = path.resolve(__dirname, '../../../.github/workflows/release-on-master.yml')
+    const workflow = fs.readFileSync(workflowPath, 'utf-8')
+    expect(workflow).toContain('APPLE_TEAM_ID')
   })
 
   it('mac build should have entitlements configured', () => {

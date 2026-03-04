@@ -29,10 +29,12 @@ describe('Post-v1.5.87 — Lockfile Consistency (no duplicate package managers p
 describe('Post-v1.5.87 — KAN-21 Notarization Config Regression Guard', () => {
   const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'))
 
-  it('package.json notarize must have teamId for proper notarization (KAN-21)', () => {
+  it('package.json notarize must be true (boolean); team ID via APPLE_TEAM_ID env var (KAN-21)', () => {
     const notarize = pkg.build?.mac?.notarize
-    expect(typeof notarize).toBe('object')
-    expect(notarize.teamId).toBe('S2237D23CB')
+    expect(notarize).toBe(true)
+
+    const workflow = readFileSync(join(REPO_ROOT, '.github/workflows/release-on-master.yml'), 'utf-8')
+    expect(workflow).toContain('APPLE_TEAM_ID')
   })
 
   it('hardenedRuntime must be enabled for notarization', () => {
