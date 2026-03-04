@@ -185,6 +185,8 @@ interface ImageAttachment {
 const MAX_IMAGE_DIMENSION = 1920
 const JPEG_QUALITY = 0.8
 const MAX_PAYLOAD_BYTES = 900 * 1024 // 900KB — ALB→Lambda sync invocation limit is ~1MB
+// KAN-95 v3: Cap per-image base64 size to prevent single image from exceeding payload limit
+const MAX_IMAGE_BASE64_SIZE = 400 * 1024 // 400KB base64 ≈ 300KB binary
 // KAN-54: Token-based cost guard — limit total input tokens before sending
 const MAX_CONTEXT_TOKENS = 40_000
 
@@ -193,13 +195,17 @@ function estimateTokenCount(text: string): number {
   return Math.ceil(text.length / 3.5)
 }
 
-function compressImageFromSrc(src: string): Promise<{ base64: string; mimeType: ImageAttachment['mimeType'] }> {
+function compressImageFromSrc(
+  src: string,
+  maxDim = MAX_IMAGE_DIMENSION,
+  quality = JPEG_QUALITY
+): Promise<{ base64: string; mimeType: ImageAttachment['mimeType'] }> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.onload = () => {
       let { width, height } = img
-      if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
-        const scale = MAX_IMAGE_DIMENSION / Math.max(width, height)
+      if (width > maxDim || height > maxDim) {
+        const scale = maxDim / Math.max(width, height)
         width = Math.round(width * scale)
         height = Math.round(height * scale)
       }
@@ -208,8 +214,17 @@ function compressImageFromSrc(src: string): Promise<{ base64: string; mimeType: 
       canvas.height = height
       const ctx = canvas.getContext('2d')!
       ctx.drawImage(img, 0, 0, width, height)
-      const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY)
+      const dataUrl = canvas.toDataURL('image/jpeg', quality)
       const base64 = dataUrl.split(',')[1]
+
+      // KAN-95 v3: If base64 still exceeds cap, re-compress at lower quality/dimensions
+      if (base64.length > MAX_IMAGE_BASE64_SIZE && (quality > 0.4 || maxDim > 800)) {
+        const nextQuality = Math.max(0.4, quality - 0.2)
+        const nextDim = quality <= 0.5 ? Math.round(maxDim * 0.7) : maxDim
+        compressImageFromSrc(src, nextDim, nextQuality).then(resolve).catch(reject)
+        return
+      }
+
       resolve({ base64, mimeType: 'image/jpeg' })
     }
     img.onerror = () => reject(new Error('Failed to load image for compression'))
@@ -1836,15 +1851,16 @@ function App() {
       
       addBreadcrumb('Opening unified file dialog', 'ui.action', { action: 'openFile' })
       
-      let filePath: string | null = null
+      // KAN-182: dialog now returns string[] (multi-select) or null
+      let filePaths: string[] | null = null
       try {
-        filePath = await window.electronAPI.dialog.openFile([
+        filePaths = await window.electronAPI.dialog.openFile([
           { name: 'All Supported Files', extensions: [...imageExts, ...codeExts] },
           { name: 'Images', extensions: imageExts },
           { name: 'Code Files', extensions: codeExts },
           { name: 'All Files', extensions: ['*'] }
         ])
-        console.log('[AttachFile] Dialog returned:', filePath ? 'path received' : 'cancelled/null')
+        console.log('[AttachFile] Dialog returned:', filePaths ? `${filePaths.length} file(s)` : 'cancelled/null')
       } catch (dialogError) {
         console.error('[AttachFile] Dialog threw error:', dialogError)
         addBreadcrumb('File dialog threw error', 'error', { error: (dialogError as Error).message }, 'error')
@@ -1852,11 +1868,15 @@ function App() {
         return
       }
       
-      if (!filePath) {
+      if (!filePaths || filePaths.length === 0) {
         console.log('[AttachFile] User cancelled dialog')
         return
       }
-      
+
+      // KAN-182: Handle backward compat — older IPC may return single string
+      const paths = Array.isArray(filePaths) ? filePaths : [filePaths as unknown as string]
+
+      for (const filePath of paths) {
       const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'file'
       const extension = fileName.split('.').pop()?.toLowerCase() || ''
       const isImage = imageExts.includes(extension)
@@ -1960,6 +1980,7 @@ function App() {
         toast.success(`📄 Added: ${fileName}`)
         addBreadcrumb('Code file attached via unified dialog', 'chat.file', { name: fileName, language })
       }
+      } // end for (const filePath of paths)
     } catch (error) {
       const errorMessage = (error as Error).message || 'Unknown error'
       console.error('[AttachFile] UNEXPECTED ERROR:', error)
@@ -1986,12 +2007,39 @@ function App() {
     if (!files) return
     
     for (const file of Array.from(files)) {
-      if (!file.type.startsWith('image/')) {
-        toast.error(`${file.name} is not an image`)
+      const extension = file.name.split('.').pop()?.toLowerCase() || ''
+      const isImage = file.type.startsWith('image/')
+
+      // KAN-182: Handle both images and code files in the web fallback path
+      if (!isImage && CODE_FILE_EXTENSIONS[extension]) {
+        if (file.size > 1 * 1024 * 1024) {
+          toast.error(`${file.name} is too large (max 1MB for code files)`)
+          continue
+        }
+        try {
+          const content = await file.text()
+          const language = CODE_FILE_EXTENSIONS[extension] || 'text'
+          setAttachedFiles(prev => appendIfNotDuplicate(prev, {
+            id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            content,
+            name: file.name,
+            size: file.size,
+            language
+          }))
+          toast.success(`📄 Added: ${file.name}`)
+          addBreadcrumb('Code file attached via input', 'chat.file', { name: file.name, language })
+        } catch (err) {
+          console.error('[App] Code file read failed:', err)
+          toast.error(`Failed to read ${file.name}`)
+        }
+        continue
+      }
+
+      if (!isImage) {
+        toast.error(`${file.name} is not a supported file type`)
         continue
       }
       
-      // Check file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
         toast.error(`${file.name} is too large (max 10MB)`)
         continue
