@@ -415,6 +415,17 @@ function extractCommands(codeBlock: string): string[] {
   return commands
 }
 
+// KAN-32: Extract file path from heredoc file-creation commands
+function extractFilePathFromHeredoc(command: string): string | null {
+  // Match: cat > path/to/file << 'EOF'  (single >, not >>)
+  const match = command.match(/cat\s+(?:[^>]*\s)?>[^>]\s*(\S+)\s+<</)
+  if (match) return match[1]
+  // Match: tee path/to/file << 'EOF'
+  const teeMatch = command.match(/tee\s+(\S+)\s+<</)
+  if (teeMatch) return teeMatch[1]
+  return null
+}
+
 const NO_INTERACTION_TOOLS: Record<string, string> = {
   'composer': '--no-interaction',
   'artisan': '--no-interaction',
@@ -2253,6 +2264,26 @@ function App() {
         if (result.exitCode === 0) {
           addTerminalLine('success', `✓ ${describeCommand(command)} succeeded`)
           setTaskProgress(prev => prev ? { ...prev, passedCommands: prev.passedCommands + 1, completedCommands: idx + 1 } : prev)
+
+          // KAN-32: Post-write verification for file-creation commands
+          const createdFilePath = extractFilePathFromHeredoc(command)
+          if (createdFilePath && workspacePath) {
+            try {
+              const fullPath = createdFilePath.startsWith('/')
+                ? createdFilePath
+                : `${workspacePath.replace(/\/$/, '')}/${createdFilePath}`
+              const stat = await electronAPI.terminal.execute(`test -f "${fullPath}" && echo EXISTS`, workspacePath)
+              if (stat.stdout.includes('EXISTS')) {
+                toast.success(`📄 File created: ${createdFilePath}`)
+                addTerminalLine('success', `📄 Verified: ${createdFilePath} exists`)
+              } else {
+                toast.warning(`⚠️ Could not verify file creation: ${createdFilePath}`)
+                addTerminalLine('error', `⚠️ File not found after write: ${createdFilePath}`)
+              }
+            } catch {
+              toast.warning(`⚠️ Could not verify file creation: ${createdFilePath}`)
+            }
+          }
         } else {
           hasErrors = true
           errorSummary += `Command "${command}" failed with exit code ${result.exitCode}:\n${result.stderr || result.stdout}\n\n`
@@ -2417,7 +2448,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
     setDeepSeekRetryCount(0)
     
     // Clear terminal for new task if user is asking to run something
-    const userWantsExecution = trimmedInput.toLowerCase().match(/\b(run|execute|build|test|start|install|deploy|fix|debug)\b/)
+    const userWantsExecution = trimmedInput.toLowerCase().match(/\b(run|execute|build|test|start|install|deploy|fix|debug|create|make|write|generate|setup|add|init|update|delete|remove)\b/)
     if (userWantsExecution) {
       clearTerminal()
       addTerminalLine('info', `🚀 Starting task: ${trimmedInput.substring(0, 100)}...`)
