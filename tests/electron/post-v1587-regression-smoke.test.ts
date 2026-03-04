@@ -29,11 +29,12 @@ describe('Post-v1.5.87 — Lockfile Consistency (no duplicate package managers p
 describe('Post-v1.5.87 — KAN-21 Notarization Config Regression Guard', () => {
   const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'))
 
-  it('package.json notarize must be true (boolean); team ID via APPLE_TEAM_ID env var (KAN-21)', () => {
+  it('package.json notarize must be false; CI uses xcrun notarytool (KAN-21)', () => {
     const notarize = pkg.build?.mac?.notarize
-    expect(notarize).toBe(true)
+    expect(notarize).toBe(false)
 
     const workflow = readFileSync(join(REPO_ROOT, '.github/workflows/release-on-master.yml'), 'utf-8')
+    expect(workflow).toContain('xcrun notarytool submit')
     expect(workflow).toContain('APPLE_TEAM_ID')
   })
 
@@ -45,11 +46,11 @@ describe('Post-v1.5.87 — KAN-21 Notarization Config Regression Guard', () => {
     expect(existsSync(join(ROOT, 'build/entitlements.mac.plist'))).toBe(true)
   })
 
-  it('CI workflow must pass APPLE_API_KEY for notarization', () => {
+  it('CI workflow must use xcrun notarytool with API key', () => {
     const workflow = readFileSync(join(REPO_ROOT, '.github/workflows/release-on-master.yml'), 'utf-8')
-    expect(workflow).toContain('APPLE_API_KEY')
-    expect(workflow).toContain('APPLE_API_KEY_ID')
-    expect(workflow).toContain('APPLE_API_KEY_ISSUER')
+    expect(workflow).toContain('xcrun notarytool submit')
+    expect(workflow).toContain('AuthKey.p8')
+    expect(workflow).toContain('secrets.APP_STORE_KEY_ID')
   })
 
   it('CI workflow must verify API key file before build', () => {

@@ -119,7 +119,7 @@ describe('Build Configuration', () => {
 
   it('mac build should have notarize enabled (boolean) with team ID via CI env var', () => {
     const notarize = pkg.build?.mac?.notarize
-    expect(notarize).toBe(true)
+    expect(notarize).toBe(false)
 
     const workflowPath = path.resolve(__dirname, '../../../.github/workflows/release-on-master.yml')
     const workflow = fs.readFileSync(workflowPath, 'utf-8')

@@ -47,9 +47,9 @@ describe('KAN-21: Notarization CI Pipeline', () => {
   // 1. package.json notarize config
   // ==========================================================================
   describe('package.json — notarize config', () => {
-    it('notarize must be true (boolean); team ID passed via APPLE_TEAM_ID env var', () => {
+    it('notarize must be false (notarization handled separately in CI)', () => {
       const notarize = PACKAGE_JSON.build.mac.notarize
-      expect(notarize).toBe(true)
+      expect(notarize).toBe(false)
       expect(RELEASE_YML).toContain('APPLE_TEAM_ID')
     })
 

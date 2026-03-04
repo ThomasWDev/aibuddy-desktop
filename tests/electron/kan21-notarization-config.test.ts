@@ -16,16 +16,14 @@ describe("KAN-21: macOS notarization configuration", () => {
 			expect(mac?.hardenedRuntime).toBe(true)
 		})
 
-		it("must have notarize config (not false/missing)", () => {
-			expect(mac?.notarize).toBeTruthy()
+		it("notarize must be false (notarization handled by xcrun notarytool in CI)", () => {
+			expect(mac?.notarize).toBe(false)
 		})
 
-		it("notarize must include teamId for explicit Apple team binding", () => {
-			if (typeof mac?.notarize === "object") {
-				expect(mac.notarize.teamId).toBe("S2237D23CB")
-			} else {
-				expect(mac?.notarize).toBe(true)
-			}
+		it("CI workflow must run xcrun notarytool for notarization", () => {
+			const workflow = existsSync(WORKFLOW_PATH) ? readFileSync(WORKFLOW_PATH, "utf-8") : ""
+			expect(workflow).toContain("xcrun notarytool submit")
+			expect(workflow).toContain("xcrun stapler staple")
 		})
 
 		it("must have entitlements for code signing", () => {
@@ -68,26 +66,18 @@ describe("KAN-21: macOS notarization configuration", () => {
 
 		const workflow = existsSync(WORKFLOW_PATH) ? readFileSync(WORKFLOW_PATH, "utf-8") : ""
 
-		it("must pass APPLE_API_KEY for API key notarization", () => {
-			expect(workflow).toContain("APPLE_API_KEY:")
+		it("must use xcrun notarytool for notarization", () => {
+			expect(workflow).toContain("xcrun notarytool submit")
+			expect(workflow).toContain("xcrun stapler staple")
 		})
 
-		it("must pass APPLE_API_KEY_ID for API key notarization", () => {
-			expect(workflow).toContain("APPLE_API_KEY_ID:")
+		it("must pass API key credentials to xcrun notarytool", () => {
+			expect(workflow).toContain("--key /tmp/AuthKey.p8")
 			expect(workflow).toContain("secrets.APP_STORE_KEY_ID")
-		})
-
-		it("must pass APPLE_API_KEY_ISSUER for API key notarization", () => {
-			expect(workflow).toContain("APPLE_API_KEY_ISSUER:")
 			expect(workflow).toContain("secrets.APP_STORE_ISSUER_ID")
 		})
 
-		it("must also pass APPLE_ID as fallback", () => {
-			expect(workflow).toContain("APPLE_ID:")
-			expect(workflow).toContain("secrets.APPLE_ID")
-		})
-
-		it("must also pass APPLE_TEAM_ID as fallback", () => {
+		it("must pass APPLE_TEAM_ID for signing", () => {
 			expect(workflow).toContain("APPLE_TEAM_ID:")
 			expect(workflow).toContain("secrets.APPLE_TEAM_ID")
 		})
