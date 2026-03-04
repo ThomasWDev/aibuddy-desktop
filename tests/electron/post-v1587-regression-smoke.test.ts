@@ -49,7 +49,7 @@ describe('Post-v1.5.87 — KAN-21 Notarization Config Regression Guard', () => {
     const workflow = readFileSync(join(REPO_ROOT, '.github/workflows/release-on-master.yml'), 'utf-8')
     expect(workflow).toContain('APPLE_API_KEY')
     expect(workflow).toContain('APPLE_API_KEY_ID')
-    expect(workflow).toContain('APPLE_API_ISSUER')
+    expect(workflow).toContain('APPLE_API_KEY_ISSUER')
   })
 
   it('CI workflow must verify API key file before build', () => {

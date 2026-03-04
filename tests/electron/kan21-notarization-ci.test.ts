@@ -93,7 +93,7 @@ describe('KAN-21: Notarization CI Pipeline', () => {
     it('must pass App Store Connect API key secrets (primary notarization)', () => {
       expect(RELEASE_YML).toContain('APPLE_API_KEY')
       expect(RELEASE_YML).toContain('APPLE_API_KEY_ID')
-      expect(RELEASE_YML).toContain('APPLE_API_ISSUER')
+      expect(RELEASE_YML).toContain('APPLE_API_KEY_ISSUER')
     })
 
     it('must pass Apple ID secrets as fallback', () => {

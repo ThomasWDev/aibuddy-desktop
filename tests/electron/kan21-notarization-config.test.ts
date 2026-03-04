@@ -77,8 +77,8 @@ describe("KAN-21: macOS notarization configuration", () => {
 			expect(workflow).toContain("secrets.APP_STORE_KEY_ID")
 		})
 
-		it("must pass APPLE_API_ISSUER for API key notarization", () => {
-			expect(workflow).toContain("APPLE_API_ISSUER:")
+		it("must pass APPLE_API_KEY_ISSUER for API key notarization", () => {
+			expect(workflow).toContain("APPLE_API_KEY_ISSUER:")
 			expect(workflow).toContain("secrets.APP_STORE_ISSUER_ID")
 		})
 
