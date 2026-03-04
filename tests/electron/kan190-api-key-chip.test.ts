@@ -47,7 +47,7 @@ describe('KAN-190 — WelcomeScreen header consistency', () => {
     expect(welcome).toContain('handleOpenSettings')
   })
 
-  it('Get Credits button must still exist', () => {
-    expect(welcome).toContain('Get Credits')
+  it('Buy Credits button must still exist', () => {
+    expect(welcome).toContain("t('header.buyCredits')")
   })
 })

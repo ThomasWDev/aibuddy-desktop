@@ -29,9 +29,10 @@ describe('Post-v1.5.87 — Lockfile Consistency (no duplicate package managers p
 describe('Post-v1.5.87 — KAN-21 Notarization Config Regression Guard', () => {
   const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'))
 
-  it('package.json notarize must be true (team ID passed via env vars for electron-builder 26.7.0)', () => {
+  it('package.json notarize must have teamId for proper notarization (KAN-21)', () => {
     const notarize = pkg.build?.mac?.notarize
-    expect(notarize).toBe(true)
+    expect(typeof notarize).toBe('object')
+    expect(notarize.teamId).toBe('S2237D23CB')
   })
 
   it('hardenedRuntime must be enabled for notarization', () => {
