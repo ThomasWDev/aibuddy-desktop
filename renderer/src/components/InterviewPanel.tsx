@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Mic, MicOff, X, Play, Square, Trash2, ChevronDown, ChevronUp,
   Lightbulb, GraduationCap, Volume2, Loader2, AlertCircle,
-  RotateCcw, Settings2, Clock
+  RotateCcw, Settings2, Clock, Copy, Check
 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 
@@ -68,6 +68,7 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
   const [expandedResponses, setExpandedResponses] = useState<Set<string>>(new Set())
   const [autoScroll, setAutoScroll] = useState(true)
   const [silenceTimer, setSilenceTimer] = useState<number>(0)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -402,6 +403,21 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
     })
   }
 
+  const copyAnswer = useCallback(async (text: string, responseId: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      try {
+        await (window as any).electronAPI?.clipboard?.writeText(text)
+      } catch {
+        console.error('[Interview] Clipboard write failed for both navigator and Electron APIs')
+        return
+      }
+    }
+    setCopiedId(responseId)
+    setTimeout(() => setCopiedId(null), 2000)
+  }, [])
+
   // Cleanup on close
   useEffect(() => {
     if (!isOpen) {
@@ -711,12 +727,18 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
                               Regenerate
                             </button>
                             <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(resp.answer)
-                              }}
-                              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-400 hover:text-cyan-300 hover:bg-cyan-600/10 transition-colors"
+                              onClick={() => copyAnswer(resp.answer, resp.id)}
+                              className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                                copiedId === resp.id
+                                  ? 'text-green-400 bg-green-600/10'
+                                  : 'text-slate-400 hover:text-cyan-300 hover:bg-cyan-600/10'
+                              }`}
                             >
-                              Copy
+                              {copiedId === resp.id ? (
+                                <><Check className="w-3 h-3" /> Copied!</>
+                              ) : (
+                                <><Copy className="w-3 h-3" /> Copy</>
+                              )}
                             </button>
                           </div>
                         </>
