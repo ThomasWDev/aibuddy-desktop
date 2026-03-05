@@ -387,14 +387,29 @@ pnpm lint
 
 ## Git Repository Strategy
 
-### Option A: Separate Repo per Package (Recommended)
+### Option A: Separate Repo per Package (Recommended) — IMPLEMENTED
 
-```
-github.com/ThomasWDev/aibuddy-logic     ← External dev gets access
-github.com/ThomasWDev/aibuddy-types     ← External dev gets read access
-github.com/ThomasWDev/aibuddy-prompts   ← External dev gets read access
-github.com/ThomasWDev/aibuddy-desktop   ← PRIVATE (app shell)
-github.com/Thomas-Woodfin/AICodingVS    ← PRIVATE (root monorepo)
+All repos created on GitHub (March 5, 2026):
+
+| Repo | URL | Visibility | Status | Content |
+|------|-----|------------|--------|---------|
+| **aibuddy-logic** | https://github.com/ThomasWDev/aibuddy-logic | PRIVATE | ✅ Created + pushed | Interfaces, response parser, env detector, scaffolding for knowledge/history/agent/services |
+| **aibuddy-types** | https://github.com/ThomasWDev/aibuddy-types | PRIVATE | ✅ Created + pushed | Shared TypeScript type definitions |
+| **aibuddy-prompts** | https://github.com/ThomasWDev/aibuddy-prompts | PRIVATE | ✅ Created + pushed | System prompts, TDD methodology, language-specific prompts |
+| **aibuddy-desktop** | https://github.com/ThomasWDev/aibuddy-desktop | PUBLIC | ✅ Existing | Desktop Electron app (app shell) |
+| **AICodingVS** | https://github.com/Thomas-Woodfin/AICodingVS | PRIVATE | ✅ Existing | Root monorepo (extension + desktop + packages) |
+
+**To grant external developer access:**
+
+```bash
+# Give external dev collaborator access to logic (read/write)
+gh api repos/ThomasWDev/aibuddy-logic/collaborators/GITHUB_USERNAME -X PUT -f permission=push
+
+# Give external dev read-only access to types and prompts
+gh api repos/ThomasWDev/aibuddy-types/collaborators/GITHUB_USERNAME -X PUT -f permission=pull
+gh api repos/ThomasWDev/aibuddy-prompts/collaborators/GITHUB_USERNAME -X PUT -f permission=pull
+
+# NEVER give access to aibuddy-desktop or AICodingVS
 ```
 
 **Benefits:**
@@ -404,44 +419,39 @@ github.com/Thomas-Woodfin/AICodingVS    ← PRIVATE (root monorepo)
 - CI runs only on the logic package
 
 **How it connects:**
-- Main monorepo uses `git submodule` or `pnpm workspace:` to pull `aibuddy-logic`
+- Main monorepo uses `pnpm workspace:` to pull `@aibuddy/logic` (or git submodule)
 - External dev opens PRs against `aibuddy-logic`
-- You review, merge, and update the submodule in the main repo
+- You review, merge, and update the submodule/dependency in the main repo
 
-### Option B: Filtered Fork with `.gitattributes`
+### Option B: Filtered Fork with `.gitattributes` (Alternative)
 
 Use `git filter-repo` to create a stripped fork:
 
 ```bash
 git clone AICodingVS aibuddy-external
 cd aibuddy-external
-# Remove everything except packages/logic, packages/types, packages/prompts
 git filter-repo --path packages/logic --path packages/types --path packages/prompts
 ```
 
 **Benefits:** Simpler (one repo), no submodule management
 **Risks:** Harder to keep in sync; risk of accidentally exposing private files
 
-### Option C: Monorepo with CODEOWNERS (Simplest)
+### Option C: Monorepo with CODEOWNERS (Not Recommended)
 
 Use GitHub CODEOWNERS to restrict who can modify which paths:
 
 ```
 # .github/CODEOWNERS
-# Default — you own everything
 *                           @ThomasWDev
-
-# External dev can ONLY modify logic package
 packages/logic/             @ThomasWDev @external-dev
-packages/logic/tests/       @ThomasWDev @external-dev
 ```
 
 **Benefits:** No submodules, easy setup
-**Risks:** External dev can still READ all code (GitHub doesn't support path-level read restrictions on a single repo)
+**Risks:** External dev can still READ all code (GitHub doesn't support path-level read restrictions)
 
 ### Recommendation
 
-**Option A (separate repos)** is the only approach that truly prevents the external developer from seeing the full app. Options B and C still expose code at the repo level.
+**Option A is implemented.** It is the only approach that truly prevents the external developer from seeing the full app. Options B and C still expose code at the repo level.
 
 ---
 
