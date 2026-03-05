@@ -1,7 +1,7 @@
 # AIBuddy Desktop IDE - Complete Guide
 
-**Version:** 1.5.92  
-**Last Updated:** March 4, 2026  
+**Version:** 1.5.93  
+**Last Updated:** March 5, 2026  
 **Repository:** https://github.com/ThomasWDev/aibuddy-desktop
 
 ---
