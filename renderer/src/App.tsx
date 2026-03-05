@@ -3981,23 +3981,14 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   boxShadow: '0 16px 48px rgba(0,0,0,0.6)'
                 }}
               >
-                {/* Open Folder */}
+                {/* Open Project Folder (KAN-278: consolidated from two redundant items) */}
                 <button
                   onClick={() => { handleOpenFolder(); setShowMoreMenu(false) }}
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors"
                 >
                   <FolderOpen className="w-4 h-4 text-cyan-400" />
-                  <span>Open Folder</span>
+                  <span>Open Project Folder</span>
                   {workspacePath && <span className="ml-auto text-xs text-green-400">●</span>}
-                </button>
-
-                {/* Open Folder on Desktop — first step when user wants to "review folder on desktop" */}
-                <button
-                  onClick={() => { handleOpenFolder('~/Desktop'); setShowMoreMenu(false) }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors"
-                >
-                  <FolderOpen className="w-4 h-4 text-cyan-400" />
-                  <span>Open Folder on Desktop</span>
                 </button>
 
                 {/* Terminal */}
