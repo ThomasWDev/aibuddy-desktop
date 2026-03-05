@@ -89,6 +89,15 @@ export interface SystemPromptContext {
     testFramework?: string
     styleGuide?: string
   }
+
+  /** Project rules / skills from .aibuddy/rules/ — injected as active skills */
+  projectRules?: Array<{
+    filename: string
+    description?: string
+    alwaysApply?: boolean
+    content: string
+    builtin?: boolean
+  }>
 }
 
 /**
@@ -187,6 +196,19 @@ export function generateSystemPrompt(context?: SystemPromptContext): string {
       }
       const langName = langNames[context.uiLanguage] ?? context.uiLanguage
       prompt += `\n\n### 🌍 LANGUAGE INSTRUCTION\n**The user's UI language is ${langName} (\`${context.uiLanguage}\`).** You MUST reply in **${langName}** unless the user explicitly writes in English or asks you to use a different language. Keep code, terminal commands, file paths, and technical identifiers in English/ASCII, but all explanations, comments to the user, questions, and conversational text MUST be in ${langName}.`
+    }
+
+    // KAN-283: Skills Engine — inject active project rules into prompt
+    if (context.projectRules && context.projectRules.length > 0) {
+      const activeRules = context.projectRules.filter(r => r.alwaysApply)
+      if (activeRules.length > 0) {
+        prompt += `\n\n## 🛠️ ACTIVE PROJECT SKILLS (${activeRules.length})\n`
+        prompt += `The following project-specific skills are active. Follow them for every response.\n`
+        for (const rule of activeRules) {
+          const label = rule.description || rule.filename
+          prompt += `\n### [Skill] ${label}\n${rule.content}\n`
+        }
+      }
     }
   }
   

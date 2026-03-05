@@ -775,6 +775,9 @@ function App() {
   
   // Environment Detection
   const [environmentSummary, setEnvironmentSummary] = useState<string>('')
+
+  // KAN-283: Project rules / skills loaded from .aibuddy/rules/
+  const [projectRules, setProjectRules] = useState<Array<{ filename: string; description?: string; alwaysApply?: boolean; content: string; builtin?: boolean }>>([])
   
   // Terminal output panel
   const [showTerminal, setShowTerminal] = useState(false)
@@ -1359,10 +1362,16 @@ function App() {
         
         // Detect project type for better AI context
         const projectType = detectProjectType(path)
-        addBreadcrumb('Project type detected', 'workspace', { 
+        addBreadcrumb('Project type detected', 'workspace', {
           path,
           projectType
         })
+
+        // KAN-283: Load project rules / skills for prompt injection
+        try {
+          const rules = await electronAPI.workspace?.getProjectRules(path)
+          if (rules) setProjectRules(rules)
+        } catch (e) { console.warn('[App] Failed to load project rules:', e) }
       }
     } else {
       addBreadcrumb('Electron API not available for folder dialog', 'error', {}, 'warning')
@@ -2653,6 +2662,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               handoffDoc: handoffDoc || undefined,
               platformContext: DESKTOP_PLATFORM_CONTEXT,
               uiLanguage: i18n.language,
+              projectRules: projectRules.length > 0 ? projectRules : undefined,
             })
           },
           ...chatMessages
