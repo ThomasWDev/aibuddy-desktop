@@ -767,6 +767,7 @@ function App() {
   const [credits, setCredits] = useState<number | null>(null)
   const [lastCost, setLastCost] = useState<number | null>(null)
   const [lastModel, setLastModel] = useState<string | null>(null)
+  const [totalSessionCost, setTotalSessionCost] = useState<number>(0)
   
   // Knowledge Base
   const [showKnowledgeBase, setShowKnowledgeBase] = useState(false)
@@ -910,6 +911,11 @@ function App() {
             if (savedLastModel) {
               setLastModel(savedLastModel)
               console.log('[App] Loaded cached lastModel:', savedLastModel)
+            }
+
+            const savedTotalCost = await electronAPI.store.get('totalSessionCost')
+            if (savedTotalCost !== undefined && savedTotalCost !== null) {
+              setTotalSessionCost(savedTotalCost)
             }
           }
         } catch (err) {
@@ -3048,6 +3054,8 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       if (data.api_cost) {
         setLastCost(data.api_cost)
         try { window.electronAPI?.store?.set('lastCost', data.api_cost) } catch (e) { /* non-critical */ }
+        setTotalSessionCost(prev => prev + data.api_cost)
+        try { window.electronAPI?.store?.get('totalSessionCost').then((cur: number) => window.electronAPI?.store?.set('totalSessionCost', (cur || 0) + data.api_cost)) } catch (e) { /* non-critical */ }
       }
       if (data.model) {
         setLastModel(data.model)
@@ -3873,9 +3881,9 @@ Be concise and actionable. Use an alternative approach, not the same commands th
             </div>
           </Tooltip>
 
-          {/* KAN-27 FIX: Last Cost - compact inline */}
-          {lastCost !== null && (
-            <Tooltip text={`Last: $${lastCost.toFixed(4)}${lastModel ? ` via ${lastModel}` : ''}`} position="bottom">
+          {/* KAN-280: Total Cost Used indicator with breakdown tooltip */}
+          {(totalSessionCost > 0 || lastCost !== null) && (
+            <Tooltip text={`Total Used: $${totalSessionCost.toFixed(4)}${lastCost !== null ? `\nLast: $${lastCost.toFixed(4)}` : ''}${lastModel ? `\nModel: ${lastModel}` : ''}`} position="bottom">
               <div 
                 className="flex items-center gap-1 px-2 py-1.5 rounded-xl cursor-help h-8"
                 style={{ 
@@ -3888,16 +3896,14 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   className="text-sm font-bold"
                   style={{ color: '#a855f7' }}
                 >
-                  {lastCost.toFixed(4)}
+                  {totalSessionCost.toFixed(4)}
                 </span>
-                {lastModel && (
-                  <span 
-                    className="text-xs font-medium ml-0.5 hidden sm:inline"
-                    style={{ color: 'rgba(168, 85, 247, 0.7)' }}
-                  >
-                    {lastModel.length > 12 ? lastModel.substring(0, 12) + '...' : lastModel}
-                  </span>
-                )}
+                <span 
+                  className="text-xs font-medium ml-0.5 hidden sm:inline"
+                  style={{ color: 'rgba(168, 85, 247, 0.7)' }}
+                >
+                  Total
+                </span>
               </div>
             </Tooltip>
           )}
