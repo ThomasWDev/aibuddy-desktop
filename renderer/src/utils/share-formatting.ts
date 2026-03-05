@@ -56,6 +56,23 @@ export function sanitizeFilename(title: string): string {
 }
 
 /**
+ * Format a short snippet for social media sharing.
+ * Truncates to ~250 chars so it fits in a tweet/post.
+ */
+export function formatAsShareSnippet(messages: ShareMessage[], threadTitle?: string): string {
+  if (!messages || messages.length === 0) return ''
+
+  const firstUserMsg = messages.find(m => m.role === 'user')
+  const preview = firstUserMsg
+    ? firstUserMsg.content.substring(0, 200).trim()
+    : (threadTitle || 'AIBuddy Conversation')
+
+  const truncated = preview.length >= 200 ? preview + '...' : preview
+
+  return `Shared via AIBuddy\n\n"${truncated}"\n\n#AI #DeveloperTools`
+}
+
+/**
  * Export conversation as JSON (for KAN-49: Shared Transcripts)
  */
 export function exportAsJSON(messages: ShareMessage[], threadTitle: string) {

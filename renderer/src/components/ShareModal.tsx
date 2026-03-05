@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { X, Copy, Check, FileText, MessageSquare, Download } from 'lucide-react'
-import { formatAsText, formatAsMarkdown, sanitizeFilename, type ShareMessage } from '../utils/share-formatting'
+import { formatAsText, formatAsMarkdown, formatAsShareSnippet, sanitizeFilename, type ShareMessage } from '../utils/share-formatting'
 
 /**
  * Share Conversation Modal - KAN-18 FIX
@@ -153,6 +153,24 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
     }
   }, [messages, threadTitle, getMarkdownOutput, onClose])
 
+  const handleShareToSocial = useCallback((platform: string) => {
+    const snippet = formatAsShareSnippet(messages || [], threadTitle)
+    const text = encodeURIComponent(snippet)
+
+    const urls: Record<string, string> = {
+      twitter: `https://x.com/intent/tweet?text=${text}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?summary=${text}`,
+      reddit: `https://www.reddit.com/submit?title=${encodeURIComponent(threadTitle || 'AIBuddy Conversation')}&text=${text}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?quote=${text}`,
+      whatsapp: `https://api.whatsapp.com/send?text=${text}`,
+    }
+
+    const url = urls[platform]
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer,width=600,height=500')
+    }
+  }, [messages, threadTitle])
+
   if (!isOpen) return null
 
   const hasMessages = messages && messages.length > 0
@@ -249,6 +267,55 @@ export function ShareModal({ isOpen, onClose, threadId, threadTitle, messageCoun
               <p className="text-sm text-slate-500">Save conversation as .md file</p>
             </div>
           </button>
+
+          {/* Social Media Share — KAN-279 */}
+          {hasMessages && (
+            <div className="space-y-2">
+              <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Share to Social</p>
+              <div className="grid grid-cols-5 gap-2">
+                <button
+                  onClick={() => handleShareToSocial('twitter')}
+                  className="flex flex-col items-center gap-1 p-3 rounded-xl border border-slate-700 hover:border-sky-400 bg-slate-800/30 transition-all"
+                  title="Share to X (Twitter)"
+                >
+                  <span className="text-lg">𝕏</span>
+                  <span className="text-[10px] text-slate-400">X</span>
+                </button>
+                <button
+                  onClick={() => handleShareToSocial('linkedin')}
+                  className="flex flex-col items-center gap-1 p-3 rounded-xl border border-slate-700 hover:border-blue-400 bg-slate-800/30 transition-all"
+                  title="Share to LinkedIn"
+                >
+                  <span className="text-lg">in</span>
+                  <span className="text-[10px] text-slate-400">LinkedIn</span>
+                </button>
+                <button
+                  onClick={() => handleShareToSocial('reddit')}
+                  className="flex flex-col items-center gap-1 p-3 rounded-xl border border-slate-700 hover:border-orange-400 bg-slate-800/30 transition-all"
+                  title="Share to Reddit"
+                >
+                  <span className="text-lg">📮</span>
+                  <span className="text-[10px] text-slate-400">Reddit</span>
+                </button>
+                <button
+                  onClick={() => handleShareToSocial('facebook')}
+                  className="flex flex-col items-center gap-1 p-3 rounded-xl border border-slate-700 hover:border-blue-500 bg-slate-800/30 transition-all"
+                  title="Share to Facebook"
+                >
+                  <span className="text-lg">f</span>
+                  <span className="text-[10px] text-slate-400">Facebook</span>
+                </button>
+                <button
+                  onClick={() => handleShareToSocial('whatsapp')}
+                  className="flex flex-col items-center gap-1 p-3 rounded-xl border border-slate-700 hover:border-green-400 bg-slate-800/30 transition-all"
+                  title="Share to WhatsApp"
+                >
+                  <span className="text-lg">💬</span>
+                  <span className="text-[10px] text-slate-400">WhatsApp</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Error message */}
           {error && (
