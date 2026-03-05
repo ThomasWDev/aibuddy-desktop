@@ -1,5 +1,5 @@
 /**
- * Skills Data Model — KAN-282, KAN-287, KAN-288, KAN-289, KAN-290, KAN-291, KAN-292
+ * Skills Data Model — KAN-282, KAN-287, KAN-288, KAN-289, KAN-290, KAN-291, KAN-292, KAN-293
  *
  * Defines the schema for AI skills (prompt modifiers) stored locally.
  * Follows the same pattern as ChatThread / ChatMessage in history/types.ts.
@@ -10,6 +10,26 @@ export type SkillVisibility = 'private' | 'team'
 export type SkillExecutionMode = 'always' | 'manual' | 'on_demand'
 export type SkillSource = 'local' | 'marketplace' | 'builtin' | 'api'
 export type SkillToolPermission = 'filesystem' | 'terminal' | 'git' | 'aws_cli' | 'docker'
+
+// ─── KAN-293: Context-Aware Skills ──────────────────────────────────────────
+
+/** Conditions that auto-activate an on_demand skill based on workspace context */
+export interface SkillContextTrigger {
+  /** Project type keywords — matched against detectProjectType output (case-insensitive contains) */
+  project_types?: string[]
+  /** File/directory patterns that must exist in workspace root (e.g. 'Dockerfile', 'pom.xml') */
+  file_patterns?: string[]
+  /** Keywords in the user message that activate this skill (case-insensitive) */
+  keywords?: string[]
+}
+
+/** Runtime context passed to the skill processor for context-aware activation */
+export interface SkillContext {
+  projectType?: string
+  workspacePath?: string
+  workspaceFiles?: string[]
+  userMessage?: string
+}
 
 export interface Skill {
   /** Unique identifier (base64url random, like thread IDs) */
@@ -46,6 +66,8 @@ export interface Skill {
   catalog_id?: string
   /** Tools this skill is authorized to use (requires user confirmation) */
   allowed_tools?: SkillToolPermission[]
+  /** Context triggers for on_demand skills — auto-activates when context matches */
+  context_triggers?: SkillContextTrigger
   /** Original filename if migrated from .aibuddy/rules/ legacy format */
   legacy_filename?: string
 }
@@ -63,6 +85,7 @@ export interface CatalogSkill {
   scope: SkillScope
   execution_mode: SkillExecutionMode
   allowed_tools?: SkillToolPermission[]
+  context_triggers?: SkillContextTrigger
 }
 
 /** Request to execute a tool on behalf of a skill */
@@ -165,4 +188,4 @@ export interface SkillsState {
   version: number
 }
 
-export const SKILLS_VERSION = 4
+export const SKILLS_VERSION = 5

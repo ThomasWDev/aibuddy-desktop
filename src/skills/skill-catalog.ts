@@ -1,10 +1,11 @@
 /**
- * Skill Marketplace Catalog — KAN-288, KAN-289, KAN-292
+ * Skill Marketplace Catalog — KAN-288, KAN-289, KAN-292, KAN-293
  *
  * Curated collection of prebuilt skills users can browse and install.
  * Ships with the app (offline-capable). KAN-292: When a Skills API URL
  * is configured, fetches catalog from the remote API with local fallback.
  * KAN-289: Some skills now declare allowed_tools for tool-enabled execution.
+ * KAN-293: Some skills declare context_triggers for context-aware activation.
  */
 
 import type { CatalogSkill } from './types'
@@ -41,7 +42,10 @@ Never assume the user wants a full rewrite — prefer minimal, targeted changes.
     icon: '🏗️',
     tags: ['architecture', 'system-design', 'patterns'],
     scope: 'global',
-    execution_mode: 'manual',
+    execution_mode: 'on_demand',
+    context_triggers: {
+      keywords: ['architecture', 'system design', 'scalability', 'microservices', 'design pattern'],
+    },
     prompt_template: `# Architecture Assistant
 
 When asked about system design or architecture:
@@ -63,8 +67,12 @@ Always justify recommendations with concrete reasoning, not just "best practice"
     icon: '🗃️',
     tags: ['sql', 'database', 'performance', 'optimization'],
     scope: 'project',
-    execution_mode: 'manual',
+    execution_mode: 'on_demand',
     allowed_tools: ['filesystem', 'terminal'],
+    context_triggers: {
+      keywords: ['sql', 'query', 'database', 'postgres', 'mysql', 'sqlite'],
+      file_patterns: ['schema.sql', 'migrations', 'prisma'],
+    },
     prompt_template: `# SQL Optimizer
 
 When reviewing or writing SQL:
@@ -86,8 +94,13 @@ When reviewing or writing SQL:
     icon: '☁️',
     tags: ['aws', 'deployment', 'devops', 'infrastructure'],
     scope: 'project',
-    execution_mode: 'manual',
+    execution_mode: 'on_demand',
     allowed_tools: ['terminal', 'aws_cli', 'docker'],
+    context_triggers: {
+      file_patterns: ['Dockerfile', 'docker-compose.yml', 'docker-compose.yaml', '.aws', 'serverless.yml', 'cdk.json', 'template.yaml'],
+      project_types: ['aws', 'docker'],
+      keywords: ['deploy', 'aws', 'docker', 'ecs', 'lambda', 'cloudformation'],
+    },
     prompt_template: `# AWS Deployment Helper
 
 When working with AWS infrastructure:
@@ -159,7 +172,12 @@ When designing or reviewing APIs:
     icon: '⚛️',
     tags: ['react', 'frontend', 'hooks', 'performance'],
     scope: 'project',
-    execution_mode: 'always',
+    execution_mode: 'on_demand',
+    context_triggers: {
+      project_types: ['react', 'next'],
+      file_patterns: ['package.json'],
+      keywords: ['react', 'component', 'hook', 'jsx', 'tsx'],
+    },
     prompt_template: `# React Best Practices
 
 When writing React code:

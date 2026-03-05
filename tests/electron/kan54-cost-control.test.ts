@@ -36,7 +36,7 @@ describe('KAN-54 — Token-based conversation truncation', () => {
   it('must truncate conversation history based on token count before sending', () => {
     const sendSection = appTsx.slice(
       appTsx.indexOf('Sending API request'),
-      appTsx.indexOf('Sending API request') + 8000
+      appTsx.indexOf('Sending API request') + 12000
     )
     expect(sendSection).toMatch(/MAX_CONTEXT_TOKENS|estimateToken|token.*truncat|truncat.*token/i)
   })

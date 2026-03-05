@@ -243,8 +243,8 @@ describe('KAN-292: Skills API Client — Unit Tests', () => {
   // ─── SKILLS_VERSION ────────────────────────────────────────────────────
 
   describe('SKILLS_VERSION', () => {
-    it('is version 4 for KAN-292', () => {
-      expect(SKILLS_VERSION).toBe(4)
+    it('is at least version 4 for KAN-292', () => {
+      expect(SKILLS_VERSION).toBeGreaterThanOrEqual(4)
     })
   })
 

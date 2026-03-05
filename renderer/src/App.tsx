@@ -779,7 +779,7 @@ function App() {
   const [environmentSummary, setEnvironmentSummary] = useState<string>('')
 
   // KAN-284/KAN-287/KAN-289: Skills loaded from SkillsStorageManager via IPC
-  const [skills, setSkills] = useState<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[]; allowed_tools?: string[] }>>([])
+  const [skills, setSkills] = useState<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[]; allowed_tools?: string[]; context_triggers?: { project_types?: string[]; file_patterns?: string[]; keywords?: string[] } }>>([])
   
   // Terminal output panel
   const [showTerminal, setShowTerminal] = useState(false)
@@ -2666,8 +2666,9 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               platformContext: DESKTOP_PLATFORM_CONTEXT,
               uiLanguage: i18n.language,
               projectRules: skills.length > 0 ? (() => {
-                // KAN-286/KAN-289/KAN-291: Skill Execution Pipeline — filter, log, persist
+                // KAN-286/KAN-289/KAN-291/KAN-293: Skill Execution Pipeline — filter, context-aware, log, persist
                 const start = performance.now()
+                const detectedType = workspacePath ? detectProjectType(workspacePath) : undefined
                 const entries: Array<{ skillId: string; skillName: string; execution_mode: string; applied: boolean; reason: string }> = []
                 const autoSkills: typeof skills = []
                 for (const s of skills) {
@@ -2677,6 +2678,28 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   } else if (mode === 'always') {
                     entries.push({ skillId: s.id, skillName: s.name, execution_mode: mode, applied: true, reason: 'auto (always active)' })
                     autoSkills.push(s)
+                  } else if (mode === 'on_demand' && s.context_triggers) {
+                    // KAN-293: Context-aware activation for on_demand skills
+                    const triggers = s.context_triggers as { project_types?: string[]; file_patterns?: string[]; keywords?: string[] }
+                    let matched: string | null = null
+                    if (!matched && triggers.project_types && detectedType) {
+                      const pt = detectedType.toLowerCase()
+                      for (const t of triggers.project_types) {
+                        if (pt.includes(t.toLowerCase())) { matched = `project type matches "${t}"`; break }
+                      }
+                    }
+                    if (!matched && triggers.keywords && userMessage?.content) {
+                      const msg = userMessage.content.toLowerCase()
+                      for (const kw of triggers.keywords) {
+                        if (msg.includes(kw.toLowerCase())) { matched = `message contains "${kw}"`; break }
+                      }
+                    }
+                    if (matched) {
+                      entries.push({ skillId: s.id, skillName: s.name, execution_mode: mode, applied: true, reason: `context: ${matched}` })
+                      autoSkills.push(s)
+                    } else {
+                      entries.push({ skillId: s.id, skillName: s.name, execution_mode: mode, applied: false, reason: 'skipped (on_demand, no context match)' })
+                    }
                   } else {
                     entries.push({ skillId: s.id, skillName: s.name, execution_mode: mode, applied: false, reason: `skipped (${mode})` })
                   }

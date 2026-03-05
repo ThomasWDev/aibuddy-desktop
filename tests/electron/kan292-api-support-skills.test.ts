@@ -181,8 +181,8 @@ describe('KAN-292: Add API Support for Skills', () => {
       expect(src).toMatch(/SkillSource\s*=.*'api'/)
     })
 
-    it('SKILLS_VERSION is bumped to 4', () => {
-      expect(src).toMatch(/SKILLS_VERSION\s*=\s*4/)
+    it('SKILLS_VERSION is at least 4', () => {
+      expect(src).toMatch(/SKILLS_VERSION\s*=\s*[4-9]/)
     })
 
     it('KAN-292 referenced in header', () => {

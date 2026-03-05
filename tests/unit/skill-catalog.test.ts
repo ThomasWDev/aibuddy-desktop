@@ -109,7 +109,7 @@ describe('SkillsStorageManager.installFromCatalog', () => {
     const mgr = SkillsStorageManager.getInstance()
     const catalogSkill = getCatalogSkill('marketplace_architecture_assistant')!
     const installed = mgr.installFromCatalog(catalogSkill)
-    expect(installed.execution_mode).toBe('manual')
+    expect(installed.execution_mode).toBe(catalogSkill.execution_mode)
   })
 })
 

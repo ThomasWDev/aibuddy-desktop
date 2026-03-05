@@ -201,6 +201,7 @@ export class SkillsStorageManager {
     execution_mode?: SkillExecutionMode
     tags?: string[]
     allowed_tools?: SkillToolPermission[]
+    context_triggers?: import('./types').SkillContextTrigger
   }): Skill {
     if (this.state.skills.length >= MAX_SKILLS) {
       throw new Error(`Maximum skill limit reached (${MAX_SKILLS})`)
@@ -222,6 +223,7 @@ export class SkillsStorageManager {
       order: params.order,
       tags: params.tags,
       allowed_tools: params.allowed_tools,
+      context_triggers: params.context_triggers,
     }
 
     this.state.skills.push(skill)
@@ -256,6 +258,7 @@ export class SkillsStorageManager {
       source: 'marketplace',
       catalog_id: catalogSkill.catalog_id,
       allowed_tools: catalogSkill.allowed_tools,
+      context_triggers: catalogSkill.context_triggers,
     }
 
     this.state.skills.push(skill)
@@ -291,7 +294,7 @@ export class SkillsStorageManager {
   }
 
   public updateSkill(id: string, updates: Partial<Pick<Skill,
-    'name' | 'description' | 'prompt_template' | 'enabled' | 'scope' | 'order' | 'visibility' | 'execution_mode' | 'tags' | 'allowed_tools'
+    'name' | 'description' | 'prompt_template' | 'enabled' | 'scope' | 'order' | 'visibility' | 'execution_mode' | 'tags' | 'allowed_tools' | 'context_triggers'
   >>): Skill | null {
     const builtin = BUILTIN_SKILLS.find(s => s.id === id)
     if (builtin) return null // cannot update built-ins
@@ -310,6 +313,7 @@ export class SkillsStorageManager {
     if (updates.execution_mode !== undefined) skill.execution_mode = updates.execution_mode
     if (updates.tags !== undefined) skill.tags = updates.tags
     if (updates.allowed_tools !== undefined) skill.allowed_tools = updates.allowed_tools
+    if (updates.context_triggers !== undefined) skill.context_triggers = updates.context_triggers
     skill.updated_at = Date.now()
 
     this.state.skills[idx] = skill

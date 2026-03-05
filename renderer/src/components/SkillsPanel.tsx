@@ -18,6 +18,7 @@ interface Skill {
   source?: string
   catalog_id?: string
   allowed_tools?: string[]
+  context_triggers?: { project_types?: string[]; file_patterns?: string[]; keywords?: string[] }
 }
 
 interface CatalogSkill {
@@ -32,6 +33,7 @@ interface CatalogSkill {
   scope: string
   execution_mode: string
   allowed_tools?: string[]
+  context_triggers?: { project_types?: string[]; file_patterns?: string[]; keywords?: string[] }
 }
 
 const TOOL_OPTIONS = [
@@ -61,6 +63,10 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
   const [newExecutionMode, setNewExecutionMode] = useState<'always' | 'manual' | 'on_demand'>('always')
   const [newTags, setNewTags] = useState('')
   const [newAllowedTools, setNewAllowedTools] = useState<string[]>([])
+  // KAN-293: Context trigger state
+  const [newContextProjectTypes, setNewContextProjectTypes] = useState('')
+  const [newContextFilePatterns, setNewContextFilePatterns] = useState('')
+  const [newContextKeywords, setNewContextKeywords] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   // KAN-288: Marketplace state + KAN-290: audit log + KAN-291: execution history
   const [activeTab, setActiveTab] = useState<'skills' | 'marketplace' | 'audit' | 'activity'>('skills')
@@ -182,6 +188,7 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
       execution_mode: newExecutionMode,
       tags: tagsArray.length > 0 ? tagsArray : undefined,
       allowed_tools: newAllowedTools.length > 0 ? newAllowedTools : undefined,
+      context_triggers: buildContextTriggers(),
     })
     if (result) {
       setIsCreating(false)
@@ -203,6 +210,7 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
       prompt_template: editContent,
       tags: tagsArray.length > 0 ? tagsArray : undefined,
       allowed_tools: newAllowedTools.length > 0 ? newAllowedTools : undefined,
+      context_triggers: buildContextTriggers(),
     })
     if (result) {
       setIsEditing(false)
@@ -252,12 +260,28 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
     onSkillsChanged()
   }, [skills, electronAPI, onSkillsChanged])
 
+  // KAN-293: Build context triggers from form state
+  const buildContextTriggers = () => {
+    const pt = newContextProjectTypes.split(',').map(s => s.trim()).filter(Boolean)
+    const fp = newContextFilePatterns.split(',').map(s => s.trim()).filter(Boolean)
+    const kw = newContextKeywords.split(',').map(s => s.trim()).filter(Boolean)
+    if (pt.length === 0 && fp.length === 0 && kw.length === 0) return undefined
+    return {
+      project_types: pt.length > 0 ? pt : undefined,
+      file_patterns: fp.length > 0 ? fp : undefined,
+      keywords: kw.length > 0 ? kw : undefined,
+    }
+  }
+
   const startEdit = (skill: Skill) => {
     setNewName(skill.name)
     setNewDescription(skill.description)
     setEditContent(skill.prompt_template)
     setNewTags((skill.tags || []).join(', '))
     setNewAllowedTools(skill.allowed_tools || [])
+    setNewContextProjectTypes((skill.context_triggers?.project_types || []).join(', '))
+    setNewContextFilePatterns((skill.context_triggers?.file_patterns || []).join(', '))
+    setNewContextKeywords((skill.context_triggers?.keywords || []).join(', '))
     setIsEditing(true)
     setIsCreating(false)
   }
@@ -275,6 +299,9 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
     setNewExecutionMode('always')
     setNewTags('')
     setNewAllowedTools([])
+    setNewContextProjectTypes('')
+    setNewContextFilePatterns('')
+    setNewContextKeywords('')
   }
 
   const toggleTool = (toolValue: string) => {
@@ -709,10 +736,44 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                   >
                     <option value="always">Always active</option>
                     <option value="manual">Manual trigger</option>
-                    <option value="on_demand">On demand</option>
+                    <option value="on_demand">Context-aware (on demand)</option>
                   </select>
                 </div>
               </div>
+
+              {/* KAN-293: Context triggers (shown when execution_mode is on_demand) */}
+              {newExecutionMode === 'on_demand' && (
+                <div className="space-y-2 p-3 rounded-lg" style={{ background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                  <p className="text-[10px] text-blue-400 font-medium">Context Triggers — skill activates when any condition matches</p>
+                  <div>
+                    <label className="text-[10px] text-slate-500 block mb-0.5">Project Types (comma-separated, e.g. react, python, docker)</label>
+                    <input
+                      value={newContextProjectTypes}
+                      onChange={e => setNewContextProjectTypes(e.target.value)}
+                      placeholder="react, next, node"
+                      className="w-full text-xs bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white placeholder-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 block mb-0.5">File Patterns (comma-separated, e.g. Dockerfile, pom.xml)</label>
+                    <input
+                      value={newContextFilePatterns}
+                      onChange={e => setNewContextFilePatterns(e.target.value)}
+                      placeholder="Dockerfile, docker-compose.yml"
+                      className="w-full text-xs bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white placeholder-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 block mb-0.5">Keywords (comma-separated, matched against user message)</label>
+                    <input
+                      value={newContextKeywords}
+                      onChange={e => setNewContextKeywords(e.target.value)}
+                      placeholder="deploy, docker, database"
+                      className="w-full text-xs bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white placeholder-slate-600"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-medium text-slate-400 block mb-1">Tags (comma-separated, for conflict detection)</label>
@@ -900,6 +961,39 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                         </span>
                       )
                     })}
+                  </div>
+                </div>
+              )}
+
+              {/* KAN-293: Context triggers display */}
+              {selectedSkill.context_triggers && (selectedSkill.context_triggers.project_types?.length || selectedSkill.context_triggers.file_patterns?.length || selectedSkill.context_triggers.keywords?.length) && (
+                <div>
+                  <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Context Triggers</span>
+                  <div className="mt-1 space-y-1">
+                    {selectedSkill.context_triggers.project_types && selectedSkill.context_triggers.project_types.length > 0 && (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="text-[10px] text-slate-600">Projects:</span>
+                        {selectedSkill.context_triggers.project_types.map(pt => (
+                          <span key={pt} className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{ background: 'rgba(59,130,246,0.1)', color: '#93c5fd' }}>{pt}</span>
+                        ))}
+                      </div>
+                    )}
+                    {selectedSkill.context_triggers.file_patterns && selectedSkill.context_triggers.file_patterns.length > 0 && (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="text-[10px] text-slate-600">Files:</span>
+                        {selectedSkill.context_triggers.file_patterns.map(fp => (
+                          <span key={fp} className="text-[10px] px-1.5 py-0.5 rounded font-mono" style={{ background: 'rgba(234,179,8,0.1)', color: '#fcd34d' }}>{fp}</span>
+                        ))}
+                      </div>
+                    )}
+                    {selectedSkill.context_triggers.keywords && selectedSkill.context_triggers.keywords.length > 0 && (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="text-[10px] text-slate-600">Keywords:</span>
+                        {selectedSkill.context_triggers.keywords.map(kw => (
+                          <span key={kw} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(168,85,247,0.1)', color: '#c4b5fd' }}>{kw}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

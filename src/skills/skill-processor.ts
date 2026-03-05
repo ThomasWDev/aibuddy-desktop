@@ -1,14 +1,15 @@
 /**
- * Skill Execution Pipeline — KAN-286, KAN-287, KAN-289
+ * Skill Execution Pipeline — KAN-286, KAN-287, KAN-289, KAN-293
  *
  * Processes skills before prompt injection. Filters by execution_mode,
  * orders by priority, detects conflicts via shared tags, captures
  * execution logs, and tracks tool permissions for tool-enabled skills.
+ * KAN-293: on_demand skills auto-activate when context triggers match.
  *
  * Flow: User Prompt → SkillProcessor → Prompt Refinement → LLM → Response
  */
 
-import type { Skill, SkillExecutionMode, SkillToolPermission } from './types'
+import type { Skill, SkillExecutionMode, SkillToolPermission, SkillContextTrigger, SkillContext } from './types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -94,11 +95,55 @@ export function detectConflicts(skills: ProcessedSkill[]): ConflictPair[] {
   return conflicts
 }
 
+// ─── KAN-293: Context Matching ────────────────────────────────────────────────
+
+/**
+ * Evaluate whether a skill's context triggers match the current workspace context.
+ * Returns the matched trigger reason, or null if no match.
+ */
+export function evaluateContextTriggers(
+  triggers: SkillContextTrigger | undefined,
+  context: SkillContext | undefined,
+): string | null {
+  if (!triggers || !context) return null
+
+  if (triggers.project_types && triggers.project_types.length > 0 && context.projectType) {
+    const pt = context.projectType.toLowerCase()
+    for (const t of triggers.project_types) {
+      if (pt.includes(t.toLowerCase())) {
+        return `project type matches "${t}"`
+      }
+    }
+  }
+
+  if (triggers.file_patterns && triggers.file_patterns.length > 0 && context.workspaceFiles) {
+    const filesLower = context.workspaceFiles.map(f => f.toLowerCase())
+    for (const pattern of triggers.file_patterns) {
+      const patternLower = pattern.toLowerCase()
+      if (filesLower.some(f => f === patternLower || f.endsWith('/' + patternLower))) {
+        return `workspace contains "${pattern}"`
+      }
+    }
+  }
+
+  if (triggers.keywords && triggers.keywords.length > 0 && context.userMessage) {
+    const msg = context.userMessage.toLowerCase()
+    for (const kw of triggers.keywords) {
+      if (msg.includes(kw.toLowerCase())) {
+        return `message contains "${kw}"`
+      }
+    }
+  }
+
+  return null
+}
+
 // ─── Main Pipeline ────────────────────────────────────────────────────────────
 
 /**
  * Process skills through the execution pipeline.
  * Filters by enabled + execution_mode, orders by priority, detects conflicts, logs decisions.
+ * KAN-293: on_demand skills auto-activate when context triggers match.
  */
 export function processSkills(
   skills: Skill[],
@@ -107,6 +152,8 @@ export function processSkills(
     manualTriggerIds?: string[]
     /** Whether to include on_demand skills (AI-requested) */
     includeOnDemand?: boolean
+    /** KAN-293: Workspace context for context-aware skill activation */
+    context?: SkillContext
   }
 ): SkillProcessorResult {
   const start = performance.now()
@@ -148,14 +195,19 @@ export function processSkills(
         }
         break
 
-      case 'on_demand':
-        if (options?.includeOnDemand) {
+      case 'on_demand': {
+        const triggerMatch = evaluateContextTriggers(skill.context_triggers, options?.context)
+        if (triggerMatch) {
+          entry.applied = true
+          entry.reason = `context: ${triggerMatch}`
+        } else if (options?.includeOnDemand) {
           entry.applied = true
           entry.reason = 'included (on_demand requested)'
         } else {
-          entry.reason = 'skipped (on_demand, not requested)'
+          entry.reason = 'skipped (on_demand, no context match)'
         }
         break
+      }
 
       default:
         entry.reason = `unknown execution_mode: ${mode}`
