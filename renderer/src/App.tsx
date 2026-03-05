@@ -4434,21 +4434,21 @@ Be concise and actionable. Use an alternative approach, not the same commands th
             {/* Loading */}
             {/* Enhanced Loading/Streaming Indicator — KAN-33: Live elapsed timer + reassurance */}
             {isLoading && (
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 <div 
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 animate-pulse"
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 animate-pulse"
                   style={{ 
                     background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
                     boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)'
                   }}
                 >
-                  <Bot className="w-7 h-7 text-white" />
+                  <Bot className="w-6 h-6 text-white" />
                 </div>
                 <div 
-                  className="rounded-2xl p-4 max-w-md"
+                  className="rounded-xl px-3 py-2 max-w-md"
                   style={{ background: '#1e293b', border: '2px solid #334155' }}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5">
                     <div style={{ color: currentStatus.color }}>{currentStatus.icon}</div>
                     <span className="text-sm text-white font-semibold">{currentStatus.text}</span>
                     {(status === 'thinking' || status === 'generating') && elapsedSeconds > 0 && (
@@ -4457,7 +4457,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   </div>
                   
                   {/* Progress bar — animated during thinking to avoid "frozen" look */}
-                  <div className="mt-3 h-1.5 bg-slate-700 rounded-full overflow-hidden w-48">
+                  <div className="mt-2 h-1.5 bg-slate-700 rounded-full overflow-hidden w-48">
                     <div 
                       className="h-full rounded-full transition-all duration-500"
                       style={{ 
@@ -4473,7 +4473,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   
                   {/* Animated typing dots for thinking/generating states */}
                   {(status === 'thinking' || status === 'generating') && (
-                    <div className="mt-3 flex items-center gap-1">
+                    <div className="mt-2 flex items-center gap-1">
                       <span className="text-xs text-slate-500">AIBuddy is typing</span>
                       <span className="flex gap-0.5">
                         <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

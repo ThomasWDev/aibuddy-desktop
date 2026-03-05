@@ -443,12 +443,12 @@ export function AIPanel({ workspacePath, onClose }: AIPanelProps) {
 
         {/* Loading indicator - Cursor-like */}
         {isLoading && (
-          <div className="flex gap-2.5">
+          <div className="flex gap-2">
             <div className="w-7 h-7 rounded-md bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center flex-shrink-0">
               <Bot className="w-4 h-4 text-white" />
             </div>
-            <div className="rounded-lg p-3" style={{ background: '#0f172a', border: '1px solid #334155' }}>
-              <div className="flex items-center gap-2">
+            <div className="rounded-lg px-2.5 py-1.5" style={{ background: '#0f172a', border: '1px solid #334155' }}>
+              <div className="flex items-center gap-1.5">
                 <Loader2 className="w-4 h-4 animate-spin" style={{ color: currentStatus.color }} />
                 <span className="text-sm" style={{ color: currentStatus.color }}>{currentStatus.text}</span>
               </div>

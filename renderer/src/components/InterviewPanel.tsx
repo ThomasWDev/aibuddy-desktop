@@ -736,7 +736,7 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
                   {expandedResponses.has(resp.id) && (
                     <div className="px-4 pb-4 border-t border-slate-700/30">
                       {resp.isLoading ? (
-                        <div className="flex items-center gap-2 py-4 text-purple-400">
+                        <div className="flex items-center gap-1.5 py-2 text-purple-400">
                           <Loader2 className="w-4 h-4 animate-spin" />
                           <span className="text-sm">Thinking...</span>
                         </div>
