@@ -90,16 +90,24 @@ AIBuddy Desktop is a standalone desktop IDE that reuses the core AI agent code f
 ### Clone & Install
 
 ```bash
-# Clone the repository
-git clone https://github.com/ThomasWDev/aibuddy-desktop.git
-cd aibuddy-desktop
+# Clone the MONOREPO (not just the desktop submodule)
+git clone --recurse-submodules git@github.com:Thomas-Woodfin/AICodingVS.git
+cd AICodingVS
 
-# Install dependencies
+# Install all workspace dependencies
 pnpm install
 
-# Start development server
+# Build shared packages FIRST (order matters — dependencies flow top-down)
+pnpm --filter @aibuddy/types build       # 1. Types (no deps)
+pnpm --filter @aibuddy/prompts build     # 2. Prompts (depends: dedent)
+pnpm --filter @aibuddy/core build        # 3. Core (peer: types)
+
+# Start desktop development server
+cd aibuddy-desktop
 pnpm dev
 ```
+
+**For the full developer onboarding guide** — including package update workflow, CI/CD pipeline, and release process — see `aibuddy-desktop/docs/MODULARIZATION_GUIDE.md`.
 
 ### Download Pre-built Binaries
 

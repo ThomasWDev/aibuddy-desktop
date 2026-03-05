@@ -4,6 +4,7 @@
 **Priority:** HIGH  
 **Status:** Design Complete — Ready for Implementation  
 **Created:** 2026-03-05  
+**Last Updated:** 2026-03-05  
 
 ---
 
@@ -392,9 +393,47 @@ TDD tests must cover:
 
 ---
 
+## Emergency: Free Locked DB to Prevent Crashes
+
+If the database becomes locked or AIBuddy crashes due to DB contention:
+
+```bash
+# The cursor_db_swap script at /tmp/cursor_db_swap.sh can free a locked DB
+# It performs a checkpoint, copies to temp, and swaps the DB file safely.
+# Use when: AIBuddy or Cursor shows "database is locked" errors, or CPU spikes from WAL growth.
+
+bash /tmp/cursor_db_swap.sh ~/.aibuddy/projects/<hash>/workspace.db
+```
+
+**Prevention built into the design:**
+- WAL mode allows concurrent readers without blocking
+- Incremental auto-vacuum prevents unbounded growth
+- 100MB workspace cap triggers automatic pruning
+- 50MB global cap triggers TTL cleanup
+- Size monitoring at 80% threshold triggers warnings
+
+---
+
+## Implementation Status
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 1 | Schema design + anti-bloat guardrails | Design complete |
+| Phase 2 | `better-sqlite3` integration + global.db | Not started |
+| Phase 3 | Per-workspace DB creation + migration | Not started |
+| Phase 4 | Thread/message migration from JSON | Not started |
+| Phase 5 | Session restoration from SQLite | Not started |
+
+**Dependency:** `better-sqlite3` must be added to `aibuddy-desktop/package.json`. electron-builder needs native module rebuild configuration.
+
+---
+
 ## References
 
 - Cursor crash reports: 80GB state.vscdb, 711 rows ItemTable, 1.2M cursorDiskKV
 - Extension SQLite schema: `extension/src/db/schema.ts`
 - Cursor Parity Roadmap: `aibuddy-desktop/docs/CURSOR_PARITY_ROADMAP.md`
 - Anti-bloat protections: `aibuddy-desktop/tests/features/state-bloat-protection.test.ts`
+- DB swap script: `/tmp/cursor_db_swap.sh` (emergency DB unlock)
+- Electron App Stability: `ChatGPTIOS/docs/ELECTRON_APP_STABILITY_GUIDE.md`
+- Modularization Guide: `aibuddy-desktop/docs/MODULARIZATION_GUIDE.md`

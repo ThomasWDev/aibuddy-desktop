@@ -1,5 +1,7 @@
 # AIBuddy Shared Code Architecture
 
+**Last Updated:** March 5, 2026
+
 ## Overview
 
 This document outlines the architecture for sharing code between:
@@ -7,6 +9,29 @@ This document outlines the architecture for sharing code between:
 - **AIBuddy Desktop App** (`/aibuddy-desktop/`)
 
 The goal is to **update logic once** and have it work in both apps.
+
+**Related docs:**
+- Package update workflow and CI/CD: `aibuddy-desktop/docs/MODULARIZATION_GUIDE.md`
+- E2E testing across all targets: `docs/E2E_TESTING_KIT.md`
+- Release process: `docs/RELEASE_PROCESS.md`
+
+### Actual Repository Layout (as of March 2026)
+
+```
+AICodingVS/                              Root monorepo (pnpm workspaces)
+├── extension/                           VS Code Extension
+├── aibuddy-desktop/                     Electron Desktop App
+│   └── packages/prompts/                Local copy of @aibuddy/prompts
+├── packages/                            Shared packages
+│   ├── core/                            @aibuddy/core (202 tests)
+│   ├── prompts/                         @aibuddy/prompts (system prompts)
+│   ├── types/                           @aibuddy/types (shared types)
+│   └── ui/                              @aibuddy/ui (planned)
+├── aws-api/                             Lambda API backend
+└── .github/workflows/                   CI/CD (5 workflows)
+```
+
+> Note: The `apps/vscode-extension/` and `apps/desktop/` layout in the original design below was aspirational. The actual layout uses `extension/` and `aibuddy-desktop/` at the root.
 
 ---
 

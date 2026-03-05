@@ -1,23 +1,289 @@
 # AIBuddy Desktop — Modularization Guide
 
-**Created:** March 5, 2026
+**Created:** March 5, 2026  
+**Last Updated:** March 5, 2026  
 **Purpose:** Enable external developers to work on isolated logic modules without access to the full application. Developers can build and test their modules independently; reconstructing the full app from modules alone requires significant effort.
 
 ---
 
 ## Table of Contents
 
-1. [Architecture Overview](#architecture-overview)
-2. [Security Model — What Stays Private](#security-model--what-stays-private)
-3. [Module Map — What Can Be Shared](#module-map--what-can-be-shared)
-4. [Isolation Strategy](#isolation-strategy)
-5. [Package Extraction Plan](#package-extraction-plan)
-6. [Developer Onboarding — External Contributor Setup](#developer-onboarding--external-contributor-setup)
-7. [Git Repository Strategy](#git-repository-strategy)
-8. [Adapter Pattern — Platform Decoupling](#adapter-pattern--platform-decoupling)
-9. [Testing Requirements for Modules](#testing-requirements-for-modules)
-10. [CI/CD for Modular Builds](#cicd-for-modular-builds)
-11. [Module Boundary Enforcement](#module-boundary-enforcement)
+1. [New Developer Quick Start](#new-developer-quick-start)
+2. [Architecture Overview](#architecture-overview)
+3. [How to Update a Shared Package](#how-to-update-a-shared-package)
+4. [How to Update the Main Repo with Latest Packages](#how-to-update-the-main-repo-with-latest-packages)
+5. [Automatic Release Pipeline](#automatic-release-pipeline)
+6. [Security Model — What Stays Private](#security-model--what-stays-private)
+7. [Module Map — What Can Be Shared](#module-map--what-can-be-shared)
+8. [Isolation Strategy](#isolation-strategy)
+9. [Package Extraction Plan](#package-extraction-plan)
+10. [Developer Onboarding — External Contributor Setup](#developer-onboarding--external-contributor-setup)
+11. [Git Repository Strategy](#git-repository-strategy)
+12. [Adapter Pattern — Platform Decoupling](#adapter-pattern--platform-decoupling)
+13. [Testing Requirements for Modules](#testing-requirements-for-modules)
+14. [CI/CD for Modular Builds](#cicd-for-modular-builds)
+15. [Module Boundary Enforcement](#module-boundary-enforcement)
+16. [Related Documentation](#related-documentation)
+
+---
+
+## New Developer Quick Start
+
+### Prerequisites
+
+- **Node.js 20+** (LTS)
+- **pnpm 9+** (`npm install -g pnpm`)
+- macOS for desktop builds (code signing + notarization requires Apple tools)
+- Git configured with your real name/email (never commit as an AI tool)
+
+### First-time Setup
+
+```bash
+git clone git@github.com:Thomas-Woodfin/AICodingVS.git
+cd AICodingVS
+pnpm install                          # Installs all workspace packages
+
+# Build shared packages FIRST (order matters)
+cd packages/types && pnpm build       # @aibuddy/types
+cd ../prompts && pnpm build           # @aibuddy/prompts (depends on types)
+cd ../core && pnpm build              # @aibuddy/core (depends on types)
+
+# Run tests to verify setup
+cd ../../extension && pnpm test:unit  # Extension unit tests
+cd ../aibuddy-desktop && pnpm test    # Desktop unit tests
+cd ../aws-api && npx jest --forceExit # API tests
+```
+
+### Repository Layout
+
+```
+AICodingVS/                              Root monorepo (pnpm workspaces)
+|-- extension/                           VS Code Extension (ships to Marketplace)
+|-- aibuddy-desktop/                     Electron Desktop App (ships to App Store + downloads)
+|   |-- electron/                        Main process (IPC handlers)
+|   |-- renderer/                        React UI (App.tsx, components, hooks)
+|   |-- src/                             Shared logic (adapters, agent, knowledge)
+|   |-- tests/                           Vitest tests (3,259+)
+|   +-- packages/prompts/                Local copy of @aibuddy/prompts
+|-- packages/                            Shared packages (pnpm workspace:*)
+|   |-- core/                            @aibuddy/core (202 tests)
+|   |-- prompts/                         @aibuddy/prompts (system prompts)
+|   |-- types/                           @aibuddy/types (TypeScript types)
+|   +-- ui/                              @aibuddy/ui (React components, planned)
+|-- aws-api/                             Lambda API backend (Jest, 238 tests)
+|-- .github/workflows/                   CI/CD (5 workflows)
++-- docs/                                Cross-project documentation
+```
+
+### Key Docs Index
+
+| Doc | Path | Covers |
+|-----|------|--------|
+| **This guide** | `aibuddy-desktop/docs/MODULARIZATION_GUIDE.md` | Packages, architecture, external contributors |
+| **Desktop App Guide** | `aibuddy-desktop/DESKTOP_APP_GUIDE.md` | Build, run, debug the Electron app |
+| **Shared Code Architecture** | `aibuddy-desktop/SHARED_CODE_ARCHITECTURE.md` | How code is shared between extension + desktop |
+| **Local Database** | `aibuddy-desktop/docs/LOCAL_DATABASE_ARCHITECTURE.md` | SQLite per-workspace DB design |
+| **Cursor Parity Roadmap** | `aibuddy-desktop/docs/CURSOR_PARITY_ROADMAP.md` | Feature roadmap for Cursor-level parity |
+| **E2E Testing Kit** | `docs/E2E_TESTING_KIT.md` | All test suites, smoke tests, CI integration |
+| **CI/CD Secrets** | `docs/CI_CD_SECRETS_REFERENCE.md` | GitHub Actions secrets, SSH keys, Apple certs |
+| **API V2 Docs** | `aibuddyapi/API_V2_DOCUMENTATION.md` | Lambda API endpoints, auth, smart routing |
+| **Release Process** | `docs/RELEASE_PROCESS.md` | Step-by-step release checklist |
+| **Store Submission** | `aibuddy-desktop/STORE_SUBMISSION_GUIDE.md` | Mac App Store, Microsoft Store, Snap Store |
+| **Backend Migration** | `BACKEND_MIGRATION.md` | WordPress to AWS Lambda migration history |
+| **Known Issues** | `KNOWN_ISSUES.md` | All resolved/open issues with version history |
+| **Apple API** | `docs/APPLE_APPSTORE_CONNECT_API.md` | App Store Connect, RevenueCat, Google Play |
+| **Security Findings** | `CompassCare-Documentation/AIBUDDY_SECURITY_FINDINGS.md` | AWS account isolation, SSM, IAM |
+
+---
+
+## How to Update a Shared Package
+
+When you add a feature or fix a bug in a shared package (`@aibuddy/prompts`, `@aibuddy/core`, `@aibuddy/types`), follow this workflow:
+
+### Step 1: Make your changes
+
+```bash
+cd packages/prompts              # or packages/core, packages/types
+# Edit source files in src/
+```
+
+### Step 2: Write tests first (TDD)
+
+```bash
+pnpm test                        # Run existing tests
+# Write new tests for your feature
+pnpm test                        # Confirm they fail (RED)
+# Implement the feature
+pnpm test                        # Confirm they pass (GREEN)
+```
+
+### Step 3: Build the package
+
+```bash
+pnpm build                       # tsup compiles to dist/ (cjs + esm + dts)
+```
+
+### Step 4: Test consumers
+
+The extension and desktop app use `workspace:*` to link to packages. After building, verify they still work:
+
+```bash
+cd ../../extension && pnpm test:unit     # Extension picks up changes via workspace link
+cd ../aibuddy-desktop && pnpm test       # Desktop picks up changes
+```
+
+### Step 5: Commit with ticket number
+
+```bash
+git add -A
+git commit -m "KAN-XXX: Description of the change"
+```
+
+### Package Build Order (dependencies flow top-down)
+
+```
+1. @aibuddy/types     (no deps)       pnpm --filter @aibuddy/types build
+2. @aibuddy/prompts   (depends: dedent) pnpm --filter @aibuddy/prompts build
+3. @aibuddy/core      (peer: types)    pnpm --filter @aibuddy/core build
+4. extension          (uses: prompts)  cd extension && pnpm compile
+5. aibuddy-desktop    (uses: prompts)  cd aibuddy-desktop && pnpm build
+```
+
+---
+
+## How to Update the Main Repo with Latest Packages
+
+### For changes within the monorepo (most common)
+
+Changes to `packages/*` are already part of the monorepo. pnpm workspaces automatically link them. Just commit, push to `main`, and the CI handles the rest.
+
+```bash
+# After making changes to packages/prompts + aibuddy-desktop
+git add -A
+git commit -m "KAN-XXX: Update prompts for new feature"
+git push origin main             # Triggers automatic release pipeline
+```
+
+### For changes from external repos (aibuddy-logic, aibuddy-types, aibuddy-prompts)
+
+External contributors push to separate repos. To pull their changes into the main monorepo:
+
+```bash
+# Option A: If using git submodule
+cd packages/logic
+git pull origin main
+cd ../..
+git add packages/logic
+git commit -m "KAN-XXX: Update logic package from external PR"
+
+# Option B: If using npm/pnpm package
+pnpm update @aibuddy/logic       # Pulls latest version
+pnpm test                        # Verify nothing broke
+git commit -am "KAN-XXX: Update @aibuddy/logic to vX.Y.Z"
+```
+
+### Version Bump Rule
+
+**Extension and Desktop versions MUST match.** Before pushing to main:
+
+```bash
+# Check current versions
+node -e "console.log(require('./extension/package.json').version)"
+node -e "console.log(require('./aibuddy-desktop/package.json').version)"
+
+# If they don't match, bump both to the same version
+cd extension && npm version patch --no-git-tag-version
+cd ../aibuddy-desktop && npm version patch --no-git-tag-version
+```
+
+---
+
+## Automatic Release Pipeline
+
+When you push to `main` (or `master`), GitHub Actions automatically builds, tests, signs, and deploys everything.
+
+### What Happens on Push to Main
+
+```
+Push to main
+     |
+     v
+Phase 1: TESTS (parallel)
+     |-- test-api         Jest tests for Lambda API (aws-api/)
+     |-- test-extension   TypeScript check + Vitest unit tests
+     +-- test-desktop     TypeScript check + Vitest unit tests
+     |
+     v (all tests must pass)
+Phase 2: READ VERSION
+     |-- Reads version from extension/package.json and aibuddy-desktop/package.json
+     +-- Both MUST match
+     |
+     v
+Phase 3: BUILD + PUBLISH (parallel)
+     |-- publish-extension      Build VSIX -> publish to VS Code Marketplace
+     |-- build-desktop-mac      macOS DMGs (ARM64 + x64) + MAS .pkg, signed + notarized
+     |-- build-desktop-linux    AppImage + deb
+     +-- build-desktop-windows  exe + msi
+     |
+     v
+Phase 4: DEPLOY (parallel)
+     |-- deploy-servers         SSH to Denver (3.132.25.123) + aibuddy.life (SiteGround)
+     |-- create-github-release  GitHub Release with all platform artifacts
+     +-- upload-app-store       MAS .pkg to App Store Connect / TestFlight
+     |
+     v
+Phase 5: SUMMARY
+     +-- Prints release summary with all URLs and versions
+```
+
+### Where Everything Gets Deployed
+
+| Target | URL / Location | Deployed By |
+|--------|----------------|-------------|
+| **VS Code Marketplace** | `AIBuddyStudio.AIBuddy` | `vsce publish` (needs `VSCE_PAT`) |
+| **GitHub Releases** | `github.com/Thomas-Woodfin/AICodingVS/releases` | `softprops/action-gh-release` |
+| **Denver Downloads** | `denvermobileappdeveloper.com/downloads/aibuddy-desktop/` | SSH SCP to `3.132.25.123` |
+| **aibuddy.life Downloads** | `aibuddy.life/downloads/latest/` | SSH SCP to SiteGround (port 18765) |
+| **App Store Connect** | TestFlight / Mac App Store | `xcrun altool --upload-app` |
+
+### Required GitHub Secrets
+
+| Secret | Purpose | Status |
+|--------|---------|--------|
+| `MAC_CERTS_BASE64` | macOS code signing .p12 (base64) | Set |
+| `MAC_CERTS_PASSWORD` | .p12 password | Set |
+| `APPLE_TEAM_ID` | Apple Developer Team ID | Set |
+| `APPLE_ID` | Apple ID for notarization | Set |
+| `APP_STORE_AUTH_KEY` | App Store Connect .p8 key (base64) | Set |
+| `APP_STORE_KEY_ID` | App Store Connect Key ID | Set |
+| `APP_STORE_ISSUER_ID` | App Store Connect Issuer ID | Set |
+| `MAS_PROVISION_PROFILE` | Main app MAS provisioning profile | Set |
+| `MAS_HELPERS_PROVISION_PROFILE` | Helper bundles MAS provisioning profile | Set |
+| `DENVER_SSH_KEY` | SSH to Denver EC2 | Set |
+| `AIBUDDY_SSH_KEY` | SSH to aibuddy.life SiteGround | Set |
+| `VSCE_PAT` | VS Code Marketplace token | **Needs rotation** |
+
+Full secret docs: `docs/CI_CD_SECRETS_REFERENCE.md`
+
+### Workflow Files
+
+| File | Trigger | What It Does |
+|------|---------|-------------|
+| `.github/workflows/release-on-master.yml` | Push to main | Full release pipeline (tests + build + deploy) |
+| `.github/workflows/ci.yml` | PR to main | Tests only (extension + desktop + API) |
+| `.github/workflows/deploy-extension.yml` | Manual | Publish extension to VS Code Marketplace |
+| `.github/workflows/deploy-desktop.yml` | Tag `desktop-v*` / Manual | Build desktop + GitHub Release + App Store |
+| `.github/workflows/deploy-denver.yml` | Manual | Denver site deploy via Capistrano |
+
+### Known CI Issues
+
+| Issue | Workaround |
+|-------|------------|
+| `VSCE_PAT` expired | Manual publish: `cd extension && vsce publish` |
+| aibuddy.life SSH timeout | SiteGround firewall blocks GitHub IPs; manual SCP upload |
+| App Store duplicate version | Auto-skipped; bump version in both package.json files |
+
+---
 
 ---
 
@@ -661,18 +927,66 @@ These tests run in CI and block merges that violate module boundaries.
 ## Quick Reference: Commands
 
 ```bash
+# Build all shared packages (order matters)
+pnpm --filter @aibuddy/types build
+pnpm --filter @aibuddy/prompts build
+pnpm --filter @aibuddy/core build
+
 # Run all logic package tests
-cd packages/logic && pnpm test
+cd packages/core && pnpm test
 
 # Run with coverage
-cd packages/logic && pnpm test --coverage
+cd packages/core && pnpm test --coverage
 
 # Type check
-cd packages/logic && pnpm typecheck
+cd packages/core && pnpm typecheck
 
 # Run boundary enforcement tests
 cd aibuddy-desktop && pnpm vitest run tests/electron/module-boundary.test.ts
 
 # Full app test suite (owner only)
 cd aibuddy-desktop && pnpm test
+
+# Extension tests
+cd extension && pnpm test:unit
+
+# API tests (Lambda backend)
+cd aws-api && npx jest --forceExit
+
+# Build everything for release
+cd extension && pnpm build:ci           # Extension: tests + VSIX
+cd aibuddy-desktop && pnpm build:ci     # Desktop: tests + Electron build
 ```
+
+---
+
+## Related Documentation
+
+| Category | Document | Path |
+|----------|----------|------|
+| **Architecture** | Shared Code Architecture | `aibuddy-desktop/SHARED_CODE_ARCHITECTURE.md` |
+| **Architecture** | Local Database Architecture | `aibuddy-desktop/docs/LOCAL_DATABASE_ARCHITECTURE.md` |
+| **Architecture** | Cursor Parity Roadmap | `aibuddy-desktop/docs/CURSOR_PARITY_ROADMAP.md` |
+| **Architecture** | Backend Migration | `BACKEND_MIGRATION.md` |
+| **Build/Deploy** | Desktop App Guide | `aibuddy-desktop/DESKTOP_APP_GUIDE.md` |
+| **Build/Deploy** | Store Submission Guide | `aibuddy-desktop/STORE_SUBMISSION_GUIDE.md` |
+| **Build/Deploy** | CI/CD Secrets Reference | `docs/CI_CD_SECRETS_REFERENCE.md` |
+| **Build/Deploy** | Release Process | `docs/RELEASE_PROCESS.md` |
+| **Testing** | E2E Testing Kit | `docs/E2E_TESTING_KIT.md` |
+| **API** | API V2 Documentation | `aibuddyapi/API_V2_DOCUMENTATION.md` |
+| **API** | Apple App Store Connect API | `docs/APPLE_APPSTORE_CONNECT_API.md` |
+| **Security** | Security Findings | `CompassCare-Documentation/AIBUDDY_SECURITY_FINDINGS.md` |
+| **Operations** | Known Issues | `KNOWN_ISSUES.md` |
+| **Operations** | Extension Changelog | `extension/CHANGELOG.md` |
+
+### Test Counts (March 5, 2026)
+
+| Project | Framework | Tests | Files |
+|---------|-----------|-------|-------|
+| Extension (Vitest) | Vitest | 4,693 | 190 |
+| Desktop (Vitest) | Vitest | 3,259 | 147 |
+| Desktop (Playwright E2E) | Playwright | 90+ | 1 |
+| Lambda API (Jest) | Jest | 238 | 13 |
+| @aibuddy/core (Vitest) | Vitest | 202 | 9 |
+| @aibuddy/prompts (Vitest) | Vitest | 174 | - |
+| **Total** | | **~8,656+** | |
