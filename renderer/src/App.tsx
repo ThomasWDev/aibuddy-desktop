@@ -48,6 +48,7 @@ import { ShareModal } from './components/ShareModal'
 import { UsageLimitsPanel } from './components/UsageLimitsPanel'
 import { InterviewPanel } from './components/InterviewPanel'
 import { LanguageSelector } from './components/LanguageSelector'
+import { SkillsPanel } from './components/SkillsPanel'
 import { FeedbackDialog, type FeedbackPayload } from './components/FeedbackDialog'
 import { NpsPrompt, shouldShowNps, incrementInteractionCount } from './components/NpsPrompt'
 import { PrivacyConsent } from './components/PrivacyConsent'
@@ -756,6 +757,7 @@ function App() {
   const [apiKey, setApiKey] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showSkillsPanel, setShowSkillsPanel] = useState(false)
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [appVersion, setAppVersion] = useState<string | null>(null)
@@ -4044,6 +4046,24 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   {knowledgeContext && <span className="ml-auto w-2 h-2 rounded-full bg-green-400 animate-pulse" />}
                 </button>
 
+                {/* KAN-281: Skills / Project Rules */}
+                <button
+                  onClick={() => {
+                    trackButtonClick('Skills', 'App')
+                    setShowSkillsPanel(true)
+                    setShowMoreMenu(false)
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors"
+                >
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  <span>Skills</span>
+                  {projectRules.filter(r => r.alwaysApply).length > 0 && (
+                    <span className="ml-auto text-xs bg-amber-500/20 text-amber-400 px-1.5 rounded-full">
+                      {projectRules.filter(r => r.alwaysApply).length}
+                    </span>
+                  )}
+                </button>
+
                 {/* Share */}
                 <button
                   onClick={() => { 
@@ -5293,6 +5313,23 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         messageCount={messages.length}
         messages={messages.map(({ role, content }) => ({ role, content }))}
       />
+
+      {/* KAN-281: Skills Panel */}
+      {showSkillsPanel && (
+        <SkillsPanel
+          projectRules={projectRules}
+          workspacePath={workspacePath}
+          onClose={() => setShowSkillsPanel(false)}
+          onRulesChanged={async () => {
+            if (!workspacePath) return
+            try {
+              const electronAPI = (window as any).electronAPI
+              const rules = await electronAPI?.workspace?.getProjectRules(workspacePath)
+              if (rules) setProjectRules(rules)
+            } catch (e) { console.warn('[App] Failed to reload project rules:', e) }
+          }}
+        />
+      )}
 
       {/* NPS satisfaction prompt */}
       <NpsPrompt
