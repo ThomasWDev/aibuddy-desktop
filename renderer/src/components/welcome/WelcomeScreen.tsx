@@ -75,7 +75,7 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [apiKeySaved, setApiKeySaved] = useState(false)
-  const [hasApiKey, setHasApiKey] = useState(false)
+  const [hasApiKey, setHasApiKey] = useState<boolean | null>(null)
 
   useEffect(() => {
     addBreadcrumb('WelcomeScreen mounted', 'navigation')
@@ -115,7 +115,7 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
       return () => clearInterval(retryInterval)
     }
     
-    // Load app data if API is available
+    // Load app data if API is available (includes apiKey check — KAN-277 fix)
     const loadAppData = (api: any) => {
       // Get recent workspaces
       api.store?.get('recentWorkspaces').then((recent: string[] | undefined) => {
@@ -132,14 +132,17 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
         console.log('[WelcomeScreen] App version:', version)
         setAppVersion(version)
       }).catch(() => {})
+
+      // KAN-277 FIX: Check apiKey inside loadAppData so both the initial
+      // path and the retry path detect an existing key. Previously only the
+      // initial path checked; the retry path left hasApiKey as false.
+      api.store?.get('apiKey').then((key: string | undefined) => {
+        setHasApiKey(!!key && key.length > 0)
+      }).catch(() => setHasApiKey(false))
     }
     
     if (electronAPI) {
       loadAppData(electronAPI)
-      // Check if API key exists
-      electronAPI.store?.get('apiKey').then((key: string | undefined) => {
-        setHasApiKey(!!key && key.length > 0)
-      }).catch(() => {})
     }
   }, [])
 
@@ -585,8 +588,8 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
           {t('welcome.hero.subtitle')}
         </p>
 
-        {/* API Key Warning Banner */}
-        {!hasApiKey && (
+        {/* API Key Warning Banner — only show when check completed and no key found (KAN-277) */}
+        {hasApiKey === false && (
           <div style={{
             background: 'linear-gradient(135deg, rgba(255,193,7,0.2), rgba(255,152,0,0.2))',
             border: '2px solid rgba(255,193,7,0.4)',
@@ -759,7 +762,7 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <Key size={28} color="#feca57" />
-                Add Your API Key
+                {hasApiKey ? 'Update API Key' : 'Add Your API Key'}
               </h2>
               <button
                 onClick={() => setShowApiKeyModal(false)}
@@ -780,25 +783,50 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
               </button>
             </div>
 
+            {hasApiKey && (
+              <div style={{
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}>
+                <Check size={18} color="#10b981" />
+                <span style={{ color: '#10b981', fontWeight: 600, fontSize: '14px' }}>
+                  API Key Status: Connected — ••••••••••••••••••
+                </span>
+              </div>
+            )}
+
             <p style={{ color: '#a0aec0', marginBottom: '20px', fontSize: '16px', lineHeight: '1.6' }}>
-              Enter your AIBuddy API key to start chatting with AI. Don't have one? 
-              <a 
-                href={AIBUDDY_BUY_CREDITS_URL} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                style={{ color: '#48dbfb', marginLeft: '4px', textDecoration: 'underline' }}
-                onClick={(e) => {
-                  e.preventDefault()
-                  const electronAPI = (window as any).electronAPI
-                  if (electronAPI?.shell?.openExternal) {
-                    electronAPI.shell.openExternal('https://aibuddy.life/pricing')
-                  } else {
-                    window.open(AIBUDDY_BUY_CREDITS_URL, '_blank')
-                  }
-                }}
-              >
-                Get one here! 🚀
-              </a>
+              {hasApiKey
+                ? 'Your key is saved. Enter a new key below to replace it.'
+                : (
+                  <>
+                    Enter your AIBuddy API key to start chatting with AI. Don&apos;t have one?{' '}
+                    <a 
+                      href={AIBUDDY_BUY_CREDITS_URL} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ color: '#48dbfb', marginLeft: '4px', textDecoration: 'underline' }}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        const electronAPI = (window as any).electronAPI
+                        if (electronAPI?.shell?.openExternal) {
+                          electronAPI.shell.openExternal('https://aibuddy.life/pricing')
+                        } else {
+                          window.open(AIBUDDY_BUY_CREDITS_URL, '_blank')
+                        }
+                      }}
+                    >
+                      Get one here! 🚀
+                    </a>
+                  </>
+                )
+              }
             </p>
 
             <div style={{ marginBottom: '24px' }}>
@@ -857,7 +885,7 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
               ) : (
                 <>
                   <Key size={22} />
-                  Save API Key
+                  {hasApiKey ? 'Update API Key' : 'Save API Key'}
                 </>
               )}
             </button>
