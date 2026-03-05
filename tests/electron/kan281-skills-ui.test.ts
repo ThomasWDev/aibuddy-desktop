@@ -37,8 +37,8 @@ describe('KAN-281: Claude-Style Skills UI', () => {
       expect(panelSource).toMatch(/export\s+(function|const)\s+SkillsPanel/)
     })
 
-    it('must accept projectRules as a prop', () => {
-      expect(panelSource).toMatch(/projectRules/)
+    it('must accept skills or projectRules as a prop', () => {
+      expect(panelSource).toMatch(/skills|projectRules/)
     })
 
     it('must accept workspacePath as a prop', () => {
@@ -49,8 +49,8 @@ describe('KAN-281: Claude-Style Skills UI', () => {
       expect(panelSource).toMatch(/onClose/)
     })
 
-    it('must accept onRulesChanged callback for re-loading rules', () => {
-      expect(panelSource).toMatch(/onRulesChanged/)
+    it('must accept onRulesChanged or onSkillsChanged callback for re-loading', () => {
+      expect(panelSource).toMatch(/onRulesChanged|onSkillsChanged/)
     })
   })
 
@@ -70,7 +70,7 @@ describe('KAN-281: Claude-Style Skills UI', () => {
     })
 
     it('must show active/inactive status for each rule', () => {
-      expect(panelSource).toMatch(/alwaysApply/)
+      expect(panelSource).toMatch(/alwaysApply|enabled/)
     })
   })
 
@@ -85,12 +85,12 @@ describe('KAN-281: Claude-Style Skills UI', () => {
       expect(panelSource).toMatch(/[Cc]reate|[Nn]ew\s*[Ss]kill|[Aa]dd\s*[Ss]kill/)
     })
 
-    it('must call saveProjectRule for saving skills', () => {
-      expect(panelSource).toMatch(/saveProjectRule/)
+    it('must call saveProjectRule or skills.create for saving skills', () => {
+      expect(panelSource).toMatch(/saveProjectRule|skills\?\.create/)
     })
 
-    it('must call deleteProjectRule for deleting skills', () => {
-      expect(panelSource).toMatch(/deleteProjectRule/)
+    it('must call deleteProjectRule or skills.delete for deleting skills', () => {
+      expect(panelSource).toMatch(/deleteProjectRule|skills\?\.delete/)
     })
 
     it('must have an edit mode or editor for rule content', () => {
@@ -109,12 +109,12 @@ describe('KAN-281: Claude-Style Skills UI', () => {
     let panelSource = ''
     try { panelSource = fs.readFileSync(SKILLS_PANEL_PATH, 'utf-8') } catch {}
 
-    it('must allow toggling alwaysApply for user rules', () => {
-      expect(panelSource).toMatch(/alwaysApply/)
+    it('must allow toggling enabled/alwaysApply for user rules', () => {
+      expect(panelSource).toMatch(/alwaysApply|enabled/)
     })
 
-    it('must save toggled state via saveProjectRule', () => {
-      expect(panelSource).toMatch(/saveProjectRule/)
+    it('must save toggled state via saveProjectRule or skills.toggle', () => {
+      expect(panelSource).toMatch(/saveProjectRule|skills\?\.toggle/)
     })
   })
 
@@ -138,8 +138,8 @@ describe('KAN-281: Claude-Style Skills UI', () => {
       expect(APP_SOURCE).toMatch(/[Ss]kills/)
     })
 
-    it('must pass projectRules and workspacePath to SkillsPanel', () => {
-      expect(APP_SOURCE).toMatch(/projectRules=\{/)
+    it('must pass skills/projectRules and workspacePath to SkillsPanel', () => {
+      expect(APP_SOURCE).toMatch(/projectRules=\{|skills=\{/)
     })
   })
 
@@ -155,8 +155,8 @@ describe('KAN-281: Claude-Style Skills UI', () => {
       expect(APP_SOURCE).toContain('generateSystemPrompt')
     })
 
-    it('App.tsx must still pass projectRules to generateSystemPrompt', () => {
-      expect(APP_SOURCE).toMatch(/projectRules.*generateSystemPrompt|generateSystemPrompt[\s\S]*projectRules/)
+    it('App.tsx must still pass projectRules/skills to generateSystemPrompt', () => {
+      expect(APP_SOURCE).toMatch(/projectRules[\s\S]*generateSystemPrompt|generateSystemPrompt[\s\S]*projectRules/)
     })
   })
 })

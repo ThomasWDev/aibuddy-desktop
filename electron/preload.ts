@@ -158,6 +158,18 @@ export interface ElectronAPI {
     deleteProjectRule: (workspacePath: string, filename: string) => Promise<boolean>
   }
 
+  // KAN-284: Skills management (uses SkillsStorageManager via IPC)
+  skills: {
+    getAll: (scope?: string, workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number }>>
+    getActive: (workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number }>>
+    getById: (id: string) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number } | null>
+    create: (params: { name: string; description?: string; prompt_template: string; enabled?: boolean; scope?: string; order?: number }) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number } | null>
+    update: (id: string, updates: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; order?: number }) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number } | null>
+    delete: (id: string) => Promise<boolean>
+    toggle: (id: string) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number } | null>
+    migrateLegacy: (workspacePath: string) => Promise<number>
+  }
+
   // Generic invoke for backwards compatibility
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
 
@@ -369,6 +381,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getProjectRules: (workspacePath: string) => ipcRenderer.invoke('workspace:getProjectRules', workspacePath),
     saveProjectRule: (workspacePath: string, filename: string, content: string) => ipcRenderer.invoke('workspace:saveProjectRule', workspacePath, filename, content),
     deleteProjectRule: (workspacePath: string, filename: string) => ipcRenderer.invoke('workspace:deleteProjectRule', workspacePath, filename),
+  },
+
+  // KAN-284: Skills management
+  skills: {
+    getAll: (scope?: string, workspacePath?: string) => ipcRenderer.invoke('skills:getAll', scope, workspacePath),
+    getActive: (workspacePath?: string) => ipcRenderer.invoke('skills:getActive', workspacePath),
+    getById: (id: string) => ipcRenderer.invoke('skills:getById', id),
+    create: (params: { name: string; description?: string; prompt_template: string; enabled?: boolean; scope?: string; order?: number }) => ipcRenderer.invoke('skills:create', params),
+    update: (id: string, updates: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; order?: number }) => ipcRenderer.invoke('skills:update', id, updates),
+    delete: (id: string) => ipcRenderer.invoke('skills:delete', id),
+    toggle: (id: string) => ipcRenderer.invoke('skills:toggle', id),
+    migrateLegacy: (workspacePath: string) => ipcRenderer.invoke('skills:migrateLegacy', workspacePath),
   },
 
   // Generic invoke for backwards compatibility

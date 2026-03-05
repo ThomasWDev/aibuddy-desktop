@@ -72,8 +72,8 @@ describe('KAN-283: Skills Engine for Prompt Injection', () => {
   // 3. App.tsx must load project rules
   // ==========================================================================
   describe('App.tsx loads and passes project rules', () => {
-    it('must call getProjectRules or workspace.getProjectRules', () => {
-      expect(APP_SOURCE).toMatch(/getProjectRules/)
+    it('must call getProjectRules or skills.getAll to load skills', () => {
+      expect(APP_SOURCE).toMatch(/getProjectRules|skills\?\.getAll/)
     })
 
     it('must pass projectRules to generateSystemPrompt', () => {

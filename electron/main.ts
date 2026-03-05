@@ -912,6 +912,10 @@ initMainProcessHandlers()
 import { initHistoryHandlers } from './ipc/history'
 initHistoryHandlers()
 
+// KAN-284: Initialize skills handlers
+import { initSkillsHandlers } from './ipc/skills'
+initSkillsHandlers()
+
 // Export for use in IPC handlers
 export { mainWindow, store, sessionMetrics }
 

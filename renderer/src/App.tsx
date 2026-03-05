@@ -778,8 +778,8 @@ function App() {
   // Environment Detection
   const [environmentSummary, setEnvironmentSummary] = useState<string>('')
 
-  // KAN-283: Project rules / skills loaded from .aibuddy/rules/
-  const [projectRules, setProjectRules] = useState<Array<{ filename: string; description?: string; alwaysApply?: boolean; content: string; builtin?: boolean }>>([])
+  // KAN-284: Skills loaded from SkillsStorageManager via IPC
+  const [skills, setSkills] = useState<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number }>>([])
   
   // Terminal output panel
   const [showTerminal, setShowTerminal] = useState(false)
@@ -1369,11 +1369,12 @@ function App() {
           projectType
         })
 
-        // KAN-283: Load project rules / skills for prompt injection
+        // KAN-284: Load skills from SkillsStorageManager + migrate legacy rules
         try {
-          const rules = await electronAPI.workspace?.getProjectRules(path)
-          if (rules) setProjectRules(rules)
-        } catch (e) { console.warn('[App] Failed to load project rules:', e) }
+          await electronAPI.skills?.migrateLegacy(path)
+          const loaded = await electronAPI.skills?.getAll()
+          if (loaded) setSkills(loaded)
+        } catch (e) { console.warn('[App] Failed to load skills:', e) }
       }
     } else {
       addBreadcrumb('Electron API not available for folder dialog', 'error', {}, 'warning')
@@ -2664,7 +2665,13 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               handoffDoc: handoffDoc || undefined,
               platformContext: DESKTOP_PLATFORM_CONTEXT,
               uiLanguage: i18n.language,
-              projectRules: projectRules.length > 0 ? projectRules : undefined,
+              projectRules: skills.length > 0 ? skills.map(s => ({
+                filename: s.id,
+                description: s.description || s.name,
+                alwaysApply: s.enabled,
+                content: s.prompt_template,
+                builtin: s.builtin,
+              })) : undefined,
             })
           },
           ...chatMessages
@@ -4057,9 +4064,9 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 >
                   <Zap className="w-4 h-4 text-amber-400" />
                   <span>Skills</span>
-                  {projectRules.filter(r => r.alwaysApply).length > 0 && (
+                  {skills.filter(s => s.enabled).length > 0 && (
                     <span className="ml-auto text-xs bg-amber-500/20 text-amber-400 px-1.5 rounded-full">
-                      {projectRules.filter(r => r.alwaysApply).length}
+                      {skills.filter(s => s.enabled).length}
                     </span>
                   )}
                 </button>
@@ -5317,16 +5324,15 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       {/* KAN-281: Skills Panel */}
       {showSkillsPanel && (
         <SkillsPanel
-          projectRules={projectRules}
+          skills={skills}
           workspacePath={workspacePath}
           onClose={() => setShowSkillsPanel(false)}
-          onRulesChanged={async () => {
-            if (!workspacePath) return
+          onSkillsChanged={async () => {
             try {
               const electronAPI = (window as any).electronAPI
-              const rules = await electronAPI?.workspace?.getProjectRules(workspacePath)
-              if (rules) setProjectRules(rules)
-            } catch (e) { console.warn('[App] Failed to reload project rules:', e) }
+              const loaded = await electronAPI?.skills?.getAll()
+              if (loaded) setSkills(loaded)
+            } catch (e) { console.warn('[App] Failed to reload skills:', e) }
           }}
         />
       )}
