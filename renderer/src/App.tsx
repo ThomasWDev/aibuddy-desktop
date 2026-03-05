@@ -48,6 +48,8 @@ import { ShareModal } from './components/ShareModal'
 import { UsageLimitsPanel } from './components/UsageLimitsPanel'
 import { InterviewPanel } from './components/InterviewPanel'
 import { LanguageSelector } from './components/LanguageSelector'
+import { FeedbackDialog, type FeedbackPayload } from './components/FeedbackDialog'
+import { NpsPrompt, shouldShowNps, incrementInteractionCount } from './components/NpsPrompt'
 import { PrivacyConsent } from './components/PrivacyConsent'
 import { WelcomeScreen } from './components/welcome/WelcomeScreen'
 import { useTranslation } from 'react-i18next'
@@ -83,6 +85,7 @@ import {
 console.log('[App] API URL configured:', AIBUDDY_API_INFERENCE_URL)
 import { generateSystemPrompt, DESKTOP_PLATFORM_CONTEXT } from '../../src/constants/system-prompt'
 import { appendIfNotDuplicate, isDuplicateFile } from './utils/file-dedup'
+import { submitFeedback } from './lib/feedback'
 
 // KAN-41 FIX: Professional tooltip — compact, non-overlapping, viewport-constrained
 // KAN-181 v2 FIX: CSS-only hover via group/group-hover — eliminates React state
@@ -798,7 +801,9 @@ function App() {
   
   // Message feedback state (thumbs up/down)
   const [messageFeedback, setMessageFeedback] = useState<Record<string, 'up' | 'down' | null>>({})
-  
+  const [feedbackDialogMessageId, setFeedbackDialogMessageId] = useState<string | null>(null)
+  const [showNpsPrompt, setShowNpsPrompt] = useState(false)
+
   // Track last user message for regenerate feature
   const [lastUserMessage, setLastUserMessage] = useState<{ content: string; images?: ImageAttachment[] } | null>(null)
   
@@ -3199,6 +3204,9 @@ Be concise and actionable. Use an alternative approach, not the same commands th
 
       setMessages(prev => [...prev, assistantMessage])
       setStatus('done')
+
+      incrementInteractionCount()
+      if (shouldShowNps()) setShowNpsPrompt(true)
       
       // Save assistant message to history
       if (threadId) {
@@ -3364,9 +3372,12 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           }
         }
         
-        if (newFeedback) {
-          toast.success(newFeedback === 'up' ? '👍 Thanks for the feedback!' : '👎 Thanks for letting us know!')
-          addBreadcrumb('Message feedback', 'chat.feedback', { messageId, feedback: newFeedback })
+        if (newFeedback === 'up') {
+          toast.success('👍 Thanks for the feedback!')
+          addBreadcrumb('Message feedback', 'chat.feedback', { messageId, feedback: 'up' })
+        } else if (newFeedback === 'down') {
+          setFeedbackDialogMessageId(messageId)
+          addBreadcrumb('Message feedback', 'chat.feedback', { messageId, feedback: 'down' })
         }
       }
       persistFeedback()
@@ -3374,6 +3385,25 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       return { ...prev, [messageId]: newFeedback }
     })
   }, [activeThreadId])
+
+  const handleFeedbackDialogSubmit = useCallback((payload: FeedbackPayload) => {
+    addBreadcrumb('Feedback detail submitted', 'chat.feedback.detail', {
+      messageId: payload.messageId,
+      category: payload.category,
+      hasComment: payload.comment.length > 0,
+    })
+    console.log('[Feedback] Detailed feedback:', payload)
+    toast.success('👎 Thanks for letting us know!')
+    submitFeedback({
+      type: 'thumbs_detail',
+      messageId: payload.messageId,
+      category: payload.category,
+      comment: payload.comment,
+      source: 'desktop',
+      version: appVersion || 'unknown',
+      timestamp: payload.timestamp,
+    })
+  }, [appVersion])
   
   const handleRegenerate = useCallback(async () => {
     if (isLoading) return
@@ -5259,6 +5289,31 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         threadTitle={messages.length > 0 && messages[0].content ? messages[0].content.slice(0, 50) + (messages[0].content.length > 50 ? '...' : '') : undefined}
         messageCount={messages.length}
         messages={messages.map(({ role, content }) => ({ role, content }))}
+      />
+
+      {/* NPS satisfaction prompt */}
+      <NpsPrompt
+        isOpen={showNpsPrompt}
+        onClose={() => setShowNpsPrompt(false)}
+        onSubmit={(score) => {
+          addBreadcrumb('NPS score submitted', 'feedback.nps', { score })
+          console.log('[NPS] Score:', score)
+          submitFeedback({
+            type: 'nps',
+            score,
+            source: 'desktop',
+            version: appVersion || 'unknown',
+            timestamp: new Date().toISOString(),
+          })
+        }}
+      />
+
+      {/* Thumbs-down follow-up dialog */}
+      <FeedbackDialog
+        isOpen={feedbackDialogMessageId !== null}
+        messageId={feedbackDialogMessageId}
+        onClose={() => setFeedbackDialogMessageId(null)}
+        onSubmit={handleFeedbackDialogSubmit}
       />
 
       {/* Interview Mode Panel */}

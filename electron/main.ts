@@ -456,6 +456,19 @@ function createMenu(): void {
         },
         { type: 'separator' },
         {
+          label: 'Rate on App Store',
+          click: () => {
+            shell.openExternal('https://apps.apple.com/app/aibuddy-desktop-ide/id6744136938?action=write-review')
+          }
+        },
+        {
+          label: 'Share Feedback',
+          click: () => {
+            shell.openExternal('https://aibuddy.life/feedback')
+          }
+        },
+        { type: 'separator' },
+        {
           label: 'About AIBuddy',
           click: () => {
             const icon = getAppIcon()

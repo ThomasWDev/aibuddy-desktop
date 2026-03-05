@@ -185,12 +185,33 @@
     "checkUpdates": "检查更新...",
     "documentation": "文档",
     "reportIssue": "报告问题",
-    "about": "关于AIBuddy"
+    "about": "关于AIBuddy",
+    "rateOnAppStore": "Rate on App Store",
+    "shareFeedback": "Share Feedback"
   },
   "languageSelector": {
     "title": "选择你的语言",
     "subtitle": "选择你的首选语言以开始",
     "continue": "继续",
     "searchPlaceholder": "搜索语言..."
+  },
+  "feedback": {
+    "rateOnAppStore": "Rate on App Store",
+    "shareFeedback": "Share Feedback",
+    "whatWentWrong": "What went wrong?",
+    "wrongAnswer": "Wrong answer",
+    "tooSlow": "Too slow",
+    "didntUnderstand": "Didn't understand my question",
+    "other": "Other",
+    "additionalComments": "Any additional comments? (optional)",
+    "submitFeedback": "Submit Feedback",
+    "cancel": "Cancel",
+    "thankYou": "Thanks for your feedback!",
+    "npsQuestion": "How likely are you to recommend AIBuddy to a friend?",
+    "npsNotLikely": "Not likely",
+    "npsVeryLikely": "Very likely",
+    "npsSubmit": "Submit",
+    "npsDontAskAgain": "Don't ask again",
+    "npsMaybeLater": "Maybe later"
   }
 }

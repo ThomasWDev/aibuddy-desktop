@@ -185,12 +185,33 @@
     "checkUpdates": "Verificar Atualizações...",
     "documentation": "Documentação",
     "reportIssue": "Reportar Problema",
-    "about": "Sobre o AIBuddy"
+    "about": "Sobre o AIBuddy",
+    "rateOnAppStore": "Rate on App Store",
+    "shareFeedback": "Share Feedback"
   },
   "languageSelector": {
     "title": "Escolhe o Teu Idioma",
     "subtitle": "Seleciona o teu idioma preferido para começar",
     "continue": "Continuar",
     "searchPlaceholder": "Pesquisar idiomas..."
+  },
+  "feedback": {
+    "rateOnAppStore": "Rate on App Store",
+    "shareFeedback": "Share Feedback",
+    "whatWentWrong": "What went wrong?",
+    "wrongAnswer": "Wrong answer",
+    "tooSlow": "Too slow",
+    "didntUnderstand": "Didn't understand my question",
+    "other": "Other",
+    "additionalComments": "Any additional comments? (optional)",
+    "submitFeedback": "Submit Feedback",
+    "cancel": "Cancel",
+    "thankYou": "Thanks for your feedback!",
+    "npsQuestion": "How likely are you to recommend AIBuddy to a friend?",
+    "npsNotLikely": "Not likely",
+    "npsVeryLikely": "Very likely",
+    "npsSubmit": "Submit",
+    "npsDontAskAgain": "Don't ask again",
+    "npsMaybeLater": "Maybe later"
   }
 }

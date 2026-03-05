@@ -185,12 +185,33 @@
     "checkUpdates": "Tarkista Päivitykset...",
     "documentation": "Dokumentaatio",
     "reportIssue": "Ilmoita Ongelmasta",
-    "about": "Tietoja AIBuddy"
+    "about": "Tietoja AIBuddy",
+    "rateOnAppStore": "Rate on App Store",
+    "shareFeedback": "Share Feedback"
   },
   "languageSelector": {
     "title": "Valitse Kielesi",
     "subtitle": "Valitse haluamasi kieli aloittaaksesi",
     "continue": "Jatka",
     "searchPlaceholder": "Hae kieliä..."
+  },
+  "feedback": {
+    "rateOnAppStore": "Rate on App Store",
+    "shareFeedback": "Share Feedback",
+    "whatWentWrong": "What went wrong?",
+    "wrongAnswer": "Wrong answer",
+    "tooSlow": "Too slow",
+    "didntUnderstand": "Didn't understand my question",
+    "other": "Other",
+    "additionalComments": "Any additional comments? (optional)",
+    "submitFeedback": "Submit Feedback",
+    "cancel": "Cancel",
+    "thankYou": "Thanks for your feedback!",
+    "npsQuestion": "How likely are you to recommend AIBuddy to a friend?",
+    "npsNotLikely": "Not likely",
+    "npsVeryLikely": "Very likely",
+    "npsSubmit": "Submit",
+    "npsDontAskAgain": "Don't ask again",
+    "npsMaybeLater": "Maybe later"
   }
 }

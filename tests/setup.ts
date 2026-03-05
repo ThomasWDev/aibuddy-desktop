@@ -45,6 +45,23 @@ vi.mock('react-i18next', () => ({
         'historySidebar.deleteSingleMessage': 'Are you sure you want to delete this chat?',
         'historySidebar.deleteSingleDetail': 'This action cannot be undone.',
         'historySidebar.deleteSingleConfirm': 'Delete',
+        'feedback.whatWentWrong': 'What went wrong?',
+        'feedback.wrongAnswer': 'Wrong answer',
+        'feedback.tooSlow': 'Too slow',
+        'feedback.didntUnderstand': "Didn't understand my question",
+        'feedback.other': 'Other',
+        'feedback.additionalComments': 'Any additional comments? (optional)',
+        'feedback.submitFeedback': 'Submit Feedback',
+        'feedback.cancel': 'Cancel',
+        'feedback.thankYou': 'Thanks for your feedback!',
+        'feedback.npsQuestion': 'How likely are you to recommend AIBuddy to a friend?',
+        'feedback.npsNotLikely': 'Not likely',
+        'feedback.npsVeryLikely': 'Very likely',
+        'feedback.npsSubmit': 'Submit',
+        'feedback.npsDontAskAgain': "Don't ask again",
+        'feedback.npsMaybeLater': 'Maybe later',
+        'menu.rateOnAppStore': 'Rate on App Store',
+        'menu.shareFeedback': 'Share Feedback',
       }
       let result = translations[key] || key
       if (opts) {

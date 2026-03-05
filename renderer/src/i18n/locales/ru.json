@@ -185,12 +185,33 @@
     "checkUpdates": "Проверить Обновления...",
     "documentation": "Документация",
     "reportIssue": "Сообщить о Проблеме",
-    "about": "О AIBuddy"
+    "about": "О AIBuddy",
+    "rateOnAppStore": "Rate on App Store",
+    "shareFeedback": "Share Feedback"
   },
   "languageSelector": {
     "title": "Выбери Свой Язык",
     "subtitle": "Выбери предпочтительный язык, чтобы начать",
     "continue": "Продолжить",
     "searchPlaceholder": "Поиск языков..."
+  },
+  "feedback": {
+    "rateOnAppStore": "Rate on App Store",
+    "shareFeedback": "Share Feedback",
+    "whatWentWrong": "What went wrong?",
+    "wrongAnswer": "Wrong answer",
+    "tooSlow": "Too slow",
+    "didntUnderstand": "Didn't understand my question",
+    "other": "Other",
+    "additionalComments": "Any additional comments? (optional)",
+    "submitFeedback": "Submit Feedback",
+    "cancel": "Cancel",
+    "thankYou": "Thanks for your feedback!",
+    "npsQuestion": "How likely are you to recommend AIBuddy to a friend?",
+    "npsNotLikely": "Not likely",
+    "npsVeryLikely": "Very likely",
+    "npsSubmit": "Submit",
+    "npsDontAskAgain": "Don't ask again",
+    "npsMaybeLater": "Maybe later"
   }
 }

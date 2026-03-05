@@ -185,12 +185,33 @@
     "checkUpdates": "Έλεγχος ενημερώσεων...",
     "documentation": "Τεκμηρίωση",
     "reportIssue": "Αναφορά προβλήματος",
-    "about": "Σχετικά με το AIBuddy"
+    "about": "Σχετικά με το AIBuddy",
+    "rateOnAppStore": "Rate on App Store",
+    "shareFeedback": "Share Feedback"
   },
   "languageSelector": {
     "title": "Επιλέξτε τη γλώσσα σας",
     "subtitle": "Επιλέξτε την προτιμώμενη γλώσσα σας για να ξεκινήσετε",
     "continue": "Συνέχεια",
     "searchPlaceholder": "Αναζήτηση γλωσσών..."
+  },
+  "feedback": {
+    "rateOnAppStore": "Rate on App Store",
+    "shareFeedback": "Share Feedback",
+    "whatWentWrong": "What went wrong?",
+    "wrongAnswer": "Wrong answer",
+    "tooSlow": "Too slow",
+    "didntUnderstand": "Didn't understand my question",
+    "other": "Other",
+    "additionalComments": "Any additional comments? (optional)",
+    "submitFeedback": "Submit Feedback",
+    "cancel": "Cancel",
+    "thankYou": "Thanks for your feedback!",
+    "npsQuestion": "How likely are you to recommend AIBuddy to a friend?",
+    "npsNotLikely": "Not likely",
+    "npsVeryLikely": "Very likely",
+    "npsSubmit": "Submit",
+    "npsDontAskAgain": "Don't ask again",
+    "npsMaybeLater": "Maybe later"
   }
 }
