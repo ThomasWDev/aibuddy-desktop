@@ -69,6 +69,34 @@ describe('SkillsStorageManager — CRUD', () => {
     expect(skill.updated_at).toBeGreaterThan(0)
   })
 
+  it('createSkill defaults visibility to private and execution_mode to always', () => {
+    const mgr = SkillsStorageManager.getInstance()
+    const skill = mgr.createSkill({ name: 'Default Fields', prompt_template: 'x' })
+    expect(skill.visibility).toBe('private')
+    expect(skill.execution_mode).toBe('always')
+  })
+
+  it('createSkill accepts visibility and execution_mode params', () => {
+    const mgr = SkillsStorageManager.getInstance()
+    const skill = mgr.createSkill({
+      name: 'Custom Fields',
+      prompt_template: 'y',
+      visibility: 'team',
+      execution_mode: 'manual',
+    })
+    expect(skill.visibility).toBe('team')
+    expect(skill.execution_mode).toBe('manual')
+  })
+
+  it('updateSkill can change visibility and execution_mode', () => {
+    const mgr = SkillsStorageManager.getInstance()
+    const skill = mgr.createSkill({ name: 'Update Fields', prompt_template: 'z', visibility: 'private', execution_mode: 'always' })
+    const updated = mgr.updateSkill(skill.id, { visibility: 'team', execution_mode: 'on_demand' })
+    expect(updated).not.toBeNull()
+    expect(updated!.visibility).toBe('team')
+    expect(updated!.execution_mode).toBe('on_demand')
+  })
+
   it('getSkillById returns the correct skill', () => {
     const mgr = SkillsStorageManager.getInstance()
     const created = mgr.createSkill({ name: 'Find Me', prompt_template: 'abc' })

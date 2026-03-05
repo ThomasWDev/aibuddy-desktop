@@ -6,6 +6,8 @@
  */
 
 export type SkillScope = 'global' | 'project'
+export type SkillVisibility = 'private' | 'team'
+export type SkillExecutionMode = 'always' | 'manual' | 'on_demand'
 
 export interface Skill {
   /** Unique identifier (base64url random, like thread IDs) */
@@ -28,6 +30,10 @@ export interface Skill {
   updated_at: number
   /** Whether this is a built-in skill that cannot be deleted */
   builtin?: boolean
+  /** Visibility: 'private' = this user only, 'team' = shareable */
+  visibility?: SkillVisibility
+  /** Execution mode: 'always' = every prompt, 'manual' = user triggers, 'on_demand' = AI decides */
+  execution_mode?: SkillExecutionMode
   /** Ordering weight for injection priority (lower = first) */
   order?: number
   /** Original filename if migrated from .aibuddy/rules/ legacy format */

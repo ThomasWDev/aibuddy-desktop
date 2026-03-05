@@ -6,7 +6,7 @@
 
 import { ipcMain } from 'electron'
 import { SkillsStorageManager } from '../../src/skills/skills-manager'
-import type { SkillScope } from '../../src/skills/types'
+import type { SkillScope, SkillVisibility, SkillExecutionMode } from '../../src/skills/types'
 
 export function initSkillsHandlers(): void {
   const channels = [
@@ -35,6 +35,8 @@ export function initSkillsHandlers(): void {
     enabled?: boolean
     scope?: SkillScope
     order?: number
+    visibility?: SkillVisibility
+    execution_mode?: SkillExecutionMode
   }) => {
     try {
       return SkillsStorageManager.getInstance().createSkill(params)
@@ -51,6 +53,8 @@ export function initSkillsHandlers(): void {
     enabled?: boolean
     scope?: SkillScope
     order?: number
+    visibility?: SkillVisibility
+    execution_mode?: SkillExecutionMode
   }) => {
     return SkillsStorageManager.getInstance().updateSkill(id, updates) ?? null
   })

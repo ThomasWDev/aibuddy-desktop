@@ -17,7 +17,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
 import * as crypto from 'crypto'
-import { Skill, SkillsState, SkillScope, SKILLS_VERSION } from './types'
+import { Skill, SkillsState, SkillScope, SkillVisibility, SkillExecutionMode, SKILLS_VERSION } from './types'
 
 const generateId = (): string => crypto.randomBytes(12).toString('base64url')
 
@@ -184,6 +184,8 @@ export class SkillsStorageManager {
     scope?: SkillScope
     created_by?: string
     order?: number
+    visibility?: SkillVisibility
+    execution_mode?: SkillExecutionMode
   }): Skill {
     if (this.state.skills.length >= MAX_SKILLS) {
       throw new Error(`Maximum skill limit reached (${MAX_SKILLS})`)
@@ -200,6 +202,8 @@ export class SkillsStorageManager {
       created_by: params.created_by || 'user',
       created_at: now,
       updated_at: now,
+      visibility: params.visibility || 'private',
+      execution_mode: params.execution_mode || 'always',
       order: params.order,
     }
 
@@ -211,7 +215,7 @@ export class SkillsStorageManager {
   // ─── Update ───────────────────────────────────────────────────────────────
 
   public updateSkill(id: string, updates: Partial<Pick<Skill,
-    'name' | 'description' | 'prompt_template' | 'enabled' | 'scope' | 'order'
+    'name' | 'description' | 'prompt_template' | 'enabled' | 'scope' | 'order' | 'visibility' | 'execution_mode'
   >>): Skill | null {
     const builtin = BUILTIN_SKILLS.find(s => s.id === id)
     if (builtin) return null // cannot update built-ins
@@ -226,6 +230,8 @@ export class SkillsStorageManager {
     if (updates.enabled !== undefined) skill.enabled = updates.enabled
     if (updates.scope !== undefined) skill.scope = updates.scope
     if (updates.order !== undefined) skill.order = updates.order
+    if (updates.visibility !== undefined) skill.visibility = updates.visibility
+    if (updates.execution_mode !== undefined) skill.execution_mode = updates.execution_mode
     skill.updated_at = Date.now()
 
     this.state.skills[idx] = skill

@@ -12,6 +12,8 @@ interface Skill {
   updated_at: number
   builtin?: boolean
   order?: number
+  visibility?: string
+  execution_mode?: string
 }
 
 interface SkillsPanelProps {
@@ -29,6 +31,8 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
   const [editContent, setEditContent] = useState('')
   const [newEnabled, setNewEnabled] = useState(true)
   const [newScope, setNewScope] = useState<'global' | 'project'>('project')
+  const [newVisibility, setNewVisibility] = useState<'private' | 'team'>('private')
+  const [newExecutionMode, setNewExecutionMode] = useState<'always' | 'manual' | 'on_demand'>('always')
   const [isEditing, setIsEditing] = useState(false)
 
   const electronAPI = (window as any).electronAPI
@@ -41,6 +45,8 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
       prompt_template: editContent,
       enabled: newEnabled,
       scope: newScope,
+      visibility: newVisibility,
+      execution_mode: newExecutionMode,
     })
     if (result) {
       setIsCreating(false)
@@ -100,6 +106,8 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
     setEditContent('')
     setNewEnabled(true)
     setNewScope('project')
+    setNewVisibility('private')
+    setNewExecutionMode('always')
   }
 
   const builtinSkills = skills.filter(s => s.builtin)
@@ -267,6 +275,34 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                 </select>
               </div>
 
+              <div className="flex gap-4">
+                <div>
+                  <label className="text-xs font-medium text-slate-400 block mb-1">Visibility</label>
+                  <select
+                    value={newVisibility}
+                    onChange={e => setNewVisibility(e.target.value as 'private' | 'team')}
+                    className="text-sm px-2 py-1 rounded-lg text-white"
+                    style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #475569' }}
+                  >
+                    <option value="private">Private</option>
+                    <option value="team">Team</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-400 block mb-1">Execution Mode</label>
+                  <select
+                    value={newExecutionMode}
+                    onChange={e => setNewExecutionMode(e.target.value as 'always' | 'manual' | 'on_demand')}
+                    className="text-sm px-2 py-1 rounded-lg text-white"
+                    style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #475569' }}
+                  >
+                    <option value="always">Always active</option>
+                    <option value="manual">Manual trigger</option>
+                    <option value="on_demand">On demand</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label className="text-xs font-medium text-slate-400 block mb-1">Prompt Template</label>
                 <textarea
@@ -355,8 +391,10 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
               </div>
 
               {/* Metadata */}
-              <div className="flex gap-4 text-[11px] text-slate-600">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600">
                 <span>Scope: <span className="text-slate-400">{selectedSkill.scope}</span></span>
+                <span>Visibility: <span className="text-slate-400">{selectedSkill.visibility || 'private'}</span></span>
+                <span>Execution: <span className="text-slate-400">{(selectedSkill.execution_mode || 'always').replace('_', ' ')}</span></span>
                 <span>Created by: <span className="text-slate-400">{selectedSkill.created_by}</span></span>
                 {selectedSkill.created_at > 0 && (
                   <span>Created: <span className="text-slate-400">{formatDate(selectedSkill.created_at)}</span></span>
