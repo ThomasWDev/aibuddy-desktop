@@ -18,7 +18,7 @@ import * as path from 'path'
 import * as os from 'os'
 import * as crypto from 'crypto'
 import { Skill, SkillsState, SkillScope, SkillVisibility, SkillExecutionMode, SKILLS_VERSION } from './types'
-import type { CatalogSkill, SkillToolPermission, PermissionLevel, PermissionEntry, ToolAuditLogEntry, PermissionDecision } from './types'
+import type { CatalogSkill, SkillToolPermission, PermissionLevel, PermissionEntry, ToolAuditLogEntry, PermissionDecision, SkillExecutionRecord } from './types'
 
 const generateId = (): string => crypto.randomBytes(12).toString('base64url')
 
@@ -27,6 +27,7 @@ const SKILLS_FILE = path.join(SKILLS_DIR, 'skills.json')
 const MAX_SKILLS = 200
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB hard cap
 const MAX_AUDIT_LOG_ENTRIES = 500
+const MAX_EXECUTION_HISTORY = 100
 
 // ─── Built-in skills (always present, cannot be deleted) ──────────────────────
 
@@ -468,6 +469,32 @@ export class SkillsStorageManager {
     this.scheduleSave()
   }
 
+  // ─── KAN-291: Skill Execution History ───────────────────────────────────
+
+  /** Record a skill execution session (one per prompt) */
+  public addExecutionRecord(record: SkillExecutionRecord): void {
+    this.state.executionHistory.push(record)
+    if (this.state.executionHistory.length > MAX_EXECUTION_HISTORY) {
+      this.state.executionHistory = this.state.executionHistory.slice(-MAX_EXECUTION_HISTORY)
+    }
+    this.scheduleSave()
+  }
+
+  /** Get recent execution history */
+  public getExecutionHistory(limit?: number): SkillExecutionRecord[] {
+    const entries = [...this.state.executionHistory]
+    if (limit && limit > 0) {
+      return entries.slice(-limit)
+    }
+    return entries
+  }
+
+  /** Clear execution history */
+  public clearExecutionHistory(): void {
+    this.state.executionHistory = []
+    this.scheduleSave()
+  }
+
   // ─── Persistence ──────────────────────────────────────────────────────────
 
   private load(): SkillsState {
@@ -480,7 +507,7 @@ export class SkillsStorageManager {
         const stat = fs.statSync(SKILLS_FILE)
         if (stat.size > MAX_FILE_SIZE) {
           console.error('[SkillsStorageManager] Skills file exceeds size limit, resetting')
-          return { skills: [], permissions: [], auditLog: [], version: SKILLS_VERSION }
+          return { skills: [], permissions: [], auditLog: [], executionHistory: [], version: SKILLS_VERSION }
         }
 
         const data = fs.readFileSync(SKILLS_FILE, 'utf-8')
@@ -490,13 +517,13 @@ export class SkillsStorageManager {
           return this.migrate(state)
         }
 
-        return { ...state, permissions: state.permissions || [], auditLog: state.auditLog || [] }
+        return { ...state, permissions: state.permissions || [], auditLog: state.auditLog || [], executionHistory: state.executionHistory || [] }
       }
     } catch (error) {
       console.error('[SkillsStorageManager] Failed to load skills:', error)
     }
 
-    return { skills: [], permissions: [], auditLog: [], version: SKILLS_VERSION }
+    return { skills: [], permissions: [], auditLog: [], executionHistory: [], version: SKILLS_VERSION }
   }
 
   private save(): void {
@@ -532,6 +559,7 @@ export class SkillsStorageManager {
       ...state,
       permissions: state.permissions || [],
       auditLog: state.auditLog || [],
+      executionHistory: state.executionHistory || [],
       version: SKILLS_VERSION,
     }
     this.scheduleSave()

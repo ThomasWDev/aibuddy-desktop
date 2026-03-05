@@ -2666,13 +2666,36 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               platformContext: DESKTOP_PLATFORM_CONTEXT,
               uiLanguage: i18n.language,
               projectRules: skills.length > 0 ? (() => {
-                // KAN-286/KAN-289: Skill Execution Pipeline — filter by execution_mode, include tool permissions
-                const autoSkills = skills.filter(s =>
-                  s.enabled && (!s.execution_mode || s.execution_mode === 'always')
-                )
+                // KAN-286/KAN-289/KAN-291: Skill Execution Pipeline — filter, log, persist
+                const start = performance.now()
+                const entries: Array<{ skillId: string; skillName: string; execution_mode: string; applied: boolean; reason: string }> = []
+                const autoSkills: typeof skills = []
+                for (const s of skills) {
+                  const mode = s.execution_mode || 'always'
+                  if (!s.enabled) {
+                    entries.push({ skillId: s.id, skillName: s.name, execution_mode: mode, applied: false, reason: 'disabled' })
+                  } else if (mode === 'always') {
+                    entries.push({ skillId: s.id, skillName: s.name, execution_mode: mode, applied: true, reason: 'auto (always active)' })
+                    autoSkills.push(s)
+                  } else {
+                    entries.push({ skillId: s.id, skillName: s.name, execution_mode: mode, applied: false, reason: `skipped (${mode})` })
+                  }
+                }
+                const elapsed = Math.round((performance.now() - start) * 100) / 100
                 if (autoSkills.length === 0) return undefined
                 const toolCount = autoSkills.filter(s => s.allowed_tools && s.allowed_tools.length > 0).length
-                console.log(`[SkillProcessor] ${autoSkills.length}/${skills.length} skills applied (execution_mode=always), ${toolCount} tool-enabled`)
+                console.log(`[SkillProcessor] ${autoSkills.length}/${skills.length} skills applied (${elapsed}ms), ${toolCount} tool-enabled`)
+                // KAN-291: Persist execution record asynchronously
+                const electronAPI = (window as any).electronAPI
+                electronAPI?.skills?.addExecutionRecord?.({
+                  id: `exec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                  timestamp: Date.now(),
+                  totalEvaluated: skills.length,
+                  totalApplied: autoSkills.length,
+                  processingTimeMs: elapsed,
+                  conflictCount: 0,
+                  entries,
+                })
                 return autoSkills.map(s => ({
                   filename: s.id,
                   description: s.description || s.name,

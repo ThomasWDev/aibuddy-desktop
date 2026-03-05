@@ -412,6 +412,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAuditLogForSkill: (skillId: string) => ipcRenderer.invoke('skills:getAuditLogForSkill', skillId),
     clearAuditLog: () => ipcRenderer.invoke('skills:clearAuditLog'),
     requestToolExecution: (request: { skillId: string; tool: string; action: string; params: Record<string, string>; workspacePath: string; decision?: string }) => ipcRenderer.invoke('skills:requestToolExecution', request),
+    addExecutionRecord: (record: { id: string; timestamp: number; totalEvaluated: number; totalApplied: number; processingTimeMs: number; conflictCount: number; entries: Array<{ skillId: string; skillName: string; execution_mode: string; applied: boolean; reason: string }> }) => ipcRenderer.invoke('skills:addExecutionRecord', record),
+    getExecutionHistory: (limit?: number) => ipcRenderer.invoke('skills:getExecutionHistory', limit),
+    clearExecutionHistory: () => ipcRenderer.invoke('skills:clearExecutionHistory'),
   },
 
   // Generic invoke for backwards compatibility

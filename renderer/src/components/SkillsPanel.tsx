@@ -62,10 +62,12 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
   const [newTags, setNewTags] = useState('')
   const [newAllowedTools, setNewAllowedTools] = useState<string[]>([])
   const [isEditing, setIsEditing] = useState(false)
-  // KAN-288: Marketplace state + KAN-290: audit log
-  const [activeTab, setActiveTab] = useState<'skills' | 'marketplace' | 'audit'>('skills')
+  // KAN-288: Marketplace state + KAN-290: audit log + KAN-291: execution history
+  const [activeTab, setActiveTab] = useState<'skills' | 'marketplace' | 'audit' | 'activity'>('skills')
   const [auditLog, setAuditLog] = useState<Array<{ timestamp: number; skillId: string; skillName: string; tool: string; action: string; decision: string; success?: boolean; error?: string; durationMs?: number }>>([])
   const [permissions, setPermissions] = useState<Array<{ skillId: string; tool: string; level: string; grantedAt: number }>>([])
+  const [executionHistory, setExecutionHistory] = useState<Array<{ id: string; timestamp: number; totalEvaluated: number; totalApplied: number; processingTimeMs: number; conflictCount: number; entries: Array<{ skillId: string; skillName: string; execution_mode: string; applied: boolean; reason: string }> }>>([])
+  const [debugMode, setDebugMode] = useState(false)
 
   const [catalog, setCatalog] = useState<CatalogSkill[]>([])
   const [installedIds, setInstalledIds] = useState<string[]>([])
@@ -88,6 +90,13 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
     if (activeTab === 'audit') {
       electronAPI?.skills?.getAuditLog?.(50).then((log: any[]) => setAuditLog(log || []))
       electronAPI?.skills?.getAllPermissions?.().then((perms: any[]) => setPermissions(perms || []))
+    }
+  }, [activeTab, electronAPI])
+
+  // KAN-291: Load execution history when activity tab is opened
+  useEffect(() => {
+    if (activeTab === 'activity') {
+      electronAPI?.skills?.getExecutionHistory?.(50).then((records: any[]) => setExecutionHistory(records || []))
     }
   }, [activeTab, electronAPI])
 
@@ -304,6 +313,14 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                 🛒 Marketplace
               </button>
               <button
+                onClick={() => { setActiveTab('activity'); setSelectedSkill(null); setSelectedCatalogSkill(null); setIsCreating(false) }}
+                className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-all ${
+                  activeTab === 'activity' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                ⚡ Activity
+              </button>
+              <button
                 onClick={() => { setActiveTab('audit'); setSelectedSkill(null); setSelectedCatalogSkill(null); setIsCreating(false) }}
                 className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-all ${
                   activeTab === 'audit' ? 'bg-amber-600 text-white' : 'text-slate-500 hover:text-slate-300'
@@ -322,6 +339,8 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                 </>
               ) : activeTab === 'marketplace' ? (
                 <>{catalog.length} skills available · {installedIds.length} installed</>
+              ) : activeTab === 'activity' ? (
+                <>{executionHistory.length} execution sessions{debugMode ? ' · Debug mode ON' : ''}</>
               ) : (
                 <>{auditLog.length} log entries · {permissions.length} stored permissions</>
               )}
@@ -932,6 +951,101 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
             </div>
           )}
 
+          {/* KAN-291: Skill Activity / Execution Logs */}
+          {activeTab === 'activity' && (
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-white">Skill Activity</h3>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={debugMode}
+                      onChange={e => setDebugMode(e.target.checked)}
+                      className="rounded"
+                    />
+                    <span className="text-[10px] text-slate-400 font-medium">Debug Mode</span>
+                  </label>
+                  {executionHistory.length > 0 && (
+                    <button
+                      onClick={async () => {
+                        await electronAPI?.skills?.clearExecutionHistory?.()
+                        setExecutionHistory([])
+                      }}
+                      className="text-[10px] text-slate-600 hover:text-red-400 transition-colors"
+                    >
+                      Clear History
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {executionHistory.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-3xl mb-2">⚡</p>
+                  <p className="text-xs text-slate-500 italic">No skill executions recorded yet.</p>
+                  <p className="text-[10px] text-slate-600 mt-1">Send a message to see which skills run.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {[...executionHistory].reverse().map(record => (
+                    <div
+                      key={record.id}
+                      className="rounded-xl overflow-hidden"
+                      style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid #1e293b' }}
+                    >
+                      {/* Session header */}
+                      <div className="px-4 py-2.5 flex items-center gap-3" style={{ borderBottom: '1px solid #1e293b' }}>
+                        <span className="text-[10px] text-slate-500">{new Date(record.timestamp).toLocaleString()}</span>
+                        <span className="text-[10px] font-medium text-blue-400">{record.totalApplied}/{record.totalEvaluated} applied</span>
+                        {debugMode && (
+                          <>
+                            <span className="text-[10px] text-slate-600">{record.processingTimeMs}ms</span>
+                            {record.conflictCount > 0 && (
+                              <span className="text-[10px] text-amber-400">{record.conflictCount} conflict(s)</span>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      {/* Skill entries */}
+                      <div className="px-4 py-2 space-y-1">
+                        {record.entries
+                          .filter(e => debugMode || e.applied)
+                          .map((entry, i) => (
+                            <div key={i} className="flex items-center gap-2 text-xs py-0.5">
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${entry.applied ? 'bg-emerald-400' : 'bg-slate-600'}`}
+                              />
+                              <span className={`font-medium ${entry.applied ? 'text-white' : 'text-slate-500'}`}>
+                                {entry.skillName}
+                              </span>
+                              {debugMode && (
+                                <>
+                                  <span
+                                    className="text-[9px] px-1.5 py-0.5 rounded font-mono"
+                                    style={{ background: 'rgba(100,116,139,0.1)', color: '#64748b' }}
+                                  >
+                                    {entry.execution_mode}
+                                  </span>
+                                  <span className="text-[10px] text-slate-600 truncate">{entry.reason}</span>
+                                </>
+                              )}
+                            </div>
+                          ))}
+                        {!debugMode && record.entries.filter(e => !e.applied).length > 0 && (
+                          <p className="text-[10px] text-slate-600 pt-0.5">
+                            + {record.entries.filter(e => !e.applied).length} skipped (enable debug to see)
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* KAN-290: Audit log + permissions panel */}
           {activeTab === 'audit' && (
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -1050,7 +1164,7 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
           )}
 
           {/* Empty state */}
-          {!selectedSkill && !isCreating && !selectedCatalogSkill && activeTab !== 'audit' && (
+          {!selectedSkill && !isCreating && !selectedCatalogSkill && activeTab !== 'audit' && activeTab !== 'activity' && (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 {activeTab === 'marketplace' ? (

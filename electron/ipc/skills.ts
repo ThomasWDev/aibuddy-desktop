@@ -12,7 +12,7 @@
 import { ipcMain } from 'electron'
 import { SkillsStorageManager } from '../../src/skills/skills-manager'
 import { getCatalog, getCatalogSkill } from '../../src/skills/skill-catalog'
-import type { SkillScope, SkillVisibility, SkillExecutionMode, SkillToolPermission, PermissionLevel, PermissionDecision } from '../../src/skills/types'
+import type { SkillScope, SkillVisibility, SkillExecutionMode, SkillToolPermission, PermissionLevel, PermissionDecision, SkillExecutionRecord } from '../../src/skills/types'
 import { executeToolRequest, checkStoredPermission } from '../../src/skills/skill-tool-runner'
 
 const ALL_CHANNELS = [
@@ -25,6 +25,7 @@ const ALL_CHANNELS = [
   'skills:resetPermission',
   'skills:getAuditLog', 'skills:getAuditLogForSkill', 'skills:clearAuditLog',
   'skills:requestToolExecution',
+  'skills:addExecutionRecord', 'skills:getExecutionHistory', 'skills:clearExecutionHistory',
 ] as const
 
 export function initSkillsHandlers(): void {
@@ -260,6 +261,21 @@ export function initSkillsHandlers(): void {
       durationMs: result.durationMs,
     })
     return { status: 'executed', result }
+  })
+
+  // KAN-291: Skill Execution Logs
+  ipcMain.handle('skills:addExecutionRecord', async (_event, record: SkillExecutionRecord) => {
+    SkillsStorageManager.getInstance().addExecutionRecord(record)
+    return true
+  })
+
+  ipcMain.handle('skills:getExecutionHistory', async (_event, limit?: number) => {
+    return SkillsStorageManager.getInstance().getExecutionHistory(limit)
+  })
+
+  ipcMain.handle('skills:clearExecutionHistory', async () => {
+    SkillsStorageManager.getInstance().clearExecutionHistory()
+    return true
   })
 
   console.log('[Skills] IPC handlers initialized')

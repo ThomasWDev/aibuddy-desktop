@@ -133,8 +133,8 @@ describe('KAN-290: Permission System for Skills', () => {
       expect(stateMatch![0]).toMatch(/auditLog:\s*ToolAuditLogEntry\[\]/)
     })
 
-    it('SKILLS_VERSION is 2', () => {
-      expect(src).toMatch(/SKILLS_VERSION\s*=\s*2/)
+    it('SKILLS_VERSION is at least 2', () => {
+      expect(src).toMatch(/SKILLS_VERSION\s*=\s*[2-9]/)
     })
   })
 

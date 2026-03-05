@@ -1,5 +1,5 @@
 /**
- * Skills Data Model — KAN-282, KAN-287, KAN-288, KAN-289, KAN-290
+ * Skills Data Model — KAN-282, KAN-287, KAN-288, KAN-289, KAN-290, KAN-291
  *
  * Defines the schema for AI skills (prompt modifiers) stored locally.
  * Follows the same pattern as ChatThread / ChatMessage in history/types.ts.
@@ -114,6 +114,28 @@ export interface ToolAuditLogEntry {
   durationMs?: number
 }
 
+// ─── KAN-291: Skill Execution Logs ───────────────────────────────────────────
+
+/** A single skill's evaluation outcome within a prompt processing session */
+export interface SkillExecutionEntry {
+  skillId: string
+  skillName: string
+  execution_mode: SkillExecutionMode
+  applied: boolean
+  reason: string
+}
+
+/** A complete record of one prompt's skill processing (which skills ran, which were skipped) */
+export interface SkillExecutionRecord {
+  id: string
+  timestamp: number
+  totalEvaluated: number
+  totalApplied: number
+  processingTimeMs: number
+  conflictCount: number
+  entries: SkillExecutionEntry[]
+}
+
 export interface SkillsState {
   /** All skills (both global and project-scoped) */
   skills: Skill[]
@@ -121,8 +143,10 @@ export interface SkillsState {
   permissions: PermissionEntry[]
   /** Audit log of tool execution decisions (capped) */
   auditLog: ToolAuditLogEntry[]
+  /** Per-prompt skill execution history (capped) */
+  executionHistory: SkillExecutionRecord[]
   /** Schema version for future migrations */
   version: number
 }
 
-export const SKILLS_VERSION = 2
+export const SKILLS_VERSION = 3

@@ -312,7 +312,7 @@ describe('KAN-286: Skill Execution Pipeline', () => {
     })
 
     test('treats missing execution_mode as always (fallback)', () => {
-      expect(src).toMatch(/!s\.execution_mode\s*\|\|/)
+      expect(src).toMatch(/execution_mode\s*\|\|\s*['"]always['"]/)
     })
   })
 
