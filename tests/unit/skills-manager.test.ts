@@ -219,3 +219,35 @@ describe('BUILTIN_SKILLS — real import', () => {
     }
   })
 })
+
+// KAN-286: getSkillsForPrompt
+describe('getSkillsForPrompt — real import', () => {
+  it('returns only enabled skills with execution_mode=always', () => {
+    const mgr = SkillsStorageManager.getInstance()
+    mgr.createSkill({ name: 'Always', prompt_template: 'a', execution_mode: 'always' })
+    mgr.createSkill({ name: 'Manual', prompt_template: 'm', execution_mode: 'manual' })
+    mgr.createSkill({ name: 'OnDemand', prompt_template: 'o', execution_mode: 'on_demand' })
+
+    const forPrompt = mgr.getSkillsForPrompt()
+    const names = forPrompt.map(s => s.name)
+    expect(names).toContain('Always')
+    expect(names).not.toContain('Manual')
+    expect(names).not.toContain('OnDemand')
+  })
+
+  it('treats missing execution_mode as always', () => {
+    const mgr = SkillsStorageManager.getInstance()
+    const skill = mgr.createSkill({ name: 'NoMode', prompt_template: 'n' })
+    const forPrompt = mgr.getSkillsForPrompt()
+    const found = forPrompt.find(s => s.id === skill.id)
+    expect(found).toBeTruthy()
+  })
+
+  it('excludes disabled skills', () => {
+    const mgr = SkillsStorageManager.getInstance()
+    const skill = mgr.createSkill({ name: 'DisabledAlways', prompt_template: 'd', enabled: false })
+    const forPrompt = mgr.getSkillsForPrompt()
+    const found = forPrompt.find(s => s.id === skill.id)
+    expect(found).toBeFalsy()
+  })
+})

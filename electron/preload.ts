@@ -158,10 +158,11 @@ export interface ElectronAPI {
     deleteProjectRule: (workspacePath: string, filename: string) => Promise<boolean>
   }
 
-  // KAN-284: Skills management (uses SkillsStorageManager via IPC)
+  // KAN-284/KAN-286: Skills management (uses SkillsStorageManager via IPC)
   skills: {
     getAll: (scope?: string, workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string }>>
     getActive: (workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string }>>
+    getForPrompt: (workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string }>>
     getById: (id: string) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string } | null>
     create: (params: { name: string; description?: string; prompt_template: string; enabled?: boolean; scope?: string; order?: number; visibility?: string; execution_mode?: string }) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; visibility?: string; execution_mode?: string } | null>
     update: (id: string, updates: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; order?: number; visibility?: string; execution_mode?: string }) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; visibility?: string; execution_mode?: string } | null>
@@ -383,10 +384,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteProjectRule: (workspacePath: string, filename: string) => ipcRenderer.invoke('workspace:deleteProjectRule', workspacePath, filename),
   },
 
-  // KAN-284: Skills management
+  // KAN-284/KAN-286: Skills management
   skills: {
     getAll: (scope?: string, workspacePath?: string) => ipcRenderer.invoke('skills:getAll', scope, workspacePath),
     getActive: (workspacePath?: string) => ipcRenderer.invoke('skills:getActive', workspacePath),
+    getForPrompt: (workspacePath?: string) => ipcRenderer.invoke('skills:getForPrompt', workspacePath),
     getById: (id: string) => ipcRenderer.invoke('skills:getById', id),
     create: (params: { name: string; description?: string; prompt_template: string; enabled?: boolean; scope?: string; order?: number }) => ipcRenderer.invoke('skills:create', params),
     update: (id: string, updates: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; order?: number }) => ipcRenderer.invoke('skills:update', id, updates),

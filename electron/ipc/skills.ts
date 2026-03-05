@@ -1,7 +1,8 @@
 /**
- * Skills IPC Handlers — KAN-284
+ * Skills IPC Handlers — KAN-284, KAN-286
  *
  * Bridges the SkillsStorageManager (main process) to the renderer via IPC.
+ * KAN-286: Added getForPrompt channel for execution pipeline.
  */
 
 import { ipcMain } from 'electron'
@@ -10,7 +11,7 @@ import type { SkillScope, SkillVisibility, SkillExecutionMode } from '../../src/
 
 export function initSkillsHandlers(): void {
   const channels = [
-    'skills:getAll', 'skills:getActive', 'skills:getById',
+    'skills:getAll', 'skills:getActive', 'skills:getForPrompt', 'skills:getById',
     'skills:create', 'skills:update', 'skills:delete', 'skills:toggle',
     'skills:migrateLegacy',
   ] as const
@@ -22,6 +23,10 @@ export function initSkillsHandlers(): void {
 
   ipcMain.handle('skills:getActive', async (_event, workspacePath?: string) => {
     return SkillsStorageManager.getInstance().getActiveSkills(workspacePath)
+  })
+
+  ipcMain.handle('skills:getForPrompt', async (_event, workspacePath?: string) => {
+    return SkillsStorageManager.getInstance().getSkillsForPrompt(workspacePath)
   })
 
   ipcMain.handle('skills:getById', async (_event, id: string) => {
@@ -76,7 +81,7 @@ export function initSkillsHandlers(): void {
 
 export function cleanupSkillsHandlers(): void {
   const channels = [
-    'skills:getAll', 'skills:getActive', 'skills:getById',
+    'skills:getAll', 'skills:getActive', 'skills:getForPrompt', 'skills:getById',
     'skills:create', 'skills:update', 'skills:delete', 'skills:toggle',
     'skills:migrateLegacy',
   ] as const

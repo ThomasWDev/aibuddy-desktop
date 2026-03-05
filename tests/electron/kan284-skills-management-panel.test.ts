@@ -196,7 +196,8 @@ describe('KAN-284: Skills Management Panel', () => {
     })
 
     it('must convert skills to projectRules format for generateSystemPrompt', () => {
-      expect(appSource).toMatch(/skills\.map/)
+      // KAN-286: pipeline now filters before mapping, so match either pattern
+      expect(appSource).toMatch(/skills\.(map|filter)|autoSkills\.map/)
     })
   })
 

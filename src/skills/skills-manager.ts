@@ -167,6 +167,13 @@ export class SkillsStorageManager {
     return this.getSkills(undefined, workspacePath).filter(s => s.enabled)
   }
 
+  /** Get skills eligible for automatic prompt injection (enabled + execution_mode='always') */
+  public getSkillsForPrompt(workspacePath?: string): Skill[] {
+    return this.getActiveSkills(workspacePath).filter(
+      s => !s.execution_mode || s.execution_mode === 'always'
+    )
+  }
+
   /** Get a single skill by ID */
   public getSkillById(id: string): Skill | undefined {
     const builtin = BUILTIN_SKILLS.find(s => s.id === id)
