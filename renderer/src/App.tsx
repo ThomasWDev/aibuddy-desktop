@@ -3173,16 +3173,22 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       if (executionResults.length > 0) {
         const passed = executionResults.filter(r => r.exitCode === 0).length
         const failed = executionResults.filter(r => r.exitCode !== 0).length
+        const MAX_OUTPUT_LINES = 30
         executionOutput = '\n\n---\n'
         executionOutput += `\n**${passed + failed} command(s) executed** — ${passed} passed`
         if (failed > 0) executionOutput += `, ${failed} failed`
         executionOutput += '. See Terminal panel for full output.\n'
-        if (failed > 0) {
-          executionOutput += '\nFailed commands:\n'
-          for (const result of executionResults.filter(r => r.exitCode !== 0)) {
-            executionOutput += `- \`${result.command}\` (exit ${result.exitCode})`
-            if (result.stderr) executionOutput += `: ${result.stderr.split('\n')[0].substring(0, 120)}`
-            executionOutput += '\n'
+
+        for (const result of executionResults) {
+          executionOutput += `\n**\`${result.command}\`** ${result.exitCode === 0 ? '✅' : '❌'}\n`
+          if (result.stdout && result.stdout.trim()) {
+            const lines = result.stdout.trim().split('\n')
+            const preview = lines.slice(0, MAX_OUTPUT_LINES).join('\n')
+            const truncated = lines.length > MAX_OUTPUT_LINES
+            executionOutput += `\`\`\`\n${preview}${truncated ? `\n... (${lines.length - MAX_OUTPUT_LINES} more lines in Terminal)` : ''}\n\`\`\`\n`
+          }
+          if (result.exitCode !== 0 && result.stderr) {
+            executionOutput += `\nError: ${result.stderr.split('\n')[0].substring(0, 120)}\n`
           }
         }
       }
