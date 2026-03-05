@@ -97,6 +97,7 @@ export interface SystemPromptContext {
     alwaysApply?: boolean
     content: string
     builtin?: boolean
+    allowed_tools?: string[]
   }>
 }
 
@@ -198,7 +199,7 @@ export function generateSystemPrompt(context?: SystemPromptContext): string {
       prompt += `\n\n### 🌍 LANGUAGE INSTRUCTION\n**The user's UI language is ${langName} (\`${context.uiLanguage}\`).** You MUST reply in **${langName}** unless the user explicitly writes in English or asks you to use a different language. Keep code, terminal commands, file paths, and technical identifiers in English/ASCII, but all explanations, comments to the user, questions, and conversational text MUST be in ${langName}.`
     }
 
-    // KAN-283: Skills Engine — inject active project rules into prompt
+    // KAN-283/KAN-289: Skills Engine — inject active project rules + tool permissions
     if (context.projectRules && context.projectRules.length > 0) {
       const activeRules = context.projectRules.filter(r => r.alwaysApply)
       if (activeRules.length > 0) {
@@ -207,6 +208,18 @@ export function generateSystemPrompt(context?: SystemPromptContext): string {
         for (const rule of activeRules) {
           const label = rule.description || rule.filename
           prompt += `\n### [Skill] ${label}\n${rule.content}\n`
+          if (rule.allowed_tools && rule.allowed_tools.length > 0) {
+            prompt += `**Authorized tools:** ${rule.allowed_tools.join(', ')}\n`
+          }
+        }
+
+        const toolSkills = activeRules.filter(r => r.allowed_tools && r.allowed_tools.length > 0)
+        if (toolSkills.length > 0) {
+          const allTools = new Set<string>()
+          toolSkills.forEach(r => r.allowed_tools!.forEach(t => allTools.add(t)))
+          prompt += `\n### 🔧 TOOL-ENABLED SKILLS\n`
+          prompt += `${toolSkills.length} skill(s) have tool permissions. Available tool categories: ${Array.from(allTools).join(', ')}.\n`
+          prompt += `When a skill requires tool execution, you may suggest commands or actions using these tools. The user will be prompted to confirm before execution.\n`
         }
       }
     }

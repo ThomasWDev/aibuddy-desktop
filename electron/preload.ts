@@ -388,14 +388,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteProjectRule: (workspacePath: string, filename: string) => ipcRenderer.invoke('workspace:deleteProjectRule', workspacePath, filename),
   },
 
-  // KAN-284/KAN-286/KAN-287/KAN-288: Skills management
+  // KAN-284/KAN-286/KAN-287/KAN-288/KAN-289: Skills management
   skills: {
     getAll: (scope?: string, workspacePath?: string) => ipcRenderer.invoke('skills:getAll', scope, workspacePath),
     getActive: (workspacePath?: string) => ipcRenderer.invoke('skills:getActive', workspacePath),
     getForPrompt: (workspacePath?: string) => ipcRenderer.invoke('skills:getForPrompt', workspacePath),
     getById: (id: string) => ipcRenderer.invoke('skills:getById', id),
-    create: (params: { name: string; description?: string; prompt_template: string; enabled?: boolean; scope?: string; order?: number; tags?: string[] }) => ipcRenderer.invoke('skills:create', params),
-    update: (id: string, updates: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; order?: number; tags?: string[] }) => ipcRenderer.invoke('skills:update', id, updates),
+    create: (params: { name: string; description?: string; prompt_template: string; enabled?: boolean; scope?: string; order?: number; tags?: string[]; allowed_tools?: string[] }) => ipcRenderer.invoke('skills:create', params),
+    update: (id: string, updates: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; order?: number; tags?: string[]; allowed_tools?: string[] }) => ipcRenderer.invoke('skills:update', id, updates),
     delete: (id: string) => ipcRenderer.invoke('skills:delete', id),
     toggle: (id: string) => ipcRenderer.invoke('skills:toggle', id),
     reorder: (orderedIds: string[]) => ipcRenderer.invoke('skills:reorder', orderedIds),
@@ -403,6 +403,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getCatalog: () => ipcRenderer.invoke('skills:getCatalog'),
     install: (catalogId: string) => ipcRenderer.invoke('skills:install', catalogId),
     getInstalledCatalogIds: () => ipcRenderer.invoke('skills:getInstalledCatalogIds'),
+    executeTool: (request: { skillId: string; tool: string; action: string; params: Record<string, string>; workspacePath: string }) => ipcRenderer.invoke('skills:executeTool', request),
   },
 
   // Generic invoke for backwards compatibility

@@ -17,6 +17,7 @@ interface Skill {
   tags?: string[]
   source?: string
   catalog_id?: string
+  allowed_tools?: string[]
 }
 
 interface CatalogSkill {
@@ -30,7 +31,16 @@ interface CatalogSkill {
   icon: string
   scope: string
   execution_mode: string
+  allowed_tools?: string[]
 }
+
+const TOOL_OPTIONS = [
+  { value: 'filesystem', label: 'Filesystem', icon: '📁' },
+  { value: 'terminal', label: 'Terminal', icon: '💻' },
+  { value: 'git', label: 'Git', icon: '🌿' },
+  { value: 'aws_cli', label: 'AWS CLI', icon: '☁️' },
+  { value: 'docker', label: 'Docker', icon: '🐳' },
+]
 
 interface SkillsPanelProps {
   skills: Skill[]
@@ -50,6 +60,7 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
   const [newVisibility, setNewVisibility] = useState<'private' | 'team'>('private')
   const [newExecutionMode, setNewExecutionMode] = useState<'always' | 'manual' | 'on_demand'>('always')
   const [newTags, setNewTags] = useState('')
+  const [newAllowedTools, setNewAllowedTools] = useState<string[]>([])
   const [isEditing, setIsEditing] = useState(false)
   // KAN-288: Marketplace state
   const [activeTab, setActiveTab] = useState<'skills' | 'marketplace'>('skills')
@@ -123,6 +134,7 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
       visibility: newVisibility,
       execution_mode: newExecutionMode,
       tags: tagsArray.length > 0 ? tagsArray : undefined,
+      allowed_tools: newAllowedTools.length > 0 ? newAllowedTools : undefined,
     })
     if (result) {
       setIsCreating(false)
@@ -130,9 +142,10 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
       setNewDescription('')
       setEditContent('')
       setNewTags('')
+      setNewAllowedTools([])
       onSkillsChanged()
     }
-  }, [newName, newDescription, editContent, newEnabled, newScope, newTags, electronAPI, onSkillsChanged])
+  }, [newName, newDescription, editContent, newEnabled, newScope, newTags, newAllowedTools, electronAPI, onSkillsChanged])
 
   const handleUpdate = useCallback(async () => {
     if (!selectedSkill) return
@@ -142,6 +155,7 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
       description: newDescription.trim(),
       prompt_template: editContent,
       tags: tagsArray.length > 0 ? tagsArray : undefined,
+      allowed_tools: newAllowedTools.length > 0 ? newAllowedTools : undefined,
     })
     if (result) {
       setIsEditing(false)
@@ -196,6 +210,7 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
     setNewDescription(skill.description)
     setEditContent(skill.prompt_template)
     setNewTags((skill.tags || []).join(', '))
+    setNewAllowedTools(skill.allowed_tools || [])
     setIsEditing(true)
     setIsCreating(false)
   }
@@ -212,6 +227,13 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
     setNewVisibility('private')
     setNewExecutionMode('always')
     setNewTags('')
+    setNewAllowedTools([])
+  }
+
+  const toggleTool = (toolValue: string) => {
+    setNewAllowedTools(prev =>
+      prev.includes(toolValue) ? prev.filter(t => t !== toolValue) : [...prev, toolValue]
+    )
   }
 
   const builtinSkills = skills.filter(s => s.builtin)
@@ -400,6 +422,9 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                         style={{ background: skill.enabled ? '#22c55e' : '#475569' }}
                       />
                       <span className="text-white font-medium truncate flex-1">{skill.name}</span>
+                      {skill.allowed_tools && skill.allowed_tools.length > 0 && (
+                        <span className="text-emerald-400 text-[10px]" title={`Tool-enabled: ${skill.allowed_tools.join(', ')}`}>🔧</span>
+                      )}
                       {skillConflicts.length > 0 && (
                         <span className="text-amber-400 text-[10px]" title="Has priority conflicts">⚠</span>
                       )}
@@ -523,6 +548,27 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                   className="w-full px-3 py-2 rounded-lg text-sm text-white placeholder-slate-500"
                   style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #475569' }}
                 />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-400 block mb-1">Tool Permissions (user confirmation required)</label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {TOOL_OPTIONS.map(tool => (
+                    <button
+                      key={tool.value}
+                      type="button"
+                      onClick={() => toggleTool(tool.value)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                      style={{
+                        background: newAllowedTools.includes(tool.value) ? 'rgba(59,130,246,0.3)' : 'rgba(0,0,0,0.3)',
+                        border: newAllowedTools.includes(tool.value) ? '1px solid #3b82f6' : '1px solid #475569',
+                        color: newAllowedTools.includes(tool.value) ? '#93c5fd' : '#94a3b8',
+                      }}
+                    >
+                      {tool.icon} {tool.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -662,6 +708,27 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                 </div>
               )}
 
+              {/* Tool permissions display */}
+              {selectedSkill.allowed_tools && selectedSkill.allowed_tools.length > 0 && (
+                <div>
+                  <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Tool Permissions</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {selectedSkill.allowed_tools.map(tool => {
+                      const opt = TOOL_OPTIONS.find(t => t.value === tool)
+                      return (
+                        <span
+                          key={tool}
+                          className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                          style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.25)' }}
+                        >
+                          {opt?.icon || '🔧'} {opt?.label || tool}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="border-t border-slate-700/50 pt-4">
                 {isEditing ? (
                   <div className="space-y-3">
@@ -692,6 +759,26 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                         className="w-full px-3 py-2 rounded-lg text-sm text-white placeholder-slate-500"
                         style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #475569' }}
                       />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-400 block mb-1">Tool Permissions</label>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {TOOL_OPTIONS.map(tool => (
+                          <button
+                            key={tool.value}
+                            type="button"
+                            onClick={() => toggleTool(tool.value)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                            style={{
+                              background: newAllowedTools.includes(tool.value) ? 'rgba(59,130,246,0.3)' : 'rgba(0,0,0,0.3)',
+                              border: newAllowedTools.includes(tool.value) ? '1px solid #3b82f6' : '1px solid #475569',
+                              color: newAllowedTools.includes(tool.value) ? '#93c5fd' : '#94a3b8',
+                            }}
+                          >
+                            {tool.icon} {tool.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div>
                       <label className="text-xs font-medium text-slate-400 block mb-1">Prompt Template</label>
@@ -789,6 +876,26 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                       {tag}
                     </span>
                   ))}
+                </div>
+              )}
+
+              {selectedCatalogSkill.allowed_tools && selectedCatalogSkill.allowed_tools.length > 0 && (
+                <div>
+                  <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Tool Permissions Required</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {selectedCatalogSkill.allowed_tools.map(tool => {
+                      const opt = TOOL_OPTIONS.find(t => t.value === tool)
+                      return (
+                        <span
+                          key={tool}
+                          className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                          style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.25)' }}
+                        >
+                          {opt?.icon || '🔧'} {opt?.label || tool}
+                        </span>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
 

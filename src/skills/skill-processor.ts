@@ -1,14 +1,14 @@
 /**
- * Skill Execution Pipeline — KAN-286, KAN-287
+ * Skill Execution Pipeline — KAN-286, KAN-287, KAN-289
  *
  * Processes skills before prompt injection. Filters by execution_mode,
- * orders by priority, detects conflicts via shared tags, and captures
- * execution logs.
+ * orders by priority, detects conflicts via shared tags, captures
+ * execution logs, and tracks tool permissions for tool-enabled skills.
  *
  * Flow: User Prompt → SkillProcessor → Prompt Refinement → LLM → Response
  */
 
-import type { Skill, SkillExecutionMode } from './types'
+import type { Skill, SkillExecutionMode, SkillToolPermission } from './types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,6 +52,7 @@ export interface ProcessedSkill {
   execution_mode: SkillExecutionMode
   order: number
   tags?: string[]
+  allowed_tools?: SkillToolPermission[]
 }
 
 // ─── Conflict Detection ───────────────────────────────────────────────────────
@@ -172,6 +173,7 @@ export function processSkills(
         execution_mode: mode,
         order: skill.order ?? 999,
         tags: skill.tags,
+        allowed_tools: skill.allowed_tools,
       })
     }
   }
@@ -199,6 +201,7 @@ export function toProjectRules(processed: ProcessedSkill[]): Array<{
   alwaysApply: boolean
   content: string
   builtin?: boolean
+  allowed_tools?: string[]
 }> {
   return processed.map(s => ({
     filename: s.id,
@@ -206,7 +209,31 @@ export function toProjectRules(processed: ProcessedSkill[]): Array<{
     alwaysApply: true,
     content: s.prompt_template,
     builtin: s.builtin,
+    allowed_tools: s.allowed_tools,
   }))
+}
+
+// ─── Tool Permission Aggregation ──────────────────────────────────────────────
+
+/**
+ * Collect all unique tool permissions from active skills.
+ * Used to inform the system prompt about available tools.
+ */
+export function collectToolPermissions(skills: ProcessedSkill[]): SkillToolPermission[] {
+  const all = new Set<SkillToolPermission>()
+  for (const s of skills) {
+    if (s.allowed_tools) {
+      for (const t of s.allowed_tools) all.add(t)
+    }
+  }
+  return Array.from(all)
+}
+
+/**
+ * Get skills that have tool permissions (tool-enabled skills).
+ */
+export function getToolEnabledSkills(skills: ProcessedSkill[]): ProcessedSkill[] {
+  return skills.filter(s => s.allowed_tools && s.allowed_tools.length > 0)
 }
 
 // ─── Formatting ───────────────────────────────────────────────────────────────

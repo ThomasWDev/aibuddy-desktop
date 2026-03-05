@@ -18,7 +18,7 @@ import * as path from 'path'
 import * as os from 'os'
 import * as crypto from 'crypto'
 import { Skill, SkillsState, SkillScope, SkillVisibility, SkillExecutionMode, SKILLS_VERSION } from './types'
-import type { CatalogSkill } from './types'
+import type { CatalogSkill, SkillToolPermission } from './types'
 
 const generateId = (): string => crypto.randomBytes(12).toString('base64url')
 
@@ -198,6 +198,7 @@ export class SkillsStorageManager {
     visibility?: SkillVisibility
     execution_mode?: SkillExecutionMode
     tags?: string[]
+    allowed_tools?: SkillToolPermission[]
   }): Skill {
     if (this.state.skills.length >= MAX_SKILLS) {
       throw new Error(`Maximum skill limit reached (${MAX_SKILLS})`)
@@ -218,6 +219,7 @@ export class SkillsStorageManager {
       execution_mode: params.execution_mode || 'always',
       order: params.order,
       tags: params.tags,
+      allowed_tools: params.allowed_tools,
     }
 
     this.state.skills.push(skill)
@@ -251,6 +253,7 @@ export class SkillsStorageManager {
       execution_mode: catalogSkill.execution_mode,
       source: 'marketplace',
       catalog_id: catalogSkill.catalog_id,
+      allowed_tools: catalogSkill.allowed_tools,
     }
 
     this.state.skills.push(skill)
@@ -286,7 +289,7 @@ export class SkillsStorageManager {
   }
 
   public updateSkill(id: string, updates: Partial<Pick<Skill,
-    'name' | 'description' | 'prompt_template' | 'enabled' | 'scope' | 'order' | 'visibility' | 'execution_mode' | 'tags'
+    'name' | 'description' | 'prompt_template' | 'enabled' | 'scope' | 'order' | 'visibility' | 'execution_mode' | 'tags' | 'allowed_tools'
   >>): Skill | null {
     const builtin = BUILTIN_SKILLS.find(s => s.id === id)
     if (builtin) return null // cannot update built-ins
@@ -304,6 +307,7 @@ export class SkillsStorageManager {
     if (updates.visibility !== undefined) skill.visibility = updates.visibility
     if (updates.execution_mode !== undefined) skill.execution_mode = updates.execution_mode
     if (updates.tags !== undefined) skill.tags = updates.tags
+    if (updates.allowed_tools !== undefined) skill.allowed_tools = updates.allowed_tools
     skill.updated_at = Date.now()
 
     this.state.skills[idx] = skill

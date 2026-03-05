@@ -1,9 +1,10 @@
 /**
- * Skill Marketplace Catalog — KAN-288
+ * Skill Marketplace Catalog — KAN-288, KAN-289
  *
  * Curated collection of prebuilt skills users can browse and install.
  * Ships with the app (offline-capable). Can be extended with a backend
  * API in the future by fetching from AIBUDDY_SKILLS_CATALOG_URL.
+ * KAN-289: Some skills now declare allowed_tools for tool-enabled execution.
  */
 
 import type { CatalogSkill } from './types'
@@ -62,6 +63,7 @@ Always justify recommendations with concrete reasoning, not just "best practice"
     tags: ['sql', 'database', 'performance', 'optimization'],
     scope: 'project',
     execution_mode: 'manual',
+    allowed_tools: ['filesystem', 'terminal'],
     prompt_template: `# SQL Optimizer
 
 When reviewing or writing SQL:
@@ -84,6 +86,7 @@ When reviewing or writing SQL:
     tags: ['aws', 'deployment', 'devops', 'infrastructure'],
     scope: 'project',
     execution_mode: 'manual',
+    allowed_tools: ['terminal', 'aws_cli', 'docker'],
     prompt_template: `# AWS Deployment Helper
 
 When working with AWS infrastructure:
@@ -107,6 +110,7 @@ When working with AWS infrastructure:
     tags: ['security', 'owasp', 'vulnerability', 'code-review'],
     scope: 'global',
     execution_mode: 'always',
+    allowed_tools: ['filesystem', 'git'],
     prompt_template: `# Security Reviewer
 
 For every code change, automatically check for:
@@ -179,6 +183,7 @@ When writing React code:
     tags: ['git', 'workflow', 'commits', 'version-control'],
     scope: 'global',
     execution_mode: 'always',
+    allowed_tools: ['git', 'terminal'],
     prompt_template: `# Git Workflow Standards
 
 When working with git:

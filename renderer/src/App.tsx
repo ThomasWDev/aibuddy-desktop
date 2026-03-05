@@ -778,8 +778,8 @@ function App() {
   // Environment Detection
   const [environmentSummary, setEnvironmentSummary] = useState<string>('')
 
-  // KAN-284/KAN-287: Skills loaded from SkillsStorageManager via IPC
-  const [skills, setSkills] = useState<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[] }>>([])
+  // KAN-284/KAN-287/KAN-289: Skills loaded from SkillsStorageManager via IPC
+  const [skills, setSkills] = useState<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[]; allowed_tools?: string[] }>>([])
   
   // Terminal output panel
   const [showTerminal, setShowTerminal] = useState(false)
@@ -2666,18 +2666,20 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               platformContext: DESKTOP_PLATFORM_CONTEXT,
               uiLanguage: i18n.language,
               projectRules: skills.length > 0 ? (() => {
-                // KAN-286: Skill Execution Pipeline — filter by execution_mode
+                // KAN-286/KAN-289: Skill Execution Pipeline — filter by execution_mode, include tool permissions
                 const autoSkills = skills.filter(s =>
                   s.enabled && (!s.execution_mode || s.execution_mode === 'always')
                 )
                 if (autoSkills.length === 0) return undefined
-                console.log(`[SkillProcessor] ${autoSkills.length}/${skills.length} skills applied (execution_mode=always)`)
+                const toolCount = autoSkills.filter(s => s.allowed_tools && s.allowed_tools.length > 0).length
+                console.log(`[SkillProcessor] ${autoSkills.length}/${skills.length} skills applied (execution_mode=always), ${toolCount} tool-enabled`)
                 return autoSkills.map(s => ({
                   filename: s.id,
                   description: s.description || s.name,
                   alwaysApply: true,
                   content: s.prompt_template,
                   builtin: s.builtin,
+                  allowed_tools: s.allowed_tools,
                 }))
               })() : undefined,
             })

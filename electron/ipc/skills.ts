@@ -10,13 +10,15 @@
 import { ipcMain } from 'electron'
 import { SkillsStorageManager } from '../../src/skills/skills-manager'
 import { getCatalog, getCatalogSkill } from '../../src/skills/skill-catalog'
-import type { SkillScope, SkillVisibility, SkillExecutionMode } from '../../src/skills/types'
+import type { SkillScope, SkillVisibility, SkillExecutionMode, SkillToolPermission } from '../../src/skills/types'
+import { executeToolRequest } from '../../src/skills/skill-tool-runner'
 
 const ALL_CHANNELS = [
   'skills:getAll', 'skills:getActive', 'skills:getForPrompt', 'skills:getById',
   'skills:create', 'skills:update', 'skills:delete', 'skills:toggle',
   'skills:reorder', 'skills:migrateLegacy',
   'skills:getCatalog', 'skills:install', 'skills:getInstalledCatalogIds',
+  'skills:executeTool',
 ] as const
 
 export function initSkillsHandlers(): void {
@@ -48,6 +50,7 @@ export function initSkillsHandlers(): void {
     visibility?: SkillVisibility
     execution_mode?: SkillExecutionMode
     tags?: string[]
+    allowed_tools?: SkillToolPermission[]
   }) => {
     try {
       return SkillsStorageManager.getInstance().createSkill(params)
@@ -67,6 +70,7 @@ export function initSkillsHandlers(): void {
     visibility?: SkillVisibility
     execution_mode?: SkillExecutionMode
     tags?: string[]
+    allowed_tools?: SkillToolPermission[]
   }) => {
     return SkillsStorageManager.getInstance().updateSkill(id, updates) ?? null
   })
@@ -106,6 +110,23 @@ export function initSkillsHandlers(): void {
 
   ipcMain.handle('skills:getInstalledCatalogIds', async () => {
     return SkillsStorageManager.getInstance().getInstalledCatalogIds()
+  })
+
+  // KAN-289: Tool execution on behalf of skills
+  ipcMain.handle('skills:executeTool', async (_event, request: {
+    skillId: string
+    tool: SkillToolPermission
+    action: string
+    params: Record<string, string>
+    workspacePath: string
+  }) => {
+    const skill = SkillsStorageManager.getInstance().getSkillById(request.skillId)
+    if (!skill) return { success: false, output: '', error: 'Skill not found', tool: request.tool, action: request.action, durationMs: 0 }
+    return executeToolRequest(
+      { skillId: request.skillId, tool: request.tool, action: request.action, params: request.params },
+      skill.allowed_tools,
+      request.workspacePath
+    )
   })
 
   console.log('[Skills] IPC handlers initialized')
