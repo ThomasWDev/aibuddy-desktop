@@ -85,6 +85,7 @@ import {
 console.log('[App] API URL configured:', AIBUDDY_API_INFERENCE_URL)
 import { generateSystemPrompt, DESKTOP_PLATFORM_CONTEXT } from '../../src/constants/system-prompt'
 import { appendIfNotDuplicate, isDuplicateFile } from './utils/file-dedup'
+import { safeParseResponse, safeParseBody } from './lib/response-parser'
 import { submitFeedback } from './lib/feedback'
 
 // KAN-41 FIX: Professional tooltip — compact, non-overlapping, viewport-constrained
@@ -2238,15 +2239,14 @@ function App() {
       }),
     })
     
-    // Check for non-JSON responses (WAF blocks, server errors, etc.)
-    const contentType = response.headers.get('content-type')
-    if (!contentType?.includes('application/json')) {
-      const text = await response.text()
-      console.error('[App] Non-JSON response:', response.status, text.substring(0, 200))
+    // KAN-272 FIX: Parse body as JSON first, don't gate on Content-Type header.
+    const bodyText = await response.text()
+    const parseResult = safeParseBody(bodyText, response.status, response.headers.get('content-type'))
+    if (!parseResult.ok) {
+      console.error('[App] callAI parse failed:', parseResult.parseError, parseResult.bodyPreview)
       throw new Error(`Server returned non-JSON response (${response.status}). This may be a temporary issue - please try again.`)
     }
-    
-    const data = await response.json()
+    const data = parseResult.data as any
     
     if (!response.ok || data.error) {
       throw new Error(data.error?.message || data.message || 'API request failed')
@@ -2944,35 +2944,25 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         return
       }
 
-      const contentType = response.headers.get('content-type')
-      if (!contentType?.includes('application/json')) {
-        const text = await response.text()
-        console.error('[App] Non-JSON response:', response.status, text.substring(0, 200))
-        toast.error(`Server returned an unexpected response (${response.status}). Please try again.`)
-        addBreadcrumb('Non-JSON response', 'api.error', { status: response.status, contentType, body: text.substring(0, 200) })
-        setStatus('error')
-        return
-      }
-      
+      // KAN-272 FIX: Parse body as JSON first, don't gate on Content-Type header.
+      // The ALB/proxy can return valid JSON with wrong or missing Content-Type.
       setStatus('generating')
       
-      // KAN-34 FIX: Wrap JSON parsing with try-catch for HTML error pages
-      const JSON_PARSE_TIMEOUT = 60_000
-      try {
-        data = await Promise.race([
-          response.json(),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Response body parsing timed out after 60s')), JSON_PARSE_TIMEOUT)
-          )
-        ]) as any
-      } catch (parseErr) {
-        console.error('[App] JSON parse failed (server likely returned HTML):', (parseErr as Error).message)
-        toast.error('Server returned an invalid response. Please try again.')
-        addBreadcrumb('JSON parse failed', 'api.error', { status: response.status, error: (parseErr as Error).message }, 'error')
+      const parseResult = await safeParseResponse(response, 60_000)
+      if (!parseResult.ok) {
+        console.error('[App] Response parse failed:', parseResult.parseError, parseResult.bodyPreview)
+        toast.error(`Server returned an unexpected response (${response.status}). Please try again.`)
+        addBreadcrumb('Response parse failed', 'api.error', {
+          status: parseResult.status,
+          contentType: parseResult.contentType,
+          body: parseResult.bodyPreview,
+          parseError: parseResult.parseError,
+        }, 'error')
         setStatus('error')
         setIsLoading(false)
         return
       }
+      data = parseResult.data
       } // end non-streaming block
       console.log('[App] API response data:', data)
 
