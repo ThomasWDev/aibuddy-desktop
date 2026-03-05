@@ -346,35 +346,45 @@ export const historyManager = new HistoryManager({
 
 ### What they receive
 
-1. Access to `packages/logic/` repository (or a filtered fork)
-2. Access to `packages/types/` (read-only or bundled)
-3. Access to `packages/prompts/` (read-only or bundled)
-4. A `README.md` with setup instructions
-5. A `vitest.config.ts` for running tests
-6. Mock adapter implementations for local testing
+1. Push access to **3 GitHub repos**: `aibuddy-logic`, `aibuddy-types`, `aibuddy-prompts`
+2. Comprehensive `README.md` in each repo with TDD workflow, adapter pattern docs, and PR checklist
+3. `vitest.config.ts` for running tests locally
+4. Mock adapter examples for testing without any platform SDK
+5. Assigned Jira tickets on the [Hire Programmers board](https://hire-programmers-team.atlassian.net)
 
 ### Setup instructions for external dev
 
 ```bash
-# Clone the logic package repo
+# 1. Accept GitHub invitations (check email or github.com/notifications)
+
+# 2. Clone all 3 repos
 git clone https://github.com/ThomasWDev/aibuddy-logic.git
-cd aibuddy-logic
+git clone https://github.com/ThomasWDev/aibuddy-types.git
+git clone https://github.com/ThomasWDev/aibuddy-prompts.git
 
-# Install dependencies
-pnpm install
+# 3. Install dependencies (each repo)
+cd aibuddy-logic && pnpm install && pnpm test
+cd ../aibuddy-types && pnpm install && pnpm typecheck
+cd ../aibuddy-prompts && pnpm install && pnpm test
 
-# Run tests (all should pass)
-pnpm test
-
-# Run tests in watch mode
-pnpm test:watch
-
-# Type check
-pnpm typecheck
-
-# Lint
-pnpm lint
+# 4. Check your Jira tickets
+# Go to: https://hire-programmers-team.atlassian.net/jira/software/projects/KAN/board
+# Filter by "Assignee = EH Tamvir"
 ```
+
+### TDD workflow (required for all changes)
+
+1. **RED** — Write a failing test in `tests/`
+2. **GREEN** — Write minimum code in `src/` to pass
+3. **REFACTOR** — Clean up while tests stay green
+4. Create a PR with branch name `fix/KAN-XXX-description`
+5. Every PR must pass: `pnpm test && pnpm typecheck`
+
+### Jira workflow
+
+1. Pick a ticket from "To Do" → move to "In Progress"
+2. When fix is ready, move to **"In Review"** (NEVER "Done" — QA does that)
+3. Add a comment with: root cause, fix description, test count, commit hash
 
 ### They cannot
 
@@ -382,6 +392,7 @@ pnpm lint
 - Access any AWS endpoint (no URLs)
 - See any UI code (no React components)
 - Deploy anything (no CI/CD)
+- Access `aibuddy-desktop` or `AICodingVS` repos
 
 ---
 
@@ -399,17 +410,39 @@ All repos created on GitHub (March 5, 2026):
 | **aibuddy-desktop** | https://github.com/ThomasWDev/aibuddy-desktop | PUBLIC | ✅ Existing | Desktop Electron app (app shell) |
 | **AICodingVS** | https://github.com/Thomas-Woodfin/AICodingVS | PRIVATE | ✅ Existing | Root monorepo (extension + desktop + packages) |
 
-**To grant external developer access:**
+### Active Collaborators
+
+| GitHub User | Email | Jira Name | Access | Added |
+|-------------|-------|-----------|--------|-------|
+| **[@mtamvir](https://github.com/mtamvir)** | mtamvir@gmail.com | EH Tamvir (accountId: `5c519941c0567a194bdd5acc`) | push (all 3 repos) | March 5, 2026 |
+
+**Invitation status:** All 3 repo invitations sent. Developer must accept via GitHub notification or email.
+
+### Assigned Jira Tickets
+
+| Ticket | Summary | Priority | Relates To |
+|--------|---------|----------|------------|
+| **KAN-185** | [Mac] Live Audio in Interview Mode Not Detecting Voice Input | High | `@aibuddy/logic` — audio/transcription parsing |
+| **KAN-273** | [Mac] Transcription Error After Stopping Live Audio | Highest | `@aibuddy/logic` — response parser |
+| **KAN-283** | Implement Skills Engine for Prompt Injection | Medium | `@aibuddy/prompts` — prompt composition |
+
+### Commands used to grant access
 
 ```bash
-# Give external dev collaborator access to logic (read/write)
-gh api repos/ThomasWDev/aibuddy-logic/collaborators/GITHUB_USERNAME -X PUT -f permission=push
-
-# Give external dev read-only access to types and prompts
-gh api repos/ThomasWDev/aibuddy-types/collaborators/GITHUB_USERNAME -X PUT -f permission=pull
-gh api repos/ThomasWDev/aibuddy-prompts/collaborators/GITHUB_USERNAME -X PUT -f permission=pull
+# Push (read/write) access to all 3 module repos
+gh api repos/ThomasWDev/aibuddy-logic/collaborators/mtamvir -X PUT -f permission=push
+gh api repos/ThomasWDev/aibuddy-types/collaborators/mtamvir -X PUT -f permission=push
+gh api repos/ThomasWDev/aibuddy-prompts/collaborators/mtamvir -X PUT -f permission=push
 
 # NEVER give access to aibuddy-desktop or AICodingVS
+```
+
+**To add future developers:**
+
+```bash
+gh api repos/ThomasWDev/aibuddy-logic/collaborators/GITHUB_USERNAME -X PUT -f permission=push
+gh api repos/ThomasWDev/aibuddy-types/collaborators/GITHUB_USERNAME -X PUT -f permission=push
+gh api repos/ThomasWDev/aibuddy-prompts/collaborators/GITHUB_USERNAME -X PUT -f permission=push
 ```
 
 **Benefits:**
