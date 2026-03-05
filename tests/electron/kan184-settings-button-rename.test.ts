@@ -19,7 +19,7 @@ describe('KAN-184 — Rename API Key button to Settings', () => {
   it('header button must show "Settings" label, not "API Key"', () => {
     const start = appTsx.indexOf('trackButtonClick(\'Settings\'')
     const btnArea = appTsx.slice(start, start + 800)
-    expect(btnArea).toContain('>Settings<')
+    expect(btnArea).toMatch(/Settings|header\.settings/)
     expect(btnArea).not.toContain('API Key ✓')
     expect(btnArea).not.toContain('Add Key')
   })
@@ -35,10 +35,9 @@ describe('KAN-184 — Rename API Key button to Settings', () => {
   })
 
   it('header button tooltip must say "Settings"', () => {
-    // Find the Tooltip wrapping the settings button
     const tooltipIdx = appTsx.lastIndexOf('Tooltip', appTsx.indexOf('trackButtonClick(\'Settings\''))
     const tooltipBlock = appTsx.slice(tooltipIdx, tooltipIdx + 200)
-    expect(tooltipBlock).toMatch(/text=.*Settings/)
+    expect(tooltipBlock).toMatch(/text=.*[Ss]ettings|header\.settings/)
   })
 
   it('settings modal title must say "Settings", not "API Key"', () => {

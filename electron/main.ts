@@ -27,6 +27,7 @@ function getAppIcon(): Electron.NativeImage | undefined {
 }
 
 // Simple JSON-based store (replaces electron-store to avoid 'conf' module issues)
+// Anti-bloat: debounced writes, size monitoring, value-size caps
 interface StoreSchema {
   windowBounds: { width: number; height: number }
   recentWorkspaces: string[]
@@ -35,32 +36,42 @@ interface StoreSchema {
   aibuddyCredits: number
 }
 
+const STORE_MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB hard cap
+const STORE_MAX_VALUE_SIZE = 512 * 1024 // 512 KB per value
+const STORE_DEBOUNCE_MS = 500
+
 class SimpleStore<T extends Record<string, any>> {
   private data: T
   private filePath: string
+  private saveTimer: ReturnType<typeof setTimeout> | null = null
+  private dirty = false
 
   constructor(options: { name: string; defaults: T }) {
     const userDataPath = app.getPath('userData')
     
-    // Ensure directory exists
     if (!existsSync(userDataPath)) {
       mkdirSync(userDataPath, { recursive: true })
     }
     
     this.filePath = join(userDataPath, `${options.name}.json`)
     
-    // Load existing data or use defaults
     if (existsSync(this.filePath)) {
       try {
         const fileContent = readFileSync(this.filePath, 'utf-8')
-        this.data = { ...options.defaults, ...JSON.parse(fileContent) }
+        if (fileContent.length > STORE_MAX_FILE_SIZE) {
+          console.warn(`[SimpleStore] File exceeds ${STORE_MAX_FILE_SIZE / 1024 / 1024}MB (${(fileContent.length / 1024 / 1024).toFixed(1)}MB). Resetting to defaults.`)
+          this.data = options.defaults
+          this.saveImmediate()
+        } else {
+          this.data = { ...options.defaults, ...JSON.parse(fileContent) }
+        }
       } catch (e) {
         console.error('Failed to load store, using defaults:', e)
         this.data = options.defaults
       }
     } else {
       this.data = options.defaults
-      this.save()
+      this.saveImmediate()
     }
   }
 
@@ -69,18 +80,58 @@ class SimpleStore<T extends Record<string, any>> {
   }
 
   set<K extends keyof T>(key: K, value: T[K]): void {
+    const serialized = JSON.stringify(value)
+    if (serialized && serialized.length > STORE_MAX_VALUE_SIZE) {
+      console.warn(`[SimpleStore] Rejecting oversized value for key "${String(key)}" (${(serialized.length / 1024).toFixed(0)}KB > ${STORE_MAX_VALUE_SIZE / 1024}KB)`)
+      return
+    }
     this.data[key] = value
-    this.save()
+    this.scheduleSave()
   }
 
   delete<K extends keyof T>(key: K): void {
     delete this.data[key]
-    this.save()
+    this.scheduleSave()
   }
 
-  private save(): void {
+  getFileSizeBytes(): number {
     try {
-      writeFileSync(this.filePath, JSON.stringify(this.data, null, 2), 'utf-8')
+      return JSON.stringify(this.data, null, 2).length
+    } catch {
+      return 0
+    }
+  }
+
+  private scheduleSave(): void {
+    this.dirty = true
+    if (this.saveTimer) return
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null
+      if (this.dirty) {
+        this.saveImmediate()
+      }
+    }, STORE_DEBOUNCE_MS)
+  }
+
+  flushSync(): void {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer)
+      this.saveTimer = null
+    }
+    if (this.dirty) {
+      this.saveImmediate()
+    }
+  }
+
+  private saveImmediate(): void {
+    try {
+      const json = JSON.stringify(this.data, null, 2)
+      if (json.length > STORE_MAX_FILE_SIZE) {
+        console.error(`[SimpleStore] Serialized data exceeds ${STORE_MAX_FILE_SIZE / 1024 / 1024}MB — refusing to write bloated state`)
+        return
+      }
+      writeFileSync(this.filePath, json, 'utf-8')
+      this.dirty = false
     } catch (e) {
       console.error('Failed to save store:', e)
     }
@@ -693,6 +744,9 @@ app.on('before-quit', async () => {
 
   trackWindowEvent('closed')
   
+  // Flush debounced store writes before quitting
+  store.flushSync()
+
   // Flush Sentry before quitting
   await flushSentry()
   

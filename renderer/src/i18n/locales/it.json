@@ -77,7 +77,20 @@
     "key": "Chiave API",
     "settings": "Impostazioni",
     "interview": "Modalità Colloquio",
-    "moreActions": "Altre azioni"
+    "moreActions": "Altre azioni",
+    "appTooltip": "AIBuddy - Your Coding Friend",
+    "home": "Home",
+    "homeTooltip": "Home — switch project",
+    "newChatTooltip": "New chat (⌘N)",
+    "totalUsed": "Total Used: ${{amount}}",
+    "lastRequest": "Last: ${{amount}}",
+    "model": "Model: {{model}}",
+    "total": "Total",
+    "openProjectFolder": "Open Project Folder",
+    "terminalActive": "Active",
+    "historyTooltip": "Chat history",
+    "interviewTooltip": "Interview Mode - AI coaching with audio",
+    "switchProject": "Click to switch project folder"
   },
   "workspace": {
     "workingIn": "Lavoro in:",
@@ -94,7 +107,15 @@
     "save": "Salva Chiave API",
     "saved": "Salvato!",
     "securityNote": "La tua chiave API è conservata in modo sicuro sul tuo dispositivo",
-    "getKey": "Ottienine una qui!"
+    "getKey": "Ottienine una qui!",
+    "updateTitle": "Update API Key",
+    "updateDescription": "Your key is saved. Enter a new key below to replace it.",
+    "connectedStatus": "API Key Status: Connected",
+    "updateKey": "Update API Key",
+    "settingsTooltip": "Settings - Add your API key here!",
+    "buyCreditsTooltip": "Buy AIBuddy credits to chat with AI!",
+    "saveError": "Failed to save API key. Please try again.",
+    "somethingWentWrong": "Something went wrong: {{message}}"
   },
   "status": {
     "ready": "Pronto",

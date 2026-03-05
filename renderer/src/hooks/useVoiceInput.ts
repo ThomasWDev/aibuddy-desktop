@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { AIBUDDY_API_TRANSCRIBE_URL } from '../../../src/constants/urls'
+import { safeParseResponse } from '../lib/response-parser'
 
 /**
  * Voice Input Hook — KAN-17 FIX
@@ -109,21 +110,30 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
         }),
       })
 
+      // KAN-273 FIX: Use safeParseResponse to handle HTML responses safely.
+      // The ALB/proxy can return HTML with 200 status, which causes
+      // "Unexpected token '<'" if we call res.json() directly.
+      const parseResult = await safeParseResponse(res)
+
       if (!res.ok) {
-        const errBody = await res.json().catch(() => ({ message: 'Transcription failed' }))
-        const rawMsg = errBody.message || `Server error ${res.status}`
-        // KAN-178: Replace raw backend validation errors with user-friendly messages
+        const rawMsg = parseResult.ok
+          ? ((parseResult.data.message as string) || `Server error ${res.status}`)
+          : `Transcription failed (${res.status})`
         const friendlyMsg = rawMsg.includes('Messages array')
           ? 'Transcription service temporarily unavailable. Please type your message instead.'
           : rawMsg
         throw new Error(friendlyMsg)
       }
 
-      const data = await res.json()
+      if (!parseResult.ok) {
+        throw new Error('Transcription service returned an invalid response. Please try again.')
+      }
 
-      if (data.text && data.text.trim()) {
+      const data = parseResult.data
+
+      if (data.text && (data.text as string).trim()) {
         setInterimTranscript('')
-        onResultRef.current?.(data.text.trim(), true)
+        onResultRef.current?.((data.text as string).trim(), true)
       } else {
         setInterimTranscript('')
         setError('No speech detected. Please try again.')

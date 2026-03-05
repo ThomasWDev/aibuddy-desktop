@@ -117,11 +117,9 @@ describe('KAN-178: Voice Dictation Error Guard', () => {
     })
 
     it('must set state to idle or error after transcription failure (not leave in processing)', () => {
-      // After any error in sendToWhisper, state must reset to idle or error
-      const sendBlock = VOICE_HOOK_SOURCE.slice(
-        VOICE_HOOK_SOURCE.indexOf('sendToWhisper'),
-        VOICE_HOOK_SOURCE.indexOf('sendToWhisper') + 2000
-      )
+      const startIdx = VOICE_HOOK_SOURCE.indexOf('sendToWhisper')
+      const nextFn = VOICE_HOOK_SOURCE.indexOf('const startListening', startIdx)
+      const sendBlock = VOICE_HOOK_SOURCE.slice(startIdx, nextFn > startIdx ? nextFn : startIdx + 3000)
       expect(sendBlock).toContain("setState('idle')")
       expect(sendBlock).toContain('setError')
     })

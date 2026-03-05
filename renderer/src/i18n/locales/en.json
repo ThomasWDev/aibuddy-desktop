@@ -66,18 +66,31 @@
     "refactorPrompt": "Refactor this code to be cleaner:"
   },
   "header": {
+    "appTooltip": "AIBuddy - Your Coding Friend",
+    "home": "Home",
+    "homeTooltip": "Home — switch project",
+    "newChatTooltip": "New chat (⌘N)",
     "credits": "Credits: {{amount}}",
+    "totalUsed": "Total Used: ${{amount}}",
+    "lastRequest": "Last: ${{amount}}",
+    "model": "Model: {{model}}",
+    "total": "Total",
     "buyCredits": "Buy Credits",
     "new": "New",
     "openFolder": "Open Folder",
+    "openProjectFolder": "Open Project Folder",
     "terminal": "Terminal",
+    "terminalActive": "Active",
     "knowledge": "Knowledge Base",
-    "share": "Share",
+    "share": "Share Conversation",
     "history": "Chat History",
+    "historyTooltip": "Chat history",
     "key": "API Key",
     "settings": "Settings",
     "interview": "Interview Mode",
-    "moreActions": "More actions"
+    "interviewTooltip": "Interview Mode - AI coaching with audio",
+    "moreActions": "More actions",
+    "switchProject": "Click to switch project folder"
   },
   "workspace": {
     "workingIn": "Working in:",
@@ -86,15 +99,23 @@
   },
   "apiKey": {
     "title": "API Key Required",
+    "updateTitle": "Update API Key",
     "description": "Add your AIBuddy API key to start chatting with AI",
+    "updateDescription": "Your key is saved. Enter a new key below to replace it.",
     "addKey": "Add Key",
     "configured": "API Key configured",
+    "connectedStatus": "API Key Status: Connected",
     "notConfigured": "Add your API key",
     "placeholder": "Enter your AIBuddy API key...",
     "save": "Save API Key",
+    "updateKey": "Update API Key",
     "saved": "Saved!",
     "securityNote": "Your API key is stored securely on your device",
-    "getKey": "Get one here!"
+    "getKey": "Get one here!",
+    "settingsTooltip": "Settings - Add your API key here!",
+    "buyCreditsTooltip": "Buy AIBuddy credits to chat with AI!",
+    "saveError": "Failed to save API key. Please try again.",
+    "somethingWentWrong": "Something went wrong: {{message}}"
   },
   "status": {
     "ready": "Ready",

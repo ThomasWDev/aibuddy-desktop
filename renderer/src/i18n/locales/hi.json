@@ -77,7 +77,20 @@
     "key": "API कुंजी",
     "settings": "सेटिंग्स",
     "interview": "साक्षात्कार मोड",
-    "moreActions": "और कार्य"
+    "moreActions": "और कार्य",
+    "appTooltip": "AIBuddy - Your Coding Friend",
+    "home": "Home",
+    "homeTooltip": "Home — switch project",
+    "newChatTooltip": "New chat (⌘N)",
+    "totalUsed": "Total Used: ${{amount}}",
+    "lastRequest": "Last: ${{amount}}",
+    "model": "Model: {{model}}",
+    "total": "Total",
+    "openProjectFolder": "Open Project Folder",
+    "terminalActive": "Active",
+    "historyTooltip": "Chat history",
+    "interviewTooltip": "Interview Mode - AI coaching with audio",
+    "switchProject": "Click to switch project folder"
   },
   "workspace": {
     "workingIn": "काम कर रहे हैं:",
@@ -94,7 +107,15 @@
     "save": "API कुंजी सेव करें",
     "saved": "सेव हो गया!",
     "securityNote": "आपकी API कुंजी आपके डिवाइस पर सुरक्षित रूप से संग्रहीत है",
-    "getKey": "यहाँ से प्राप्त करें!"
+    "getKey": "यहाँ से प्राप्त करें!",
+    "updateTitle": "Update API Key",
+    "updateDescription": "Your key is saved. Enter a new key below to replace it.",
+    "connectedStatus": "API Key Status: Connected",
+    "updateKey": "Update API Key",
+    "settingsTooltip": "Settings - Add your API key here!",
+    "buyCreditsTooltip": "Buy AIBuddy credits to chat with AI!",
+    "saveError": "Failed to save API key. Please try again.",
+    "somethingWentWrong": "Something went wrong: {{message}}"
   },
   "status": {
     "ready": "तैयार",

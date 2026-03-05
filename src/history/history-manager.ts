@@ -25,7 +25,10 @@ const generateId = (): string => {
 
 const HISTORY_DIR = path.join(os.homedir(), '.aibuddy', 'history')
 const HISTORY_FILE = path.join(HISTORY_DIR, 'threads.json')
-const MAX_THREADS = 100 // Keep last 100 threads
+const MAX_THREADS = 100
+const MAX_HISTORY_FILE_SIZE = 50 * 1024 * 1024 // 50 MB hard cap
+const MAX_MESSAGES_PER_THREAD = 500
+const IMAGE_STRIP_AGE_MS = 7 * 24 * 60 * 60 * 1000 // Strip base64 from threads older than 7 days
 
 export class ChatHistoryManager {
   private static instance: ChatHistoryManager | null = null
@@ -106,11 +109,42 @@ export class ChatHistoryManager {
   }
 
   /**
+   * Strip inline base64 images from threads older than IMAGE_STRIP_AGE_MS.
+   * Replaces base64 data with a placeholder to reclaim disk space while
+   * preserving the message structure and metadata.
+   */
+  private stripOldBase64Images(): void {
+    const cutoff = Date.now() - IMAGE_STRIP_AGE_MS
+    for (const thread of this.state.threads) {
+      if (thread.updatedAt >= cutoff) continue
+      for (const msg of thread.messages) {
+        if (!msg.images?.length) continue
+        for (const img of msg.images) {
+          if (img.base64 && img.base64.length > 100) {
+            img.base64 = '[stripped]'
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Trim messages in oversized threads to MAX_MESSAGES_PER_THREAD,
+   * keeping the most recent messages.
+   */
+  private trimOversizedThreads(): void {
+    for (const thread of this.state.threads) {
+      if (thread.messages.length > MAX_MESSAGES_PER_THREAD) {
+        thread.messages = thread.messages.slice(-MAX_MESSAGES_PER_THREAD)
+      }
+    }
+  }
+
+  /**
    * Save history immediately
    */
   private saveImmediate(): void {
     try {
-      // Ensure directory exists
       if (!fs.existsSync(HISTORY_DIR)) {
         fs.mkdirSync(HISTORY_DIR, { recursive: true })
       }
@@ -122,10 +156,51 @@ export class ChatHistoryManager {
           .slice(0, MAX_THREADS)
       }
 
-      fs.writeFileSync(HISTORY_FILE, JSON.stringify(this.state, null, 2))
-      console.log('[ChatHistoryManager] History saved')
+      this.trimOversizedThreads()
+      this.stripOldBase64Images()
+
+      const json = JSON.stringify(this.state, null, 2)
+
+      if (json.length > MAX_HISTORY_FILE_SIZE) {
+        console.warn(`[ChatHistoryManager] History file too large (${(json.length / 1024 / 1024).toFixed(1)}MB). Pruning aggressively.`)
+        // Drop oldest half of non-pinned threads
+        const pinned = this.state.threads.filter(t => t.isPinned)
+        const unpinned = this.state.threads
+          .filter(t => !t.isPinned)
+          .sort((a, b) => b.updatedAt - a.updatedAt)
+        const keepCount = Math.max(10, Math.floor(unpinned.length / 2))
+        this.state.threads = [...pinned, ...unpinned.slice(0, keepCount)]
+
+        // Strip ALL remaining base64 as emergency measure
+        for (const thread of this.state.threads) {
+          for (const msg of thread.messages) {
+            if (msg.images) {
+              for (const img of msg.images) {
+                if (img.base64 && img.base64.length > 100) {
+                  img.base64 = '[stripped]'
+                }
+              }
+            }
+          }
+        }
+      }
+
+      const finalJson = JSON.stringify(this.state, null, 2)
+      fs.writeFileSync(HISTORY_FILE, finalJson)
+      console.log(`[ChatHistoryManager] History saved (${(finalJson.length / 1024).toFixed(0)}KB, ${this.state.threads.length} threads)`)
     } catch (error) {
       console.error('[ChatHistoryManager] Failed to save history:', error)
+    }
+  }
+
+  /**
+   * Get current history file size estimate in bytes
+   */
+  getFileSizeEstimate(): number {
+    try {
+      return JSON.stringify(this.state).length
+    } catch {
+      return 0
     }
   }
 
@@ -182,7 +257,8 @@ export class ChatHistoryManager {
   }
 
   /**
-   * Add a message to a thread
+   * Add a message to a thread.
+   * Content over 100KB is truncated. Per-image base64 over 400KB is rejected.
    */
   addMessage(threadId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>): ChatMessage {
     const thread = this.getThread(threadId)
@@ -190,8 +266,26 @@ export class ChatHistoryManager {
       throw new Error(`Thread ${threadId} not found`)
     }
 
+    const MAX_CONTENT_SIZE = 100 * 1024
+    let content = message.content
+    if (content && content.length > MAX_CONTENT_SIZE) {
+      content = content.slice(0, MAX_CONTENT_SIZE) + '\n\n[Content truncated — exceeded 100KB]'
+      console.warn(`[ChatHistoryManager] Message content truncated for thread ${threadId}`)
+    }
+
+    const MAX_IMAGE_B64_SIZE = 400 * 1024
+    const safeImages = message.images?.filter(img => {
+      if (img.base64 && img.base64.length > MAX_IMAGE_B64_SIZE) {
+        console.warn(`[ChatHistoryManager] Dropping oversized image (${(img.base64.length / 1024).toFixed(0)}KB)`)
+        return false
+      }
+      return true
+    })
+
     const fullMessage: ChatMessage = {
       ...message,
+      content,
+      images: safeImages,
       id: generateId(),
       timestamp: Date.now()
     }
@@ -199,9 +293,8 @@ export class ChatHistoryManager {
     thread.messages.push(fullMessage)
     thread.updatedAt = Date.now()
 
-    // Update title from first user message if still default
-    if (thread.title === 'New Chat' && message.role === 'user' && message.content) {
-      thread.title = message.content.slice(0, 50) + (message.content.length > 50 ? '...' : '')
+    if (thread.title === 'New Chat' && message.role === 'user' && content) {
+      thread.title = content.slice(0, 50) + (content.length > 50 ? '...' : '')
     }
 
     this.save()

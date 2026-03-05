@@ -6,6 +6,7 @@ import {
   RotateCcw, Settings2, Clock, Calendar, Copy, Check
 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import { safeParseResponse } from '../lib/response-parser'
 
 const INTERVIEW_SYSTEM_PROMPT = `You are an Interview Coach AI. You help users ace technical and behavioral interviews by listening to interview questions and providing excellent answers.
 
@@ -143,16 +144,21 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
         signal: controller.signal,
       })
 
+      const parseResult = await safeParseResponse(response)
+
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
+        const errMsg = parseResult.ok
+          ? ((parseResult.data as any).message || `API error: ${response.status}`)
+          : `API error: ${response.status}`
+        throw new Error(errMsg)
       }
 
-      const contentType = response.headers.get('content-type')
-      if (!contentType?.includes('application/json')) {
-        throw new Error('Non-JSON response from API')
+      if (!parseResult.ok) {
+        console.error('[Interview] Non-JSON AI response:', parseResult.bodyPreview)
+        throw new Error('AI service returned an invalid response. Please try again.')
       }
 
-      const data = await response.json()
+      const data = parseResult.data as any
       const responseTime = (Date.now() - startTime) / 1000
       const aiText = data?.choices?.[0]?.message?.content
         || data?.response
@@ -232,6 +238,10 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
         }),
       })
 
+      // KAN-273 FIX: Use safeParseResponse to avoid "Unexpected token '<'" crash
+      // when ALB/proxy returns HTML with 200 status.
+      const parseResult = await safeParseResponse(res)
+
       if (!res.ok) {
         console.error(`[Interview] Transcription API error: ${res.status}`)
         setError(`Transcription failed (${res.status}). Check your API key or try again.`)
@@ -239,13 +249,20 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
         return
       }
 
-      const data = await res.json()
-      if (!data.text?.trim()) {
+      if (!parseResult.ok) {
+        console.error('[Interview] Non-JSON transcription response:', parseResult.bodyPreview)
+        setError('Transcription service returned an invalid response. Please try again.')
         setCurrentInterim(isListeningRef.current ? 'Listening…' : '')
         return
       }
 
-      const finalText = data.text.trim()
+      const data = parseResult.data
+      if (!(data.text as string)?.trim()) {
+        setCurrentInterim(isListeningRef.current ? 'Listening…' : '')
+        return
+      }
+
+      const finalText = (data.text as string).trim()
       lastSpeechRef.current = Date.now()
       pendingTextRef.current += ' ' + finalText
 

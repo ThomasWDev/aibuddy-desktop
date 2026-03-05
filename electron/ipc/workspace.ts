@@ -16,6 +16,7 @@ import { homedir } from 'os'
 
 // Base path for all workspace storage
 const AIBUDDY_BASE = join(homedir(), '.aibuddy', 'workspaces')
+const MAX_APPEND_FILE_SIZE = 2 * 1024 * 1024 // 2 MB per append-only file
 
 /**
  * Generate a consistent hash for a workspace path.
@@ -80,13 +81,27 @@ function writeMarkdownFile(workspacePath: string, filename: string, content: str
 }
 
 /**
- * Append to a markdown file in workspace storage
+ * Append to a markdown file in workspace storage.
+ * Rotates the file when it exceeds MAX_APPEND_FILE_SIZE — keeps the
+ * most recent half of the content to prevent unbounded growth.
  */
 function appendMarkdownFile(workspacePath: string, filename: string, content: string): boolean {
   try {
     const dir = getWorkspaceDir(workspacePath)
     const filePath = join(dir, filename)
     
+    if (existsSync(filePath)) {
+      const existing = readFileSync(filePath, 'utf-8')
+      if (existing.length > MAX_APPEND_FILE_SIZE) {
+        const keepFrom = Math.floor(existing.length / 2)
+        const nextSeparator = existing.indexOf('\n---\n', keepFrom)
+        const trimPoint = nextSeparator > 0 ? nextSeparator : keepFrom
+        const trimmed = '[...older entries truncated to prevent bloat...]\n' + existing.slice(trimPoint)
+        writeFileSync(filePath, trimmed, 'utf-8')
+        console.warn(`[Workspace] Rotated ${filename} (was ${(existing.length / 1024).toFixed(0)}KB)`)
+      }
+    }
+
     const timestamp = new Date().toISOString()
     const entry = `\n---\n_Added: ${timestamp}_\n\n${content}\n`
     
@@ -118,7 +133,8 @@ function readJsonData(workspacePath: string, key: string): unknown {
 }
 
 /**
- * Write JSON data to workspace storage
+ * Write JSON data to workspace storage.
+ * Rejects writes that would push data.json over 5 MB.
  */
 function writeJsonData(workspacePath: string, key: string, value: unknown): boolean {
   try {
@@ -135,7 +151,14 @@ function writeJsonData(workspacePath: string, key: string, value: unknown): bool
     data[key] = value
     data._lastModified = new Date().toISOString()
     
-    writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8')
+    const json = JSON.stringify(data, null, 2)
+    const MAX_DATA_JSON_SIZE = 5 * 1024 * 1024
+    if (json.length > MAX_DATA_JSON_SIZE) {
+      console.error(`[Workspace] data.json would exceed ${MAX_DATA_JSON_SIZE / 1024 / 1024}MB — write rejected`)
+      return false
+    }
+
+    writeFileSync(filePath, json, 'utf-8')
     return true
   } catch (e) {
     console.error(`[Workspace] Failed to write data.json:`, e)

@@ -77,7 +77,20 @@
     "key": "Khóa API",
     "settings": "Cài đặt",
     "interview": "Chế độ phỏng vấn",
-    "moreActions": "Thêm hành động"
+    "moreActions": "Thêm hành động",
+    "appTooltip": "AIBuddy - Your Coding Friend",
+    "home": "Home",
+    "homeTooltip": "Home — switch project",
+    "newChatTooltip": "New chat (⌘N)",
+    "totalUsed": "Total Used: ${{amount}}",
+    "lastRequest": "Last: ${{amount}}",
+    "model": "Model: {{model}}",
+    "total": "Total",
+    "openProjectFolder": "Open Project Folder",
+    "terminalActive": "Active",
+    "historyTooltip": "Chat history",
+    "interviewTooltip": "Interview Mode - AI coaching with audio",
+    "switchProject": "Click to switch project folder"
   },
   "workspace": {
     "workingIn": "Đang làm việc trong:",
@@ -94,7 +107,15 @@
     "save": "Lưu khóa API",
     "saved": "Đã lưu!",
     "securityNote": "Khóa API của bạn được lưu trữ an toàn trên thiết bị",
-    "getKey": "Lấy một cái ở đây!"
+    "getKey": "Lấy một cái ở đây!",
+    "updateTitle": "Update API Key",
+    "updateDescription": "Your key is saved. Enter a new key below to replace it.",
+    "connectedStatus": "API Key Status: Connected",
+    "updateKey": "Update API Key",
+    "settingsTooltip": "Settings - Add your API key here!",
+    "buyCreditsTooltip": "Buy AIBuddy credits to chat with AI!",
+    "saveError": "Failed to save API key. Please try again.",
+    "somethingWentWrong": "Something went wrong: {{message}}"
   },
   "status": {
     "ready": "Sẵn sàng",

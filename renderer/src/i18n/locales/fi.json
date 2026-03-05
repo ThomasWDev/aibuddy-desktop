@@ -77,7 +77,20 @@
     "key": "API-avain",
     "settings": "Asetukset",
     "interview": "Haastattelutila",
-    "moreActions": "Lisää toimintoja"
+    "moreActions": "Lisää toimintoja",
+    "appTooltip": "AIBuddy - Your Coding Friend",
+    "home": "Home",
+    "homeTooltip": "Home — switch project",
+    "newChatTooltip": "New chat (⌘N)",
+    "totalUsed": "Total Used: ${{amount}}",
+    "lastRequest": "Last: ${{amount}}",
+    "model": "Model: {{model}}",
+    "total": "Total",
+    "openProjectFolder": "Open Project Folder",
+    "terminalActive": "Active",
+    "historyTooltip": "Chat history",
+    "interviewTooltip": "Interview Mode - AI coaching with audio",
+    "switchProject": "Click to switch project folder"
   },
   "workspace": {
     "workingIn": "Työskentelyssä:",
@@ -94,7 +107,15 @@
     "save": "Tallenna API-avain",
     "saved": "Tallennettu!",
     "securityNote": "API-avaimesi on tallennettu turvallisesti laitteellesi",
-    "getKey": "Hanki sellainen täältä!"
+    "getKey": "Hanki sellainen täältä!",
+    "updateTitle": "Update API Key",
+    "updateDescription": "Your key is saved. Enter a new key below to replace it.",
+    "connectedStatus": "API Key Status: Connected",
+    "updateKey": "Update API Key",
+    "settingsTooltip": "Settings - Add your API key here!",
+    "buyCreditsTooltip": "Buy AIBuddy credits to chat with AI!",
+    "saveError": "Failed to save API key. Please try again.",
+    "somethingWentWrong": "Something went wrong: {{message}}"
   },
   "status": {
     "ready": "Valmis",

@@ -186,7 +186,8 @@ describe('KAN-180: Token Metrics Persistence After Restart', () => {
     it('addMessage must use spread operator on incoming message', () => {
       const addMsgIdx = HISTORY_MANAGER_SOURCE.indexOf('addMessage(')
       expect(addMsgIdx).toBeGreaterThan(-1)
-      const block = HISTORY_MANAGER_SOURCE.slice(addMsgIdx, addMsgIdx + 400)
+      const endIdx = HISTORY_MANAGER_SOURCE.indexOf('\n  }', addMsgIdx + 100)
+      const block = HISTORY_MANAGER_SOURCE.slice(addMsgIdx, endIdx > addMsgIdx ? endIdx : addMsgIdx + 1200)
       expect(block).toContain('...message')
     })
   })

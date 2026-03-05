@@ -109,18 +109,18 @@ describe('KAN-181 v2: CSS-only Tooltip to eliminate hover flicker', () => {
   // ==========================================================================
   describe('More Actions button — no hover flicker', () => {
     it('More Actions button must NOT use hover:scale', () => {
-      const block = APP_SOURCE.slice(
-        APP_SOURCE.indexOf('More actions'),
-        APP_SOURCE.indexOf('More actions') + 400
-      )
+      const anchor = APP_SOURCE.indexOf('header.moreActions') !== -1
+        ? APP_SOURCE.indexOf('header.moreActions')
+        : APP_SOURCE.indexOf('More actions')
+      const block = APP_SOURCE.slice(anchor, anchor + 400)
       expect(block).not.toContain('hover:scale')
     })
 
     it('More Actions Tooltip must pass disabled={showMoreMenu}', () => {
-      const block = APP_SOURCE.slice(
-        APP_SOURCE.indexOf('"More actions"') - 60,
-        APP_SOURCE.indexOf('"More actions"') + 200
-      )
+      const anchor = APP_SOURCE.indexOf('header.moreActions') !== -1
+        ? APP_SOURCE.indexOf('header.moreActions')
+        : APP_SOURCE.indexOf('"More actions"')
+      const block = APP_SOURCE.slice(Math.max(0, anchor - 60), anchor + 200)
       expect(block).toContain('disabled={showMoreMenu}')
     })
   })

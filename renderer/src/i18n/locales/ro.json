@@ -77,7 +77,20 @@
     "key": "Cheie API",
     "settings": "Setări",
     "interview": "Mod interviu",
-    "moreActions": "Mai multe acțiuni"
+    "moreActions": "Mai multe acțiuni",
+    "appTooltip": "AIBuddy - Your Coding Friend",
+    "home": "Home",
+    "homeTooltip": "Home — switch project",
+    "newChatTooltip": "New chat (⌘N)",
+    "totalUsed": "Total Used: ${{amount}}",
+    "lastRequest": "Last: ${{amount}}",
+    "model": "Model: {{model}}",
+    "total": "Total",
+    "openProjectFolder": "Open Project Folder",
+    "terminalActive": "Active",
+    "historyTooltip": "Chat history",
+    "interviewTooltip": "Interview Mode - AI coaching with audio",
+    "switchProject": "Click to switch project folder"
   },
   "workspace": {
     "workingIn": "Lucrez în:",
@@ -94,7 +107,15 @@
     "save": "Salvează cheia API",
     "saved": "Salvat!",
     "securityNote": "Cheia ta API este stocată în siguranță pe dispozitivul tău",
-    "getKey": "Obține una aici!"
+    "getKey": "Obține una aici!",
+    "updateTitle": "Update API Key",
+    "updateDescription": "Your key is saved. Enter a new key below to replace it.",
+    "connectedStatus": "API Key Status: Connected",
+    "updateKey": "Update API Key",
+    "settingsTooltip": "Settings - Add your API key here!",
+    "buyCreditsTooltip": "Buy AIBuddy credits to chat with AI!",
+    "saveError": "Failed to save API key. Please try again.",
+    "somethingWentWrong": "Something went wrong: {{message}}"
   },
   "status": {
     "ready": "Pregătit",

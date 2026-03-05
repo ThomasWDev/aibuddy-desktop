@@ -3763,7 +3763,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       >
         {/* Logo & Status - compact */}
         <div className="flex items-center gap-3 min-w-0">
-          <Tooltip text="AIBuddy - Your Coding Friend" position="bottom">
+          <Tooltip text={t('header.appTooltip')} position="bottom">
             <div 
               className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer hover:scale-110 transition-transform flex-shrink-0"
               style={{
@@ -3777,7 +3777,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h1 className="text-lg font-black text-white truncate">AIBuddy</h1>
+              <h1 className="text-lg font-black text-white truncate">{t('app.name')}</h1>
               <span 
                 className="px-1.5 py-0.5 text-[10px] font-bold rounded-full flex-shrink-0"
                 style={{
@@ -3806,7 +3806,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         {/* KAN-42 FIX: Clean header with primary actions + hamburger menu */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {/* KAN-53 FIX: Home button to navigate back to WelcomeScreen */}
-          <Tooltip text="Home — switch project" position="bottom">
+          <Tooltip text={t('header.homeTooltip')} position="bottom">
             <button
               onClick={() => {
                 trackButtonClick('Home', 'Header')
@@ -3822,12 +3822,12 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-              <span className="hidden sm:inline">Home</span>
+              <span className="hidden sm:inline">{t('header.home')}</span>
             </button>
           </Tooltip>
 
           {/* KAN-38 FIX: Always-visible New Chat button — cancels in-flight request if needed */}
-          <Tooltip text="New chat (⌘N)" position="bottom">
+          <Tooltip text={t('header.newChatTooltip')} position="bottom">
             <button
               onClick={() => {
                 trackButtonClick('New Chat', 'Header')
@@ -3856,7 +3856,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               }}
             >
               <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">New</span>
+              <span className="hidden sm:inline">{t('header.new')}</span>
             </button>
           </Tooltip>
 
@@ -3909,7 +3909,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           )}
 
           {/* History - quick access */}
-          <Tooltip text="Chat history" position="bottom">
+          <Tooltip text={t('header.historyTooltip')} position="bottom">
             <button
               onClick={() => {
                 trackButtonClick('History', 'App')
@@ -3926,7 +3926,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           </Tooltip>
 
           {/* Interview Mode */}
-          <Tooltip text="Interview Mode - AI coaching with audio" position="bottom">
+          <Tooltip text={t('header.interviewTooltip')} position="bottom">
             <button
               onClick={() => {
                 trackButtonClick('Interview Mode', 'App')
@@ -3943,7 +3943,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           </Tooltip>
 
           {/* KAN-184 FIX: Renamed from "API Key" to "Settings" — button opens multi-section panel */}
-          <Tooltip text="Settings" position="bottom">
+          <Tooltip text={t('header.settings')} position="bottom">
             <button
               onClick={() => {
                 trackButtonClick('Settings', 'App', { hasApiKey: !!apiKey })
@@ -3957,14 +3957,14 @@ Be concise and actionable. Use an alternative approach, not the same commands th
               }}
             >
               <Settings className="w-3.5 h-3.5" />
-              <span>Settings</span>
+              <span>{t('header.settings')}</span>
             </button>
           </Tooltip>
 
           {/* KAN-42 FIX: Hamburger menu for secondary actions */}
           {/* KAN-181 FIX: disabled tooltip when menu open; hover:brightness instead of hover:scale to prevent layout reflow */}
           <div className="relative" ref={moreMenuRef}>
-            <Tooltip text="More actions" position="bottom" disabled={showMoreMenu}>
+            <Tooltip text={t('header.moreActions')} position="bottom" disabled={showMoreMenu}>
               <button
                 onClick={() => setShowMoreMenu(!showMoreMenu)}
                 className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:brightness-125"
@@ -3993,7 +3993,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors"
                 >
                   <FolderOpen className="w-4 h-4 text-cyan-400" />
-                  <span>Open Project Folder</span>
+                  <span>{t('header.openProjectFolder')}</span>
                   {workspacePath && <span className="ml-auto text-xs text-green-400">●</span>}
                 </button>
 
@@ -4007,8 +4007,8 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors"
                 >
                   <span className="text-base">🖥️</span>
-                  <span>Terminal</span>
-                  {showTerminal && <span className="ml-auto text-xs text-green-400">Active</span>}
+                  <span>{t('header.terminal')}</span>
+                  {showTerminal && <span className="ml-auto text-xs text-green-400">{t('header.terminalActive')}</span>}
                   {terminalOutput.length > 0 && !showTerminal && (
                     <span className="ml-auto text-xs bg-cyan-500/20 text-cyan-400 px-1.5 rounded-full">{terminalOutput.length}</span>
                   )}
@@ -4024,7 +4024,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors"
                 >
                   <BookOpen className="w-4 h-4 text-purple-400" />
-                  <span>Knowledge Base</span>
+                  <span>{t('header.knowledge')}</span>
                   {knowledgeContext && <span className="ml-auto w-2 h-2 rounded-full bg-green-400 animate-pulse" />}
                 </button>
 
@@ -4039,7 +4039,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors disabled:opacity-40"
                 >
                   <Share2 className="w-4 h-4 text-purple-400" />
-                  <span>Share Conversation</span>
+                  <span>{t('header.share')}</span>
                 </button>
 
                 <div className="border-t border-slate-700 my-1" />
@@ -4059,7 +4059,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/50 transition-colors"
                 >
                   <CreditCard className="w-4 h-4 text-green-400" />
-                  <span>Buy Credits</span>
+                  <span>{t('header.buyCredits')}</span>
                 </button>
               </div>
             )}
@@ -4073,7 +4073,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
           className="px-4 py-1.5 text-xs flex items-center gap-2 group cursor-pointer hover:bg-cyan-500/10 transition-colors"
           style={{ background: 'rgba(6, 182, 212, 0.05)', borderBottom: '1px solid #334155' }}
           onClick={() => handleOpenFolder()}
-          title="Click to switch project folder"
+          title={t('header.switchProject')}
         >
           <FolderOpen className="w-3 h-3 text-cyan-400" />
           <span className="text-slate-400">{t('workspace.workingIn')}</span>

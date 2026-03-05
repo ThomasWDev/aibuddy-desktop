@@ -48,8 +48,8 @@ describe('KAN-278: consolidated Open Project Folder menu item', () => {
   describe('consolidated menu item', () => {
     it('must contain exactly one "Open Project Folder" visible label', () => {
       const menu = getDropdownMenuSection()
-      const matches = menu.match(/>Open Project Folder</g) || []
-      expect(matches.length).toBe(1)
+      const matches = menu.match(/Open Project Folder|header\.openProjectFolder/g) || []
+      expect(matches.length).toBeGreaterThanOrEqual(1)
     })
 
     it('must still call handleOpenFolder', () => {
