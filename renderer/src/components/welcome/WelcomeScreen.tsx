@@ -517,21 +517,18 @@ export function WelcomeScreen({ onOpenFolder, onNewChat }: WelcomeScreenProps) {
             </span>
           )}
           
-          {/* API Key Status */}
-          <button
-            onClick={handleOpenSettings}
+          {/* API Key Status — non-interactive indicator (KAN-276: removed duplicate modal trigger) */}
+          <span
             style={{
-              ...styles.statusBadge(hasApiKey),
+              ...styles.statusBadge(hasApiKey === true),
               background: hasApiKey ? 'rgba(72, 219, 251, 0.2)' : 'rgba(255, 193, 7, 0.2)',
               color: hasApiKey ? '#48dbfb' : '#ffc107',
-              cursor: 'pointer',
-              border: 'none',
             }}
             title={hasApiKey ? t('apiKey.configured') : t('apiKey.notConfigured')}
           >
             <Key size={14} />
             {hasApiKey ? t('welcome.hero.apiKeySet') : t('welcome.hero.noApiKey')}
-          </button>
+          </span>
           
           {/* Settings Button */}
           <Tooltip text="⚙️ Settings - Add your API key here!" position="bottom">
