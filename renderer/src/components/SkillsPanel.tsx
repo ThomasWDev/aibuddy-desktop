@@ -62,8 +62,11 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
   const [newTags, setNewTags] = useState('')
   const [newAllowedTools, setNewAllowedTools] = useState<string[]>([])
   const [isEditing, setIsEditing] = useState(false)
-  // KAN-288: Marketplace state
-  const [activeTab, setActiveTab] = useState<'skills' | 'marketplace'>('skills')
+  // KAN-288: Marketplace state + KAN-290: audit log
+  const [activeTab, setActiveTab] = useState<'skills' | 'marketplace' | 'audit'>('skills')
+  const [auditLog, setAuditLog] = useState<Array<{ timestamp: number; skillId: string; skillName: string; tool: string; action: string; decision: string; success?: boolean; error?: string; durationMs?: number }>>([])
+  const [permissions, setPermissions] = useState<Array<{ skillId: string; tool: string; level: string; grantedAt: number }>>([])
+
   const [catalog, setCatalog] = useState<CatalogSkill[]>([])
   const [installedIds, setInstalledIds] = useState<string[]>([])
   const [selectedCatalogSkill, setSelectedCatalogSkill] = useState<CatalogSkill | null>(null)
@@ -77,6 +80,14 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
     if (activeTab === 'marketplace') {
       electronAPI?.skills?.getCatalog?.().then((c: CatalogSkill[]) => setCatalog(c || []))
       electronAPI?.skills?.getInstalledCatalogIds?.().then((ids: string[]) => setInstalledIds(ids || []))
+    }
+  }, [activeTab, electronAPI])
+
+  // KAN-290: Load audit log and permissions when audit tab is opened
+  useEffect(() => {
+    if (activeTab === 'audit') {
+      electronAPI?.skills?.getAuditLog?.(50).then((log: any[]) => setAuditLog(log || []))
+      electronAPI?.skills?.getAllPermissions?.().then((perms: any[]) => setPermissions(perms || []))
     }
   }, [activeTab, electronAPI])
 
@@ -292,6 +303,14 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
               >
                 🛒 Marketplace
               </button>
+              <button
+                onClick={() => { setActiveTab('audit'); setSelectedSkill(null); setSelectedCatalogSkill(null); setIsCreating(false) }}
+                className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-all ${
+                  activeTab === 'audit' ? 'bg-amber-600 text-white' : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                📋 Audit
+              </button>
             </div>
             <p className="text-xs text-slate-500">
               {activeTab === 'skills' ? (
@@ -301,8 +320,10 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                     <span className="text-amber-400 ml-1">· {conflicts.length} conflict{conflicts.length > 1 ? 's' : ''}</span>
                   )}
                 </>
-              ) : (
+              ) : activeTab === 'marketplace' ? (
                 <>{catalog.length} skills available · {installedIds.length} installed</>
+              ) : (
+                <>{auditLog.length} log entries · {permissions.length} stored permissions</>
               )}
             </p>
           </div>
@@ -911,8 +932,125 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
             </div>
           )}
 
+          {/* KAN-290: Audit log + permissions panel */}
+          {activeTab === 'audit' && (
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Stored Permissions */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-white">Stored Permissions</h3>
+                  <span className="text-[10px] text-slate-500">{permissions.length} entries</span>
+                </div>
+                {permissions.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic">No stored permissions yet. Permissions are saved when you choose "Always Allow" or "Always Deny".</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {permissions.map((p, i) => {
+                      const skillObj = skills.find(s => s.id === p.skillId)
+                      const toolOpt = TOOL_OPTIONS.find(t => t.value === p.tool)
+                      return (
+                        <div
+                          key={i}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
+                          style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid #1e293b' }}
+                        >
+                          <span className="text-white font-medium truncate flex-1">{skillObj?.name || p.skillId}</span>
+                          <span className="text-slate-400">{toolOpt?.icon || '🔧'} {toolOpt?.label || p.tool}</span>
+                          <span
+                            className="px-2 py-0.5 rounded-full text-[10px] font-medium"
+                            style={{
+                              background: p.level === 'always_allow' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+                              color: p.level === 'always_allow' ? '#6ee7b7' : '#fca5a5',
+                              border: p.level === 'always_allow' ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(239,68,68,0.25)',
+                            }}
+                          >
+                            {p.level === 'always_allow' ? 'Always Allow' : 'Always Deny'}
+                          </span>
+                          <button
+                            onClick={async () => {
+                              await electronAPI?.skills?.resetPermission?.(p.skillId, p.tool)
+                              const perms = await electronAPI?.skills?.getAllPermissions?.()
+                              setPermissions(perms || [])
+                            }}
+                            className="text-slate-600 hover:text-red-400 transition-colors text-[10px]"
+                            title="Reset to Ask"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Audit Log */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-white">Audit Log</h3>
+                  {auditLog.length > 0 && (
+                    <button
+                      onClick={async () => {
+                        await electronAPI?.skills?.clearAuditLog?.()
+                        setAuditLog([])
+                      }}
+                      className="text-[10px] text-slate-600 hover:text-red-400 transition-colors"
+                    >
+                      Clear Log
+                    </button>
+                  )}
+                </div>
+                {auditLog.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic">No tool execution history yet.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {[...auditLog].reverse().map((entry, i) => {
+                      const toolOpt = TOOL_OPTIONS.find(t => t.value === entry.tool)
+                      const isAllow = entry.decision.includes('allow')
+                      const isDeny = entry.decision.includes('deny')
+                      return (
+                        <div
+                          key={i}
+                          className="px-3 py-2 rounded-lg text-xs"
+                          style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid #1e293b' }}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isAllow ? 'bg-emerald-400' : isDeny ? 'bg-red-400' : 'bg-slate-500'}`} />
+                            <span className="text-white font-medium truncate">{entry.skillName}</span>
+                            <span className="text-slate-500">{toolOpt?.icon || '🔧'} {entry.action}</span>
+                            <span className="text-slate-600 ml-auto flex-shrink-0">{new Date(entry.timestamp).toLocaleTimeString()}</span>
+                          </div>
+                          <div className="flex items-center gap-2 pl-3.5">
+                            <span
+                              className="px-1.5 py-0.5 rounded text-[9px] font-medium"
+                              style={{
+                                background: isAllow ? 'rgba(16,185,129,0.1)' : isDeny ? 'rgba(239,68,68,0.1)' : 'rgba(100,116,139,0.1)',
+                                color: isAllow ? '#6ee7b7' : isDeny ? '#fca5a5' : '#94a3b8',
+                              }}
+                            >
+                              {entry.decision.replace(/_/g, ' ')}
+                            </span>
+                            {entry.success !== undefined && (
+                              <span className={entry.success ? 'text-emerald-400' : 'text-red-400'}>{entry.success ? '✓' : '✗'}</span>
+                            )}
+                            {entry.durationMs !== undefined && (
+                              <span className="text-slate-600">{entry.durationMs}ms</span>
+                            )}
+                            {entry.error && (
+                              <span className="text-red-400 truncate" title={entry.error}>{entry.error}</span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Empty state */}
-          {!selectedSkill && !isCreating && !selectedCatalogSkill && (
+          {!selectedSkill && !isCreating && !selectedCatalogSkill && activeTab !== 'audit' && (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 {activeTab === 'marketplace' ? (

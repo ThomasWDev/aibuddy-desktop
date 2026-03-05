@@ -388,7 +388,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteProjectRule: (workspacePath: string, filename: string) => ipcRenderer.invoke('workspace:deleteProjectRule', workspacePath, filename),
   },
 
-  // KAN-284/KAN-286/KAN-287/KAN-288/KAN-289: Skills management
+  // KAN-284/KAN-286/KAN-287/KAN-288/KAN-289/KAN-290: Skills management
   skills: {
     getAll: (scope?: string, workspacePath?: string) => ipcRenderer.invoke('skills:getAll', scope, workspacePath),
     getActive: (workspacePath?: string) => ipcRenderer.invoke('skills:getActive', workspacePath),
@@ -404,6 +404,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     install: (catalogId: string) => ipcRenderer.invoke('skills:install', catalogId),
     getInstalledCatalogIds: () => ipcRenderer.invoke('skills:getInstalledCatalogIds'),
     executeTool: (request: { skillId: string; tool: string; action: string; params: Record<string, string>; workspacePath: string }) => ipcRenderer.invoke('skills:executeTool', request),
+    getPermission: (skillId: string, tool: string) => ipcRenderer.invoke('skills:getPermission', skillId, tool),
+    setPermission: (skillId: string, tool: string, level: string) => ipcRenderer.invoke('skills:setPermission', skillId, tool, level),
+    getAllPermissions: () => ipcRenderer.invoke('skills:getAllPermissions'),
+    resetPermission: (skillId: string, tool: string) => ipcRenderer.invoke('skills:resetPermission', skillId, tool),
+    getAuditLog: (limit?: number) => ipcRenderer.invoke('skills:getAuditLog', limit),
+    getAuditLogForSkill: (skillId: string) => ipcRenderer.invoke('skills:getAuditLogForSkill', skillId),
+    clearAuditLog: () => ipcRenderer.invoke('skills:clearAuditLog'),
+    requestToolExecution: (request: { skillId: string; tool: string; action: string; params: Record<string, string>; workspacePath: string; decision?: string }) => ipcRenderer.invoke('skills:requestToolExecution', request),
   },
 
   // Generic invoke for backwards compatibility

@@ -1,17 +1,19 @@
 /**
- * Skills IPC Handlers — KAN-284, KAN-286, KAN-287, KAN-288
+ * Skills IPC Handlers — KAN-284, KAN-286, KAN-287, KAN-288, KAN-289, KAN-290
  *
  * Bridges the SkillsStorageManager (main process) to the renderer via IPC.
  * KAN-286: Added getForPrompt channel for execution pipeline.
  * KAN-287: Added reorder channel for priority management + tags support.
  * KAN-288: Added getCatalog, install, isInstalled for marketplace.
+ * KAN-289: Added executeTool for tool-enabled skills.
+ * KAN-290: Added permission system + audit log.
  */
 
 import { ipcMain } from 'electron'
 import { SkillsStorageManager } from '../../src/skills/skills-manager'
 import { getCatalog, getCatalogSkill } from '../../src/skills/skill-catalog'
-import type { SkillScope, SkillVisibility, SkillExecutionMode, SkillToolPermission } from '../../src/skills/types'
-import { executeToolRequest } from '../../src/skills/skill-tool-runner'
+import type { SkillScope, SkillVisibility, SkillExecutionMode, SkillToolPermission, PermissionLevel, PermissionDecision } from '../../src/skills/types'
+import { executeToolRequest, checkStoredPermission } from '../../src/skills/skill-tool-runner'
 
 const ALL_CHANNELS = [
   'skills:getAll', 'skills:getActive', 'skills:getForPrompt', 'skills:getById',
@@ -19,6 +21,10 @@ const ALL_CHANNELS = [
   'skills:reorder', 'skills:migrateLegacy',
   'skills:getCatalog', 'skills:install', 'skills:getInstalledCatalogIds',
   'skills:executeTool',
+  'skills:getPermission', 'skills:setPermission', 'skills:getAllPermissions',
+  'skills:resetPermission',
+  'skills:getAuditLog', 'skills:getAuditLogForSkill', 'skills:clearAuditLog',
+  'skills:requestToolExecution',
 ] as const
 
 export function initSkillsHandlers(): void {
@@ -127,6 +133,133 @@ export function initSkillsHandlers(): void {
       skill.allowed_tools,
       request.workspacePath
     )
+  })
+
+  // KAN-290: Permission system
+  ipcMain.handle('skills:getPermission', async (_event, skillId: string, tool: SkillToolPermission) => {
+    return SkillsStorageManager.getInstance().getPermission(skillId, tool)
+  })
+
+  ipcMain.handle('skills:setPermission', async (_event, skillId: string, tool: SkillToolPermission, level: PermissionLevel) => {
+    SkillsStorageManager.getInstance().setPermission(skillId, tool, level)
+    return true
+  })
+
+  ipcMain.handle('skills:getAllPermissions', async () => {
+    return SkillsStorageManager.getInstance().getAllPermissions()
+  })
+
+  ipcMain.handle('skills:resetPermission', async (_event, skillId: string, tool: SkillToolPermission) => {
+    SkillsStorageManager.getInstance().resetPermission(skillId, tool)
+    return true
+  })
+
+  // KAN-290: Audit log
+  ipcMain.handle('skills:getAuditLog', async (_event, limit?: number) => {
+    return SkillsStorageManager.getInstance().getAuditLog(limit)
+  })
+
+  ipcMain.handle('skills:getAuditLogForSkill', async (_event, skillId: string) => {
+    return SkillsStorageManager.getInstance().getAuditLogForSkill(skillId)
+  })
+
+  ipcMain.handle('skills:clearAuditLog', async () => {
+    SkillsStorageManager.getInstance().clearAuditLog()
+    return true
+  })
+
+  // KAN-290: Permission-aware tool execution — checks stored preferences, returns
+  // 'needs_confirmation' when user must decide, or executes directly for auto-allowed
+  ipcMain.handle('skills:requestToolExecution', async (_event, request: {
+    skillId: string
+    tool: SkillToolPermission
+    action: string
+    params: Record<string, string>
+    workspacePath: string
+    decision?: PermissionDecision
+  }) => {
+    const mgr = SkillsStorageManager.getInstance()
+    const skill = mgr.getSkillById(request.skillId)
+    if (!skill) {
+      return { status: 'denied', error: 'Skill not found' }
+    }
+
+    const storedLevel = mgr.getPermission(request.skillId, request.tool)
+    const permCheck = checkStoredPermission(storedLevel)
+
+    if (!request.decision) {
+      if (permCheck.action === 'allow') {
+        const result = executeToolRequest(
+          { skillId: request.skillId, tool: request.tool, action: request.action, params: request.params },
+          skill.allowed_tools,
+          request.workspacePath
+        )
+        mgr.addAuditLogEntry({
+          timestamp: Date.now(),
+          skillId: request.skillId,
+          skillName: skill.name,
+          tool: request.tool,
+          action: request.action,
+          params: request.params,
+          decision: 'auto_allowed',
+          success: result.success,
+          error: result.error,
+          durationMs: result.durationMs,
+        })
+        return { status: 'executed', result }
+      }
+      if (permCheck.action === 'deny') {
+        mgr.addAuditLogEntry({
+          timestamp: Date.now(),
+          skillId: request.skillId,
+          skillName: skill.name,
+          tool: request.tool,
+          action: request.action,
+          params: request.params,
+          decision: 'auto_denied',
+        })
+        return { status: 'denied', error: 'Auto-denied by stored preference' }
+      }
+      return { status: 'needs_confirmation', skillName: skill.name }
+    }
+
+    if (request.decision === 'always_allow') {
+      mgr.setPermission(request.skillId, request.tool, 'always_allow')
+    } else if (request.decision === 'always_deny') {
+      mgr.setPermission(request.skillId, request.tool, 'always_deny')
+    }
+
+    if (request.decision === 'deny' || request.decision === 'always_deny') {
+      mgr.addAuditLogEntry({
+        timestamp: Date.now(),
+        skillId: request.skillId,
+        skillName: skill.name,
+        tool: request.tool,
+        action: request.action,
+        params: request.params,
+        decision: request.decision,
+      })
+      return { status: 'denied', error: 'Denied by user' }
+    }
+
+    const result = executeToolRequest(
+      { skillId: request.skillId, tool: request.tool, action: request.action, params: request.params },
+      skill.allowed_tools,
+      request.workspacePath
+    )
+    mgr.addAuditLogEntry({
+      timestamp: Date.now(),
+      skillId: request.skillId,
+      skillName: skill.name,
+      tool: request.tool,
+      action: request.action,
+      params: request.params,
+      decision: request.decision,
+      success: result.success,
+      error: result.error,
+      durationMs: result.durationMs,
+    })
+    return { status: 'executed', result }
   })
 
   console.log('[Skills] IPC handlers initialized')

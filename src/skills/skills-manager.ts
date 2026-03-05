@@ -18,7 +18,7 @@ import * as path from 'path'
 import * as os from 'os'
 import * as crypto from 'crypto'
 import { Skill, SkillsState, SkillScope, SkillVisibility, SkillExecutionMode, SKILLS_VERSION } from './types'
-import type { CatalogSkill, SkillToolPermission } from './types'
+import type { CatalogSkill, SkillToolPermission, PermissionLevel, PermissionEntry, ToolAuditLogEntry, PermissionDecision } from './types'
 
 const generateId = (): string => crypto.randomBytes(12).toString('base64url')
 
@@ -26,6 +26,7 @@ const SKILLS_DIR = path.join(os.homedir(), '.aibuddy', 'skills')
 const SKILLS_FILE = path.join(SKILLS_DIR, 'skills.json')
 const MAX_SKILLS = 200
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB hard cap
+const MAX_AUDIT_LOG_ENTRIES = 500
 
 // ─── Built-in skills (always present, cannot be deleted) ──────────────────────
 
@@ -334,6 +335,7 @@ export class SkillsStorageManager {
     const before = this.state.skills.length
     this.state.skills = this.state.skills.filter(s => s.id !== id)
     if (this.state.skills.length < before) {
+      this.clearPermissionsForSkill(id)
       this.scheduleSave()
       return true
     }
@@ -396,6 +398,76 @@ export class SkillsStorageManager {
     return imported
   }
 
+  // ─── KAN-290: Permission System ──────────────────────────────────────────
+
+  /** Get stored permission for a skill+tool pair */
+  public getPermission(skillId: string, tool: SkillToolPermission): PermissionLevel {
+    const entry = this.state.permissions.find(p => p.skillId === skillId && p.tool === tool)
+    return entry?.level ?? 'ask'
+  }
+
+  /** Set permission preference for a skill+tool pair */
+  public setPermission(skillId: string, tool: SkillToolPermission, level: PermissionLevel): void {
+    const idx = this.state.permissions.findIndex(p => p.skillId === skillId && p.tool === tool)
+    const entry: PermissionEntry = { skillId, tool, level, grantedAt: Date.now() }
+    if (idx >= 0) {
+      this.state.permissions[idx] = entry
+    } else {
+      this.state.permissions.push(entry)
+    }
+    this.scheduleSave()
+  }
+
+  /** Get all stored permissions */
+  public getAllPermissions(): PermissionEntry[] {
+    return [...this.state.permissions]
+  }
+
+  /** Remove all permissions for a skill (e.g. when skill is deleted) */
+  public clearPermissionsForSkill(skillId: string): void {
+    this.state.permissions = this.state.permissions.filter(p => p.skillId !== skillId)
+    this.scheduleSave()
+  }
+
+  /** Reset a single permission back to 'ask' */
+  public resetPermission(skillId: string, tool: SkillToolPermission): void {
+    this.state.permissions = this.state.permissions.filter(
+      p => !(p.skillId === skillId && p.tool === tool)
+    )
+    this.scheduleSave()
+  }
+
+  // ─── KAN-290: Audit Log ─────────────────────────────────────────────────
+
+  /** Record a tool execution decision in the audit log */
+  public addAuditLogEntry(entry: ToolAuditLogEntry): void {
+    this.state.auditLog.push(entry)
+    if (this.state.auditLog.length > MAX_AUDIT_LOG_ENTRIES) {
+      this.state.auditLog = this.state.auditLog.slice(-MAX_AUDIT_LOG_ENTRIES)
+    }
+    this.scheduleSave()
+  }
+
+  /** Get recent audit log entries */
+  public getAuditLog(limit?: number): ToolAuditLogEntry[] {
+    const entries = [...this.state.auditLog]
+    if (limit && limit > 0) {
+      return entries.slice(-limit)
+    }
+    return entries
+  }
+
+  /** Get audit log entries for a specific skill */
+  public getAuditLogForSkill(skillId: string): ToolAuditLogEntry[] {
+    return this.state.auditLog.filter(e => e.skillId === skillId)
+  }
+
+  /** Clear the entire audit log */
+  public clearAuditLog(): void {
+    this.state.auditLog = []
+    this.scheduleSave()
+  }
+
   // ─── Persistence ──────────────────────────────────────────────────────────
 
   private load(): SkillsState {
@@ -408,7 +480,7 @@ export class SkillsStorageManager {
         const stat = fs.statSync(SKILLS_FILE)
         if (stat.size > MAX_FILE_SIZE) {
           console.error('[SkillsStorageManager] Skills file exceeds size limit, resetting')
-          return { skills: [], version: SKILLS_VERSION }
+          return { skills: [], permissions: [], auditLog: [], version: SKILLS_VERSION }
         }
 
         const data = fs.readFileSync(SKILLS_FILE, 'utf-8')
@@ -418,13 +490,13 @@ export class SkillsStorageManager {
           return this.migrate(state)
         }
 
-        return state
+        return { ...state, permissions: state.permissions || [], auditLog: state.auditLog || [] }
       }
     } catch (error) {
       console.error('[SkillsStorageManager] Failed to load skills:', error)
     }
 
-    return { skills: [], version: SKILLS_VERSION }
+    return { skills: [], permissions: [], auditLog: [], version: SKILLS_VERSION }
   }
 
   private save(): void {
@@ -456,8 +528,14 @@ export class SkillsStorageManager {
   }
 
   private migrate(state: SkillsState): SkillsState {
-    // Future version migrations go here
-    return { ...state, version: SKILLS_VERSION }
+    const migrated = {
+      ...state,
+      permissions: state.permissions || [],
+      auditLog: state.auditLog || [],
+      version: SKILLS_VERSION,
+    }
+    this.scheduleSave()
+    return migrated
   }
 
   /** Expose state for testing */

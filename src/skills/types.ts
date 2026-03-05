@@ -1,5 +1,5 @@
 /**
- * Skills Data Model — KAN-282, KAN-287, KAN-288, KAN-289
+ * Skills Data Model — KAN-282, KAN-287, KAN-288, KAN-289, KAN-290
  *
  * Defines the schema for AI skills (prompt modifiers) stored locally.
  * Follows the same pattern as ChatThread / ChatMessage in history/types.ts.
@@ -83,11 +83,46 @@ export interface ToolExecutionResult {
   durationMs: number
 }
 
+// ─── KAN-290: Permission System ──────────────────────────────────────────────
+
+/** User's stored preference for a skill+tool combination */
+export type PermissionLevel = 'always_allow' | 'always_deny' | 'ask'
+
+/** A persisted permission preference entry (skill + tool → level) */
+export interface PermissionEntry {
+  skillId: string
+  tool: SkillToolPermission
+  level: PermissionLevel
+  /** When this preference was set */
+  grantedAt: number
+}
+
+/** User's decision from the permission dialog */
+export type PermissionDecision = 'allow_once' | 'always_allow' | 'deny' | 'always_deny'
+
+/** Audit log entry for every tool execution decision */
+export interface ToolAuditLogEntry {
+  timestamp: number
+  skillId: string
+  skillName: string
+  tool: SkillToolPermission
+  action: string
+  params: Record<string, string>
+  decision: PermissionDecision | 'auto_allowed' | 'auto_denied'
+  success?: boolean
+  error?: string
+  durationMs?: number
+}
+
 export interface SkillsState {
   /** All skills (both global and project-scoped) */
   skills: Skill[]
+  /** Stored permission preferences for skill+tool pairs */
+  permissions: PermissionEntry[]
+  /** Audit log of tool execution decisions (capped) */
+  auditLog: ToolAuditLogEntry[]
   /** Schema version for future migrations */
   version: number
 }
 
-export const SKILLS_VERSION = 1
+export const SKILLS_VERSION = 2

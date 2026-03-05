@@ -1,5 +1,5 @@
 /**
- * Skill Tool Runner — KAN-289
+ * Skill Tool Runner — KAN-289, KAN-290
  *
  * Executes tool actions on behalf of skills with permission checks.
  * Supports filesystem, terminal, git, aws_cli, and docker tools.
@@ -8,14 +8,16 @@
  * Security model:
  * - Skills must declare allowed_tools at creation time
  * - Each execution is checked against the skill's permissions
+ * - Stored permission preferences (always_allow/always_deny/ask) are checked first
+ * - User confirmation is handled by the renderer (UI layer) when preference is 'ask'
  * - Workspace scoping prevents access outside the project directory
- * - User confirmation is handled by the renderer (UI layer)
+ * - All decisions are recorded in the audit log
  */
 
 import * as fs from 'fs'
 import * as path from 'path'
 import { execSync } from 'child_process'
-import type { SkillToolPermission, ToolExecutionRequest, ToolExecutionResult } from './types'
+import type { SkillToolPermission, ToolExecutionRequest, ToolExecutionResult, PermissionLevel } from './types'
 
 const MAX_OUTPUT_LENGTH = 50_000
 
@@ -31,6 +33,46 @@ export function checkToolPermission(
     return { allowed: false, reason: `Skill not authorized for "${requestedTool}" tool` }
   }
   return { allowed: true, reason: 'permitted' }
+}
+
+/**
+ * Check stored permission preference for a skill+tool pair.
+ * Returns whether execution should proceed, be denied, or needs user confirmation.
+ */
+export function checkStoredPermission(
+  storedLevel: PermissionLevel
+): { action: 'allow' | 'deny' | 'ask'; reason: string } {
+  switch (storedLevel) {
+    case 'always_allow':
+      return { action: 'allow', reason: 'auto-approved (always allow)' }
+    case 'always_deny':
+      return { action: 'deny', reason: 'auto-denied (always deny)' }
+    case 'ask':
+    default:
+      return { action: 'ask', reason: 'user confirmation required' }
+  }
+}
+
+/** Build a human-readable description of what a tool execution will do */
+export function describeToolAction(
+  tool: SkillToolPermission,
+  action: string,
+  params: Record<string, string>
+): string {
+  switch (tool) {
+    case 'filesystem':
+      return `Read ${action === 'list_directory' ? 'directory listing' : 'file'}: ${params.path || '.'}`
+    case 'terminal':
+      return `Execute command: ${params.command || '(unknown)'}`
+    case 'git':
+      return `Git ${action}${params.staged === 'true' ? ' (staged)' : ''}`
+    case 'aws_cli':
+      return `AWS CLI: ${params.command || '(unknown)'}`
+    case 'docker':
+      return action === 'execute' ? `Docker: ${params.command || '(unknown)'}` : `Docker ${action}`
+    default:
+      return `${tool}: ${action}`
+  }
 }
 
 /** Validate that a path is within the workspace (prevents directory traversal) */
