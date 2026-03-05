@@ -68,6 +68,15 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
   const [permissions, setPermissions] = useState<Array<{ skillId: string; tool: string; level: string; grantedAt: number }>>([])
   const [executionHistory, setExecutionHistory] = useState<Array<{ id: string; timestamp: number; totalEvaluated: number; totalApplied: number; processingTimeMs: number; conflictCount: number; entries: Array<{ skillId: string; skillName: string; execution_mode: string; applied: boolean; reason: string }> }>>([])
   const [debugMode, setDebugMode] = useState(false)
+  // KAN-292: API state
+  const [apiSettings, setApiSettingsState] = useState<{ baseUrl: string; apiKey?: string; lastSyncAt?: number; autoSync?: boolean }>({ baseUrl: '' })
+  const [apiUrlInput, setApiUrlInput] = useState('')
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [apiStatus, setApiStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle')
+  const [apiError, setApiError] = useState('')
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<{ added: number; updated: number } | null>(null)
+  const [showApiConfig, setShowApiConfig] = useState(false)
 
   const [catalog, setCatalog] = useState<CatalogSkill[]>([])
   const [installedIds, setInstalledIds] = useState<string[]>([])
@@ -77,13 +86,31 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
 
   const electronAPI = (window as any).electronAPI
 
-  // KAN-288: Load catalog when marketplace tab is opened
+  // KAN-292: Load API settings on mount
+  useEffect(() => {
+    electronAPI?.skills?.apiGetSettings?.().then((s: any) => {
+      if (s) {
+        setApiSettingsState(s)
+        setApiUrlInput(s.baseUrl || '')
+        setApiKeyInput(s.apiKey || '')
+        if (s.baseUrl) setApiStatus('connected')
+      }
+    })
+  }, [electronAPI])
+
+  // KAN-288: Load catalog when marketplace tab is opened (KAN-292: optionally from API)
   useEffect(() => {
     if (activeTab === 'marketplace') {
-      electronAPI?.skills?.getCatalog?.().then((c: CatalogSkill[]) => setCatalog(c || []))
+      if (apiSettings.baseUrl) {
+        electronAPI?.skills?.apiGetCatalog?.().then((result: any) => {
+          setCatalog(result?.skills || [])
+        })
+      } else {
+        electronAPI?.skills?.getCatalog?.().then((c: CatalogSkill[]) => setCatalog(c || []))
+      }
       electronAPI?.skills?.getInstalledCatalogIds?.().then((ids: string[]) => setInstalledIds(ids || []))
     }
-  }, [activeTab, electronAPI])
+  }, [activeTab, electronAPI, apiSettings.baseUrl])
 
   // KAN-290: Load audit log and permissions when audit tab is opened
   useEffect(() => {
@@ -329,6 +356,114 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                 📋 Audit
               </button>
             </div>
+            {/* KAN-292: API config toggle */}
+            <div className="flex items-center justify-between mb-1">
+              <button
+                onClick={() => setShowApiConfig(!showApiConfig)}
+                className={`text-[10px] flex items-center gap-1 transition-colors ${
+                  apiSettings.baseUrl ? 'text-emerald-400' : 'text-slate-600 hover:text-slate-400'
+                }`}
+              >
+                ⚙ API {apiSettings.baseUrl ? '(connected)' : '(local only)'}
+              </button>
+              {apiSettings.baseUrl && (
+                <button
+                  onClick={async () => {
+                    setSyncing(true)
+                    setSyncResult(null)
+                    try {
+                      const result = await electronAPI?.skills?.apiSync?.()
+                      if (result?.success) {
+                        setSyncResult({ added: result.added, updated: result.updated })
+                        const refreshed = await electronAPI?.skills?.getAll?.()
+                        if (refreshed) onSkillsUpdate?.(refreshed)
+                      } else {
+                        setApiError(result?.error || 'Sync failed')
+                      }
+                    } catch { setApiError('Sync failed') }
+                    setSyncing(false)
+                  }}
+                  disabled={syncing}
+                  className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50"
+                >
+                  {syncing ? '⟳ Syncing...' : '⟳ Sync'}
+                </button>
+              )}
+            </div>
+            {/* KAN-292: API config panel (collapsible) */}
+            {showApiConfig && (
+              <div className="mb-3 p-3 rounded-lg space-y-2" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #1e293b' }}>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1">Skills API URL</label>
+                  <input
+                    value={apiUrlInput}
+                    onChange={e => setApiUrlInput(e.target.value)}
+                    placeholder="https://api.example.com/v1"
+                    className="w-full text-xs bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1">API Key (optional)</label>
+                  <input
+                    value={apiKeyInput}
+                    onChange={e => setApiKeyInput(e.target.value)}
+                    type="password"
+                    placeholder="Bearer token"
+                    className="w-full text-xs bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={async () => {
+                      setApiStatus('connecting')
+                      setApiError('')
+                      const validation = await electronAPI?.skills?.apiValidateUrl?.(apiUrlInput)
+                      if (!validation?.valid) {
+                        setApiStatus('error')
+                        setApiError(validation?.reason || 'Invalid URL')
+                        return
+                      }
+                      const newSettings = { baseUrl: apiUrlInput.trim(), apiKey: apiKeyInput.trim() || undefined, autoSync: apiSettings.autoSync }
+                      await electronAPI?.skills?.apiSetSettings?.(newSettings)
+                      setApiSettingsState(newSettings)
+                      setApiStatus('connected')
+                      setSyncResult(null)
+                    }}
+                    className="text-[10px] bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded transition-colors"
+                  >
+                    {apiStatus === 'connecting' ? 'Connecting...' : 'Save & Connect'}
+                  </button>
+                  {apiSettings.baseUrl && (
+                    <button
+                      onClick={async () => {
+                        await electronAPI?.skills?.apiSetSettings?.({ baseUrl: '', apiKey: undefined })
+                        setApiSettingsState({ baseUrl: '' })
+                        setApiUrlInput('')
+                        setApiKeyInput('')
+                        setApiStatus('idle')
+                        setSyncResult(null)
+                      }}
+                      className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
+                    >
+                      Disconnect
+                    </button>
+                  )}
+                </div>
+                {apiStatus === 'error' && apiError && (
+                  <p className="text-[10px] text-red-400">{apiError}</p>
+                )}
+                {syncResult && (
+                  <p className="text-[10px] text-emerald-400">
+                    Synced: {syncResult.added} added, {syncResult.updated} updated
+                  </p>
+                )}
+                {apiSettings.lastSyncAt && (
+                  <p className="text-[10px] text-slate-600">
+                    Last sync: {new Date(apiSettings.lastSyncAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            )}
             <p className="text-xs text-slate-500">
               {activeTab === 'skills' ? (
                 <>

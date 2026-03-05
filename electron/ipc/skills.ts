@@ -1,5 +1,5 @@
 /**
- * Skills IPC Handlers — KAN-284, KAN-286, KAN-287, KAN-288, KAN-289, KAN-290
+ * Skills IPC Handlers — KAN-284, KAN-286, KAN-287, KAN-288, KAN-289, KAN-290, KAN-292
  *
  * Bridges the SkillsStorageManager (main process) to the renderer via IPC.
  * KAN-286: Added getForPrompt channel for execution pipeline.
@@ -7,13 +7,16 @@
  * KAN-288: Added getCatalog, install, isInstalled for marketplace.
  * KAN-289: Added executeTool for tool-enabled skills.
  * KAN-290: Added permission system + audit log.
+ * KAN-292: Added REST API support for remote skill management.
  */
 
 import { ipcMain } from 'electron'
 import { SkillsStorageManager } from '../../src/skills/skills-manager'
-import { getCatalog, getCatalogSkill } from '../../src/skills/skill-catalog'
-import type { SkillScope, SkillVisibility, SkillExecutionMode, SkillToolPermission, PermissionLevel, PermissionDecision, SkillExecutionRecord } from '../../src/skills/types'
+import { getCatalog, getCatalogSkill, getCatalogFromApi } from '../../src/skills/skill-catalog'
+import type { SkillScope, SkillVisibility, SkillExecutionMode, SkillToolPermission, PermissionLevel, PermissionDecision, SkillExecutionRecord, SkillsApiSettings } from '../../src/skills/types'
 import { executeToolRequest, checkStoredPermission } from '../../src/skills/skill-tool-runner'
+import { createSkillsApiClient, validateSkillsApiUrl, SkillsApiError } from '../../src/skills/skills-api-client'
+import type { ApiSkillPayload } from '../../src/skills/skills-api-client'
 
 const ALL_CHANNELS = [
   'skills:getAll', 'skills:getActive', 'skills:getForPrompt', 'skills:getById',
@@ -26,6 +29,9 @@ const ALL_CHANNELS = [
   'skills:getAuditLog', 'skills:getAuditLogForSkill', 'skills:clearAuditLog',
   'skills:requestToolExecution',
   'skills:addExecutionRecord', 'skills:getExecutionHistory', 'skills:clearExecutionHistory',
+  'skills:apiGetSettings', 'skills:apiSetSettings', 'skills:apiValidateUrl',
+  'skills:apiList', 'skills:apiGet', 'skills:apiCreate', 'skills:apiUpdate', 'skills:apiDelete',
+  'skills:apiSync', 'skills:apiGetCatalog',
 ] as const
 
 export function initSkillsHandlers(): void {
@@ -276,6 +282,100 @@ export function initSkillsHandlers(): void {
   ipcMain.handle('skills:clearExecutionHistory', async () => {
     SkillsStorageManager.getInstance().clearExecutionHistory()
     return true
+  })
+
+  // KAN-292: Skills API handlers
+  ipcMain.handle('skills:apiGetSettings', async () => {
+    return SkillsStorageManager.getInstance().getApiSettings()
+  })
+
+  ipcMain.handle('skills:apiSetSettings', async (_event, settings: SkillsApiSettings) => {
+    SkillsStorageManager.getInstance().setApiSettings(settings)
+    return true
+  })
+
+  ipcMain.handle('skills:apiValidateUrl', async (_event, url: string) => {
+    return validateSkillsApiUrl(url)
+  })
+
+  ipcMain.handle('skills:apiList', async () => {
+    const settings = SkillsStorageManager.getInstance().getApiSettings()
+    const client = createSkillsApiClient(settings.baseUrl, settings.apiKey)
+    if (!client) return { success: false, error: 'API not configured' }
+    try {
+      const result = await client.listSkills()
+      return { success: true, data: result.data, total: result.total }
+    } catch (error) {
+      return { success: false, error: error instanceof SkillsApiError ? error.message : 'Unknown error' }
+    }
+  })
+
+  ipcMain.handle('skills:apiGet', async (_event, id: string) => {
+    const settings = SkillsStorageManager.getInstance().getApiSettings()
+    const client = createSkillsApiClient(settings.baseUrl, settings.apiKey)
+    if (!client) return { success: false, error: 'API not configured' }
+    try {
+      const skill = await client.getSkill(id)
+      return { success: true, data: skill }
+    } catch (error) {
+      return { success: false, error: error instanceof SkillsApiError ? error.message : 'Unknown error' }
+    }
+  })
+
+  ipcMain.handle('skills:apiCreate', async (_event, payload: ApiSkillPayload) => {
+    const settings = SkillsStorageManager.getInstance().getApiSettings()
+    const client = createSkillsApiClient(settings.baseUrl, settings.apiKey)
+    if (!client) return { success: false, error: 'API not configured' }
+    try {
+      const skill = await client.createSkill(payload)
+      return { success: true, data: skill }
+    } catch (error) {
+      return { success: false, error: error instanceof SkillsApiError ? error.message : 'Unknown error' }
+    }
+  })
+
+  ipcMain.handle('skills:apiUpdate', async (_event, id: string, payload: Partial<ApiSkillPayload>) => {
+    const settings = SkillsStorageManager.getInstance().getApiSettings()
+    const client = createSkillsApiClient(settings.baseUrl, settings.apiKey)
+    if (!client) return { success: false, error: 'API not configured' }
+    try {
+      const skill = await client.updateSkill(id, payload)
+      return { success: true, data: skill }
+    } catch (error) {
+      return { success: false, error: error instanceof SkillsApiError ? error.message : 'Unknown error' }
+    }
+  })
+
+  ipcMain.handle('skills:apiDelete', async (_event, id: string) => {
+    const settings = SkillsStorageManager.getInstance().getApiSettings()
+    const client = createSkillsApiClient(settings.baseUrl, settings.apiKey)
+    if (!client) return { success: false, error: 'API not configured' }
+    try {
+      await client.deleteSkill(id)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof SkillsApiError ? error.message : 'Unknown error' }
+    }
+  })
+
+  ipcMain.handle('skills:apiSync', async () => {
+    const mgr = SkillsStorageManager.getInstance()
+    const settings = mgr.getApiSettings()
+    const client = createSkillsApiClient(settings.baseUrl, settings.apiKey)
+    if (!client) return { success: false, error: 'API not configured' }
+    try {
+      const result = await client.listSkills()
+      const { added, updated } = mgr.mergeRemoteSkills(result.data)
+      mgr.updateLastSync()
+      return { success: true, added, updated, total: result.total }
+    } catch (error) {
+      return { success: false, error: error instanceof SkillsApiError ? error.message : 'Unknown error' }
+    }
+  })
+
+  ipcMain.handle('skills:apiGetCatalog', async () => {
+    const settings = SkillsStorageManager.getInstance().getApiSettings()
+    return getCatalogFromApi(settings.baseUrl, settings.apiKey)
   })
 
   console.log('[Skills] IPC handlers initialized')

@@ -87,8 +87,8 @@ describe('KAN-291: Skill Execution Logs', () => {
       expect(src).toMatch(/executionHistory:\s*SkillExecutionRecord\[\]/)
     })
 
-    it('SKILLS_VERSION is bumped to 3', () => {
-      expect(src).toMatch(/export\s+const\s+SKILLS_VERSION\s*=\s*3/)
+    it('SKILLS_VERSION is at least 3', () => {
+      expect(src).toMatch(/export\s+const\s+SKILLS_VERSION\s*=\s*[3-9]/)
     })
 
     it('KAN-291 referenced in header', () => {

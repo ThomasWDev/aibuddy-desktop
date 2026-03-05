@@ -415,6 +415,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     addExecutionRecord: (record: { id: string; timestamp: number; totalEvaluated: number; totalApplied: number; processingTimeMs: number; conflictCount: number; entries: Array<{ skillId: string; skillName: string; execution_mode: string; applied: boolean; reason: string }> }) => ipcRenderer.invoke('skills:addExecutionRecord', record),
     getExecutionHistory: (limit?: number) => ipcRenderer.invoke('skills:getExecutionHistory', limit),
     clearExecutionHistory: () => ipcRenderer.invoke('skills:clearExecutionHistory'),
+    apiGetSettings: () => ipcRenderer.invoke('skills:apiGetSettings'),
+    apiSetSettings: (settings: { baseUrl: string; apiKey?: string; lastSyncAt?: number; autoSync?: boolean }) => ipcRenderer.invoke('skills:apiSetSettings', settings),
+    apiValidateUrl: (url: string) => ipcRenderer.invoke('skills:apiValidateUrl', url),
+    apiList: () => ipcRenderer.invoke('skills:apiList'),
+    apiGet: (id: string) => ipcRenderer.invoke('skills:apiGet', id),
+    apiCreate: (payload: { name: string; description: string; prompt_template: string; enabled?: boolean; scope?: string; execution_mode?: string; tags?: string[]; allowed_tools?: string[]; visibility?: string }) => ipcRenderer.invoke('skills:apiCreate', payload),
+    apiUpdate: (id: string, payload: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; execution_mode?: string; tags?: string[]; allowed_tools?: string[]; visibility?: string }) => ipcRenderer.invoke('skills:apiUpdate', id, payload),
+    apiDelete: (id: string) => ipcRenderer.invoke('skills:apiDelete', id),
+    apiSync: () => ipcRenderer.invoke('skills:apiSync'),
+    apiGetCatalog: () => ipcRenderer.invoke('skills:apiGetCatalog'),
   },
 
   // Generic invoke for backwards compatibility

@@ -1,5 +1,5 @@
 /**
- * Skills Data Model — KAN-282, KAN-287, KAN-288, KAN-289, KAN-290, KAN-291
+ * Skills Data Model — KAN-282, KAN-287, KAN-288, KAN-289, KAN-290, KAN-291, KAN-292
  *
  * Defines the schema for AI skills (prompt modifiers) stored locally.
  * Follows the same pattern as ChatThread / ChatMessage in history/types.ts.
@@ -8,7 +8,7 @@
 export type SkillScope = 'global' | 'project'
 export type SkillVisibility = 'private' | 'team'
 export type SkillExecutionMode = 'always' | 'manual' | 'on_demand'
-export type SkillSource = 'local' | 'marketplace' | 'builtin'
+export type SkillSource = 'local' | 'marketplace' | 'builtin' | 'api'
 export type SkillToolPermission = 'filesystem' | 'terminal' | 'git' | 'aws_cli' | 'docker'
 
 export interface Skill {
@@ -136,6 +136,20 @@ export interface SkillExecutionRecord {
   entries: SkillExecutionEntry[]
 }
 
+// ─── KAN-292: API Configuration ──────────────────────────────────────────────
+
+/** Persisted API connection settings */
+export interface SkillsApiSettings {
+  /** Base URL for the skills REST API (empty = local-only mode) */
+  baseUrl: string
+  /** Optional bearer token for authenticated APIs */
+  apiKey?: string
+  /** Last successful sync timestamp (ms) */
+  lastSyncAt?: number
+  /** Whether auto-sync on app start is enabled */
+  autoSync?: boolean
+}
+
 export interface SkillsState {
   /** All skills (both global and project-scoped) */
   skills: Skill[]
@@ -145,8 +159,10 @@ export interface SkillsState {
   auditLog: ToolAuditLogEntry[]
   /** Per-prompt skill execution history (capped) */
   executionHistory: SkillExecutionRecord[]
+  /** Remote API connection settings */
+  apiSettings?: SkillsApiSettings
   /** Schema version for future migrations */
   version: number
 }
 
-export const SKILLS_VERSION = 3
+export const SKILLS_VERSION = 4

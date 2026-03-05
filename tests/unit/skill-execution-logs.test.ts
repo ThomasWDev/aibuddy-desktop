@@ -76,8 +76,8 @@ describe('KAN-291: Skill Execution Logs — Unit Tests', () => {
   })
 
   describe('SKILLS_VERSION', () => {
-    it('is version 3 for KAN-291', () => {
-      expect(SKILLS_VERSION).toBe(3)
+    it('is at least version 3 for KAN-291', () => {
+      expect(SKILLS_VERSION).toBeGreaterThanOrEqual(3)
     })
   })
 

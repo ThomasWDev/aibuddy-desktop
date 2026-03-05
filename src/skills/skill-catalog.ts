@@ -1,13 +1,14 @@
 /**
- * Skill Marketplace Catalog — KAN-288, KAN-289
+ * Skill Marketplace Catalog — KAN-288, KAN-289, KAN-292
  *
  * Curated collection of prebuilt skills users can browse and install.
- * Ships with the app (offline-capable). Can be extended with a backend
- * API in the future by fetching from AIBUDDY_SKILLS_CATALOG_URL.
+ * Ships with the app (offline-capable). KAN-292: When a Skills API URL
+ * is configured, fetches catalog from the remote API with local fallback.
  * KAN-289: Some skills now declare allowed_tools for tool-enabled execution.
  */
 
 import type { CatalogSkill } from './types'
+import { createSkillsApiClient } from './skills-api-client'
 
 export const SKILL_CATALOG: CatalogSkill[] = [
   {
@@ -199,12 +200,12 @@ When working with git:
   },
 ]
 
-/** Get all catalog skills */
+/** Get all catalog skills (static / offline) */
 export function getCatalog(): CatalogSkill[] {
   return SKILL_CATALOG
 }
 
-/** Get a specific catalog skill by ID */
+/** Get a specific catalog skill by ID (static) */
 export function getCatalogSkill(catalogId: string): CatalogSkill | undefined {
   return SKILL_CATALOG.find(s => s.catalog_id === catalogId)
 }
@@ -212,4 +213,34 @@ export function getCatalogSkill(catalogId: string): CatalogSkill | undefined {
 /** Get unique categories from the catalog */
 export function getCatalogCategories(): string[] {
   return [...new Set(SKILL_CATALOG.map(s => s.category))].sort()
+}
+
+// ─── KAN-292: API-backed catalog ─────────────────────────────────────────────
+
+/** Fetch catalog from remote API, falling back to static catalog on failure */
+export async function getCatalogFromApi(apiBaseUrl: string, apiKey?: string): Promise<{ skills: CatalogSkill[]; source: 'api' | 'static'; error?: string }> {
+  const client = createSkillsApiClient(apiBaseUrl, apiKey)
+  if (!client) {
+    return { skills: SKILL_CATALOG, source: 'static' }
+  }
+  try {
+    const response = await client.listCatalog()
+    const merged = deduplicateCatalog([...response.data, ...SKILL_CATALOG])
+    return { skills: merged, source: 'api' }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    console.warn(`[SkillCatalog] API fetch failed, using static fallback: ${message}`)
+    return { skills: SKILL_CATALOG, source: 'static', error: message }
+  }
+}
+
+/** Remove duplicate catalog entries, preferring API versions over static */
+export function deduplicateCatalog(skills: CatalogSkill[]): CatalogSkill[] {
+  const seen = new Map<string, CatalogSkill>()
+  for (const skill of skills) {
+    if (!seen.has(skill.catalog_id)) {
+      seen.set(skill.catalog_id, skill)
+    }
+  }
+  return [...seen.values()]
 }

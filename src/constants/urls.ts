@@ -57,3 +57,7 @@ export const AIBUDDY_RELEASES_URL = 'https://github.com/ThomasWDev/aibuddy-deskt
 
 // Desktop download page
 export const AIBUDDY_DESKTOP_DOWNLOAD_URL = 'https://denvermobileappdeveloper.com/aibuddy-desktop'
+
+// KAN-292: Skills API — configurable base URL for remote skill management
+const ENV_SKILLS_API_URL = process.env.AIBUDDY_SKILLS_API_URL || process.env.VITE_AIBUDDY_SKILLS_API_URL || ''
+export const AIBUDDY_SKILLS_API_URL = ENV_SKILLS_API_URL

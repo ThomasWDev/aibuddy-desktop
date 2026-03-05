@@ -18,7 +18,7 @@ import * as path from 'path'
 import * as os from 'os'
 import * as crypto from 'crypto'
 import { Skill, SkillsState, SkillScope, SkillVisibility, SkillExecutionMode, SKILLS_VERSION } from './types'
-import type { CatalogSkill, SkillToolPermission, PermissionLevel, PermissionEntry, ToolAuditLogEntry, PermissionDecision, SkillExecutionRecord } from './types'
+import type { CatalogSkill, SkillToolPermission, PermissionLevel, PermissionEntry, ToolAuditLogEntry, PermissionDecision, SkillExecutionRecord, SkillsApiSettings } from './types'
 
 const generateId = (): string => crypto.randomBytes(12).toString('base64url')
 
@@ -493,6 +493,61 @@ export class SkillsStorageManager {
   public clearExecutionHistory(): void {
     this.state.executionHistory = []
     this.scheduleSave()
+  }
+
+  // ─── KAN-292: API Settings ──────────────────────────────────────────────
+
+  /** Get current API settings (returns defaults if not configured) */
+  public getApiSettings(): SkillsApiSettings {
+    return this.state.apiSettings || { baseUrl: '' }
+  }
+
+  /** Update API settings */
+  public setApiSettings(settings: SkillsApiSettings): void {
+    this.state.apiSettings = settings
+    this.scheduleSave()
+  }
+
+  /** Mark the last successful sync timestamp */
+  public updateLastSync(): void {
+    if (!this.state.apiSettings) {
+      this.state.apiSettings = { baseUrl: '' }
+    }
+    this.state.apiSettings.lastSyncAt = Date.now()
+    this.scheduleSave()
+  }
+
+  /** Merge remote skills into local state (upsert by source=api + name match) */
+  public mergeRemoteSkills(remoteSkills: Skill[]): { added: number; updated: number } {
+    let added = 0
+    let updated = 0
+    for (const remote of remoteSkills) {
+      const existing = this.state.skills.find(
+        s => (s.source === 'api' && s.id === remote.id) ||
+             (s.source === 'api' && s.name === remote.name),
+      )
+      if (existing) {
+        Object.assign(existing, {
+          ...remote,
+          id: existing.id,
+          enabled: existing.enabled,
+        })
+        existing.updated_at = Date.now()
+        updated++
+      } else {
+        this.state.skills.push({
+          ...remote,
+          source: 'api',
+          created_at: remote.created_at || Date.now(),
+          updated_at: Date.now(),
+        })
+        added++
+      }
+    }
+    if (added > 0 || updated > 0) {
+      this.scheduleSave()
+    }
+    return { added, updated }
   }
 
   // ─── Persistence ──────────────────────────────────────────────────────────
