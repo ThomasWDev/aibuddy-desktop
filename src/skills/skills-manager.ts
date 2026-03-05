@@ -18,6 +18,7 @@ import * as path from 'path'
 import * as os from 'os'
 import * as crypto from 'crypto'
 import { Skill, SkillsState, SkillScope, SkillVisibility, SkillExecutionMode, SKILLS_VERSION } from './types'
+import type { CatalogSkill } from './types'
 
 const generateId = (): string => crypto.randomBytes(12).toString('base64url')
 
@@ -222,6 +223,51 @@ export class SkillsStorageManager {
     this.state.skills.push(skill)
     this.scheduleSave()
     return skill
+  }
+
+  /** Install a skill from the marketplace catalog */
+  public installFromCatalog(catalogSkill: CatalogSkill): Skill {
+    if (this.state.skills.length >= MAX_SKILLS) {
+      throw new Error(`Maximum skill limit reached (${MAX_SKILLS})`)
+    }
+
+    const existing = this.state.skills.find(s => s.catalog_id === catalogSkill.catalog_id)
+    if (existing) {
+      throw new Error(`Skill "${catalogSkill.name}" is already installed`)
+    }
+
+    const now = Date.now()
+    const skill: Skill = {
+      id: generateId(),
+      name: catalogSkill.name,
+      description: catalogSkill.description,
+      prompt_template: catalogSkill.prompt_template,
+      enabled: true,
+      scope: catalogSkill.scope,
+      created_by: catalogSkill.author,
+      created_at: now,
+      updated_at: now,
+      tags: catalogSkill.tags,
+      execution_mode: catalogSkill.execution_mode,
+      source: 'marketplace',
+      catalog_id: catalogSkill.catalog_id,
+    }
+
+    this.state.skills.push(skill)
+    this.scheduleSave()
+    return skill
+  }
+
+  /** Check if a catalog skill is already installed */
+  public isInstalled(catalogId: string): boolean {
+    return this.state.skills.some(s => s.catalog_id === catalogId)
+  }
+
+  /** Get all installed catalog IDs */
+  public getInstalledCatalogIds(): string[] {
+    return this.state.skills
+      .filter(s => s.catalog_id)
+      .map(s => s.catalog_id!)
   }
 
   // ─── Update ───────────────────────────────────────────────────────────────

@@ -158,18 +158,21 @@ export interface ElectronAPI {
     deleteProjectRule: (workspacePath: string, filename: string) => Promise<boolean>
   }
 
-  // KAN-284/KAN-286/KAN-287: Skills management (uses SkillsStorageManager via IPC)
+  // KAN-284/KAN-286/KAN-287/KAN-288: Skills management (uses SkillsStorageManager via IPC)
   skills: {
-    getAll: (scope?: string, workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[] }>>
-    getActive: (workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[] }>>
-    getForPrompt: (workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[] }>>
-    getById: (id: string) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[] } | null>
+    getAll: (scope?: string, workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[]; source?: string; catalog_id?: string }>>
+    getActive: (workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[]; source?: string; catalog_id?: string }>>
+    getForPrompt: (workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[]; source?: string; catalog_id?: string }>>
+    getById: (id: string) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[]; source?: string; catalog_id?: string } | null>
     create: (params: { name: string; description?: string; prompt_template: string; enabled?: boolean; scope?: string; order?: number; visibility?: string; execution_mode?: string; tags?: string[] }) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; visibility?: string; execution_mode?: string; tags?: string[] } | null>
     update: (id: string, updates: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; order?: number; visibility?: string; execution_mode?: string; tags?: string[] }) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; visibility?: string; execution_mode?: string; tags?: string[] } | null>
     delete: (id: string) => Promise<boolean>
     toggle: (id: string) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; tags?: string[] } | null>
     reorder: (orderedIds: string[]) => Promise<boolean>
     migrateLegacy: (workspacePath: string) => Promise<number>
+    getCatalog: () => Promise<Array<{ catalog_id: string; name: string; description: string; prompt_template: string; author: string; tags: string[]; category: string; icon: string; scope: string; execution_mode: string }>>
+    install: (catalogId: string) => Promise<{ id: string; name: string; catalog_id?: string; source?: string } | null>
+    getInstalledCatalogIds: () => Promise<string[]>
   }
 
   // Generic invoke for backwards compatibility
@@ -385,7 +388,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteProjectRule: (workspacePath: string, filename: string) => ipcRenderer.invoke('workspace:deleteProjectRule', workspacePath, filename),
   },
 
-  // KAN-284/KAN-286/KAN-287: Skills management
+  // KAN-284/KAN-286/KAN-287/KAN-288: Skills management
   skills: {
     getAll: (scope?: string, workspacePath?: string) => ipcRenderer.invoke('skills:getAll', scope, workspacePath),
     getActive: (workspacePath?: string) => ipcRenderer.invoke('skills:getActive', workspacePath),
@@ -397,6 +400,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     toggle: (id: string) => ipcRenderer.invoke('skills:toggle', id),
     reorder: (orderedIds: string[]) => ipcRenderer.invoke('skills:reorder', orderedIds),
     migrateLegacy: (workspacePath: string) => ipcRenderer.invoke('skills:migrateLegacy', workspacePath),
+    getCatalog: () => ipcRenderer.invoke('skills:getCatalog'),
+    install: (catalogId: string) => ipcRenderer.invoke('skills:install', catalogId),
+    getInstalledCatalogIds: () => ipcRenderer.invoke('skills:getInstalledCatalogIds'),
   },
 
   // Generic invoke for backwards compatibility

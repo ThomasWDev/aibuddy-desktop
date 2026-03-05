@@ -1,19 +1,22 @@
 /**
- * Skills IPC Handlers — KAN-284, KAN-286, KAN-287
+ * Skills IPC Handlers — KAN-284, KAN-286, KAN-287, KAN-288
  *
  * Bridges the SkillsStorageManager (main process) to the renderer via IPC.
  * KAN-286: Added getForPrompt channel for execution pipeline.
  * KAN-287: Added reorder channel for priority management + tags support.
+ * KAN-288: Added getCatalog, install, isInstalled for marketplace.
  */
 
 import { ipcMain } from 'electron'
 import { SkillsStorageManager } from '../../src/skills/skills-manager'
+import { getCatalog, getCatalogSkill } from '../../src/skills/skill-catalog'
 import type { SkillScope, SkillVisibility, SkillExecutionMode } from '../../src/skills/types'
 
 const ALL_CHANNELS = [
   'skills:getAll', 'skills:getActive', 'skills:getForPrompt', 'skills:getById',
   'skills:create', 'skills:update', 'skills:delete', 'skills:toggle',
   'skills:reorder', 'skills:migrateLegacy',
+  'skills:getCatalog', 'skills:install', 'skills:getInstalledCatalogIds',
 ] as const
 
 export function initSkillsHandlers(): void {
@@ -83,6 +86,26 @@ export function initSkillsHandlers(): void {
 
   ipcMain.handle('skills:migrateLegacy', async (_event, workspacePath: string) => {
     return SkillsStorageManager.getInstance().migrateLegacyRules(workspacePath)
+  })
+
+  // KAN-288: Marketplace
+  ipcMain.handle('skills:getCatalog', async () => {
+    return getCatalog()
+  })
+
+  ipcMain.handle('skills:install', async (_event, catalogId: string) => {
+    const catalogSkill = getCatalogSkill(catalogId)
+    if (!catalogSkill) return null
+    try {
+      return SkillsStorageManager.getInstance().installFromCatalog(catalogSkill)
+    } catch (e: any) {
+      console.error('[Skills IPC] Install failed:', e?.message)
+      return null
+    }
+  })
+
+  ipcMain.handle('skills:getInstalledCatalogIds', async () => {
+    return SkillsStorageManager.getInstance().getInstalledCatalogIds()
   })
 
   console.log('[Skills] IPC handlers initialized')

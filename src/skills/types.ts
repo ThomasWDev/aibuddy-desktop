@@ -1,5 +1,5 @@
 /**
- * Skills Data Model — KAN-282, KAN-287
+ * Skills Data Model — KAN-282, KAN-287, KAN-288
  *
  * Defines the schema for AI skills (prompt modifiers) stored locally.
  * Follows the same pattern as ChatThread / ChatMessage in history/types.ts.
@@ -8,6 +8,7 @@
 export type SkillScope = 'global' | 'project'
 export type SkillVisibility = 'private' | 'team'
 export type SkillExecutionMode = 'always' | 'manual' | 'on_demand'
+export type SkillSource = 'local' | 'marketplace' | 'builtin'
 
 export interface Skill {
   /** Unique identifier (base64url random, like thread IDs) */
@@ -38,8 +39,26 @@ export interface Skill {
   order?: number
   /** Semantic tags for conflict detection — skills sharing tags are flagged as conflicting */
   tags?: string[]
+  /** Where this skill came from: local (user-created), marketplace (installed), builtin */
+  source?: SkillSource
+  /** Catalog ID if installed from marketplace — used to check for updates */
+  catalog_id?: string
   /** Original filename if migrated from .aibuddy/rules/ legacy format */
   legacy_filename?: string
+}
+
+/** A skill available in the marketplace catalog (not yet installed) */
+export interface CatalogSkill {
+  catalog_id: string
+  name: string
+  description: string
+  prompt_template: string
+  author: string
+  tags: string[]
+  category: string
+  icon: string
+  scope: SkillScope
+  execution_mode: SkillExecutionMode
 }
 
 export interface SkillsState {
