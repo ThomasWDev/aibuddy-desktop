@@ -7,40 +7,32 @@ import * as path from 'path'
  * 
  * ROOT CAUSE (Feb 17, 2026): The desktop app could hang indefinitely when the
  * API server sent a response header (200 OK) but the body stream stalled.
- * The 5-minute AbortController timeout only covers the initial fetch(), not
- * response.json(). If the TCP connection stayed open with a partial body,
- * the app would show "AIBuddy is thinking..." forever.
  * 
- * FIX: Wrapped response.json() with Promise.race([response.json(), timeout])
- * using a 60-second timeout that rejects with a descriptive error.
+ * FIX: KAN-272 replaced raw response.json() with safeParseResponse() from
+ * response-parser.ts, which includes a configurable timeout (default 60s)
+ * via Promise.race. The old JSON_PARSE_TIMEOUT constant is no longer needed
+ * because the timeout lives in the utility.
  * 
- * PREVENTION: These tests ensure the timeout wrapper stays in place.
+ * PREVENTION: These tests ensure the safe parser stays in place.
  */
 
 const appTsxPath = path.resolve(__dirname, '../../renderer/src/App.tsx')
 const appTsx = fs.readFileSync(appTsxPath, 'utf-8')
 
-describe('response.json() Timeout Guard', () => {
-  it('should have JSON_PARSE_TIMEOUT constant', () => {
-    expect(appTsx).toContain('JSON_PARSE_TIMEOUT')
+const parserPath = path.resolve(__dirname, '../../renderer/src/lib/response-parser.ts')
+const parserSrc = fs.readFileSync(parserPath, 'utf-8')
+
+describe('response body parsing timeout guard (KAN-272)', () => {
+  it('should use safeParseResponse with 60s timeout', () => {
+    expect(appTsx).toContain('safeParseResponse(response, 60_000)')
   })
 
-  it('JSON_PARSE_TIMEOUT should be 60 seconds (60_000ms)', () => {
-    expect(appTsx).toMatch(/JSON_PARSE_TIMEOUT\s*=\s*60[_,]?000/)
+  it('response-parser should have timeout via Promise.race', () => {
+    expect(parserSrc).toContain('Promise.race')
   })
 
-  it('should wrap response.json() with Promise.race', () => {
-    expect(appTsx).toContain('Promise.race')
-    // Promise.race should contain response.json()
-    const raceBlock = appTsx.substring(
-      appTsx.indexOf('Promise.race'),
-      appTsx.indexOf('Promise.race') + 300
-    )
-    expect(raceBlock).toContain('response.json()')
-  })
-
-  it('timeout promise should reject with descriptive error', () => {
-    expect(appTsx).toContain('Response body parsing timed out')
+  it('response-parser timeout should reject with descriptive error', () => {
+    expect(parserSrc).toContain('timed out')
   })
 
   it('should still have the 5-minute fetch AbortController timeout', () => {

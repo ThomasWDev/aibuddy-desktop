@@ -89,13 +89,12 @@ describe('HTTP 413 Error Handling', () => {
   })
 })
 
-describe('Content-Type Guard Before JSON Parse', () => {
-  it('should check content-type in handleSubmit flow', () => {
-    const handleSubmitSection = appContent.slice(appContent.indexOf('const handleSubmit = async'))
-    expect(handleSubmitSection).toContain("response.headers.get('content-type')")
+describe('Safe Response Parsing (KAN-272)', () => {
+  it('should use safeParseResponse for safe JSON parsing', () => {
+    expect(appContent).toContain('safeParseResponse')
   })
 
-  it('should handle non-JSON responses gracefully', () => {
-    expect(appContent).toContain('Non-JSON response')
+  it('should handle non-JSON responses gracefully via response-parser', () => {
+    expect(appContent).toContain('Response parse failed')
   })
 })

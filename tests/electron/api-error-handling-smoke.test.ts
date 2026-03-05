@@ -35,17 +35,17 @@ describe('HTTP Error Status Handling', () => {
   })
 })
 
-describe('Content-Type Guard', () => {
-  it('checks content-type header before JSON parsing', () => {
-    expect(appContent).toContain("response.headers.get('content-type')")
+describe('Safe Response Parsing (KAN-272)', () => {
+  it('uses safeParseResponse to parse responses safely', () => {
+    expect(appContent).toContain('safeParseResponse')
   })
 
-  it('logs non-JSON responses for debugging', () => {
-    expect(appContent).toContain('Non-JSON response')
+  it('logs parse errors for debugging', () => {
+    expect(appContent).toContain('Response parse failed')
   })
 
-  it('does not crash on HTML error pages', () => {
-    expect(appContent).toContain("includes('application/json')")
+  it('uses safeParseBody in callAI helper', () => {
+    expect(appContent).toContain('safeParseBody')
   })
 })
 

@@ -161,6 +161,36 @@ describe('Code Signing Status', () => {
       expect(workflow).toContain('APPLE_TEAM_ID')
     })
 
+    it('KAN-21 regression: CI notarization glob must match electron-builder DMG output path', () => {
+      const workflowPath = path.join(PROJECT_ROOT, '..', '.github/workflows/release-on-master.yml')
+      const workflow = fs.readFileSync(workflowPath, 'utf-8')
+
+      // electron-builder outputs DMGs to release/*.dmg (NOT release/mac-arm64/*.dmg)
+      // The old broken glob "release/mac-arm64/*.dmg release/mac/*.dmg" silently skipped
+      // all DMGs because those subdirs contain .app bundles, not DMGs.
+      expect(workflow).toContain('for DMG in release/*.dmg')
+      expect(workflow).not.toContain('for DMG in release/mac-arm64/')
+      expect(workflow).not.toContain('for DMG in release/mac/')
+    })
+
+    it('KAN-21 regression: CI must fail loudly if no DMGs found for notarization', () => {
+      const workflowPath = path.join(PROJECT_ROOT, '..', '.github/workflows/release-on-master.yml')
+      const workflow = fs.readFileSync(workflowPath, 'utf-8')
+
+      expect(workflow).toContain('DMG_COUNT=0')
+      expect(workflow).toContain('DMG_COUNT=$((DMG_COUNT + 1))')
+      expect(workflow).toContain('if [ "$DMG_COUNT" -eq 0 ]')
+      expect(workflow).toContain('exit 1')
+    })
+
+    it('KAN-21 regression: CI must verify notarization with stapler validate after notarizing', () => {
+      const workflowPath = path.join(PROJECT_ROOT, '..', '.github/workflows/release-on-master.yml')
+      const workflow = fs.readFileSync(workflowPath, 'utf-8')
+
+      expect(workflow).toContain('Verify notarization')
+      expect(workflow).toContain('stapler validate')
+    })
+
     it('should have identity configured (even if not used)', () => {
       // Identity is configured but may not work without certificate
       expect(builderConfig).toContain('identity:')
