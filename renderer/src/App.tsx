@@ -3738,7 +3738,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
 
   return (
     <div 
-      className="h-screen flex flex-col"
+      className="h-screen flex flex-col overflow-hidden"
       style={{ 
         background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)',
         fontFamily: "'Nunito', 'Comic Neue', sans-serif"
