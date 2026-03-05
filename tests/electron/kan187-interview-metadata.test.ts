@@ -45,7 +45,7 @@ describe('KAN-187 — Interview Mode response metadata', () => {
   describe('sendToAI must extract metadata from API response', () => {
     const sendToAIBlock = panel.slice(
       panel.indexOf('const sendToAI'),
-      panel.indexOf('const sendToAI') + 2500
+      panel.indexOf('const sendToAI') + 3500
     )
 
     it('must extract api_cost from response data', () => {

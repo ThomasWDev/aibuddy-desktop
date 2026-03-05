@@ -142,7 +142,7 @@ describe('KAN-33: Response Time UX Improvements', () => {
 
     it('TIMEOUT_MS must be set (5 minutes for Claude Opus)', () => {
       expect(APP_SOURCE).toContain('TIMEOUT_MS')
-      const match = APP_SOURCE.match(/TIMEOUT_MS\s*=\s*(\d[\d_]*)/)
+      const match = APP_SOURCE.match(/\bconst TIMEOUT_MS\s*=\s*(\d[\d_]*)/)
       expect(match).toBeTruthy()
       const timeoutMs = parseInt(match![1].replace(/_/g, ''))
       expect(timeoutMs).toBe(300000) // 5 minutes

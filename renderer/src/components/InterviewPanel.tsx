@@ -117,9 +117,18 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
     setResponses(prev => [...prev, newResponse])
     setExpandedResponses(prev => new Set([...prev, responseId]))
 
+    // KAN-133 FIX: Add fetch timeout so interview requests can't hang forever
+    const INTERVIEW_TIMEOUT_MS = 120_000
+    let interviewTimer: ReturnType<typeof setTimeout> | undefined
+
     try {
       const controller = new AbortController()
       abortControllerRef.current = controller
+
+      interviewTimer = setTimeout(() => {
+        console.error(`[Interview] Request timed out after ${INTERVIEW_TIMEOUT_MS / 1000}s`)
+        controller.abort(new Error('Interview request timed out'))
+      }, INTERVIEW_TIMEOUT_MS)
 
       const requestBody = {
         api_key: apiKey,
@@ -143,6 +152,8 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
         body: JSON.stringify(requestBody),
         signal: controller.signal,
       })
+
+      clearTimeout(interviewTimer)
 
       const parseResult = await safeParseResponse(response)
 
@@ -178,7 +189,16 @@ export function InterviewPanel({ isOpen, onClose, apiKey, apiUrl, appVersion }: 
         } : r)
       )
     } catch (err: any) {
-      if (err.name === 'AbortError') return
+      clearTimeout(interviewTimer)
+      if (err.name === 'AbortError') {
+        setResponses(prev =>
+          prev.map(r => r.id === responseId
+            ? { ...r, answer: 'Request cancelled.', isLoading: false }
+            : r
+          )
+        )
+        return
+      }
       console.error('[Interview] API error:', err)
       setResponses(prev =>
         prev.map(r => r.id === responseId

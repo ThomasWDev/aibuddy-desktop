@@ -2505,10 +2505,62 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       imageCount: currentImages.length
     })
 
+    setMessages(prev => [...prev, userMessage])
+    setInput('')
+    setAttachedImages([]) // Clear attached images after sending
+    setAttachedFiles([]) // KAN-6 FIX: Clear attached code files after sending
+    setIsLoading(true)
+    setLastCost(null)
+    setLastModel(null)
+    
+    // Reset DeepSeek retry count for new conversation
+    setDeepSeekRetryCount(0)
+    
+    // Clear terminal for new task if user is asking to run something
+    const userWantsExecution = trimmedInput.toLowerCase().match(/\b(run|execute|build|test|start|install|deploy|fix|debug|create|make|write|generate|setup|add|init|update|delete|remove)\b/)
+    if (userWantsExecution) {
+      clearTerminal()
+      addTerminalLine('info', `🚀 Starting task: ${trimmedInput.substring(0, 100)}...`)
+    }
+
+    // Progress through status steps - KAN-33 FIX: Removed 700ms of artificial delays
+    setStatus('validating')
+    setStatus('sending')
+    setStatus('thinking')
+
+    const startTime = Date.now()
+    const hasImages = currentImages.length > 0
+
+    // KAN-133 FIX: Create AbortController BEFORE pre-fetch work so the stop
+    // button and Escape key can cancel at any point, including during IPC calls.
+    const PRE_FETCH_TIMEOUT_MS = 120_000
+    const WATCHDOG_TIMEOUT_MS = 300_000
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
+    let preFetchTimer: ReturnType<typeof setTimeout> | undefined
+    let watchdogTimer: ReturnType<typeof setTimeout> | undefined
+
+    // KAN-133 FIX: Pre-fetch safety timeout — abort if history IPC / system
+    // prompt generation / skills processing takes longer than 120s.
+    preFetchTimer = setTimeout(() => {
+      console.error(`[App] Pre-fetch work exceeded ${PRE_FETCH_TIMEOUT_MS / 1000}s — aborting`)
+      controller.abort(new Error('Pre-fetch preparation timed out'))
+    }, PRE_FETCH_TIMEOUT_MS)
+
+    // KAN-133 FIX: Watchdog — if the entire request cycle hasn't completed
+    // within 5 minutes, force-reset loading state as a last-resort safety net.
+    watchdogTimer = setTimeout(() => {
+      console.error(`[App] Watchdog: request stuck for ${WATCHDOG_TIMEOUT_MS / 1000}s — force-resetting`)
+      setIsLoading(false)
+      setStatus('idle')
+      abortControllerRef.current?.abort()
+      abortControllerRef.current = null
+    }, WATCHDOG_TIMEOUT_MS)
+
     // Create or get active thread for history
     let threadId = activeThreadId
     if (!threadId || messages.length === 0) {
-      // Create new thread for first message
       try {
         const thread = await window.electronAPI.history.createThread(trimmedInput, workspacePath || undefined) as ChatThread
         threadId = thread.id
@@ -2530,34 +2582,6 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         console.error('[App] Failed to save user message to history:', err)
       }
     }
-
-    setMessages(prev => [...prev, userMessage])
-    setInput('')
-    setAttachedImages([]) // Clear attached images after sending
-    setAttachedFiles([]) // KAN-6 FIX: Clear attached code files after sending
-    setIsLoading(true)
-    setLastCost(null)
-    setLastModel(null)
-    
-    // Reset DeepSeek retry count for new conversation
-    setDeepSeekRetryCount(0)
-    
-    // Clear terminal for new task if user is asking to run something
-    const userWantsExecution = trimmedInput.toLowerCase().match(/\b(run|execute|build|test|start|install|deploy|fix|debug|create|make|write|generate|setup|add|init|update|delete|remove)\b/)
-    if (userWantsExecution) {
-      clearTerminal()
-      addTerminalLine('info', `🚀 Starting task: ${trimmedInput.substring(0, 100)}...`)
-    }
-
-    // Progress through status steps - KAN-33 FIX: Removed 700ms of artificial delays
-    // Before: 200ms + 300ms + 200ms = 700ms wasted before API call even starts
-    // After: Instant status transitions, no setTimeout delays
-    setStatus('validating')
-    setStatus('sending')
-    setStatus('thinking')
-
-    const startTime = Date.now()
-    const hasImages = currentImages.length > 0
 
     try {
       console.log('[App] Sending API request...', hasImages ? `with ${currentImages.length} image(s)` : '')
@@ -2760,11 +2784,13 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       let streamingSucceeded = false
       let streamData: any = null
 
+      // KAN-133 FIX: Pre-fetch work complete — clear the pre-fetch safety timer.
+      // The main TIMEOUT_MS (5 min) fetch timeout still protects the API call.
+      clearTimeout(preFetchTimer)
+
       try {
         toast.info(`🚀 Sending to AI...`)
         userAbortedRef.current = false // KAN-98 FIX: Reset user-abort flag for each request
-        const controller = new AbortController()
-        abortControllerRef.current = controller // KAN-35 FIX: Store for cancel button
         const timeoutId = setTimeout(() => {
           console.log(`[App] Request timeout after ${TIMEOUT_MS/1000}s, aborting...`)
           controller.abort()
@@ -3405,7 +3431,12 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       
       setTimeout(() => setStatus('idle'), 3000)
     } finally {
+      // KAN-133 FIX: Always clean up all timers, abort controller, and reset UI state.
+      clearTimeout(preFetchTimer)
+      clearTimeout(watchdogTimer)
       setIsLoading(false)
+      setStatus('idle')
+      abortControllerRef.current = null
     }
   }
 
