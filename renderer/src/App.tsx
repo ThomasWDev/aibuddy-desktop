@@ -4885,12 +4885,12 @@ Be concise and actionable. Use an alternative approach, not the same commands th
                 onClick={handleSaveApiKey}
                 disabled={!apiKeyInput.trim()}
                 className="w-full py-4 rounded-2xl font-black text-xl text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-                style={{ 
-                  background: apiKeyInput.trim() 
-                    ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                style={{
+                  background: apiKeyInput.trim()
+                    ? 'linear-gradient(135deg, #06b6d4, #3b82f6)'
                     : 'rgba(100,100,100,0.3)',
-                  boxShadow: apiKeyInput.trim() 
-                    ? '0 8px 24px rgba(34, 197, 94, 0.4)'
+                  boxShadow: apiKeyInput.trim()
+                    ? '0 8px 24px rgba(6, 182, 212, 0.3)'
                     : 'none'
                 }}
               >
