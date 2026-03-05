@@ -1,21 +1,23 @@
 /**
- * Skills IPC Handlers — KAN-284, KAN-286
+ * Skills IPC Handlers — KAN-284, KAN-286, KAN-287
  *
  * Bridges the SkillsStorageManager (main process) to the renderer via IPC.
  * KAN-286: Added getForPrompt channel for execution pipeline.
+ * KAN-287: Added reorder channel for priority management + tags support.
  */
 
 import { ipcMain } from 'electron'
 import { SkillsStorageManager } from '../../src/skills/skills-manager'
 import type { SkillScope, SkillVisibility, SkillExecutionMode } from '../../src/skills/types'
 
+const ALL_CHANNELS = [
+  'skills:getAll', 'skills:getActive', 'skills:getForPrompt', 'skills:getById',
+  'skills:create', 'skills:update', 'skills:delete', 'skills:toggle',
+  'skills:reorder', 'skills:migrateLegacy',
+] as const
+
 export function initSkillsHandlers(): void {
-  const channels = [
-    'skills:getAll', 'skills:getActive', 'skills:getForPrompt', 'skills:getById',
-    'skills:create', 'skills:update', 'skills:delete', 'skills:toggle',
-    'skills:migrateLegacy',
-  ] as const
-  for (const ch of channels) { ipcMain.removeHandler(ch) }
+  for (const ch of ALL_CHANNELS) { ipcMain.removeHandler(ch) }
 
   ipcMain.handle('skills:getAll', async (_event, scope?: SkillScope, workspacePath?: string) => {
     return SkillsStorageManager.getInstance().getSkills(scope, workspacePath)
@@ -42,6 +44,7 @@ export function initSkillsHandlers(): void {
     order?: number
     visibility?: SkillVisibility
     execution_mode?: SkillExecutionMode
+    tags?: string[]
   }) => {
     try {
       return SkillsStorageManager.getInstance().createSkill(params)
@@ -60,6 +63,7 @@ export function initSkillsHandlers(): void {
     order?: number
     visibility?: SkillVisibility
     execution_mode?: SkillExecutionMode
+    tags?: string[]
   }) => {
     return SkillsStorageManager.getInstance().updateSkill(id, updates) ?? null
   })
@@ -72,6 +76,11 @@ export function initSkillsHandlers(): void {
     return SkillsStorageManager.getInstance().toggleSkill(id) ?? null
   })
 
+  ipcMain.handle('skills:reorder', async (_event, orderedIds: string[]) => {
+    SkillsStorageManager.getInstance().reorderSkills(orderedIds)
+    return true
+  })
+
   ipcMain.handle('skills:migrateLegacy', async (_event, workspacePath: string) => {
     return SkillsStorageManager.getInstance().migrateLegacyRules(workspacePath)
   })
@@ -80,12 +89,7 @@ export function initSkillsHandlers(): void {
 }
 
 export function cleanupSkillsHandlers(): void {
-  const channels = [
-    'skills:getAll', 'skills:getActive', 'skills:getForPrompt', 'skills:getById',
-    'skills:create', 'skills:update', 'skills:delete', 'skills:toggle',
-    'skills:migrateLegacy',
-  ] as const
-  for (const ch of channels) { ipcMain.removeHandler(ch) }
+  for (const ch of ALL_CHANNELS) { ipcMain.removeHandler(ch) }
 
   SkillsStorageManager.getInstance().flushSave()
   console.log('[Skills] IPC handlers cleaned up')

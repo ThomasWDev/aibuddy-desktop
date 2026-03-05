@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 
 interface Skill {
   id: string
@@ -14,6 +14,7 @@ interface Skill {
   order?: number
   visibility?: string
   execution_mode?: string
+  tags?: string[]
 }
 
 interface SkillsPanelProps {
@@ -33,12 +34,37 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
   const [newScope, setNewScope] = useState<'global' | 'project'>('project')
   const [newVisibility, setNewVisibility] = useState<'private' | 'team'>('private')
   const [newExecutionMode, setNewExecutionMode] = useState<'always' | 'manual' | 'on_demand'>('always')
+  const [newTags, setNewTags] = useState('')
   const [isEditing, setIsEditing] = useState(false)
 
   const electronAPI = (window as any).electronAPI
 
+  // KAN-287: Detect conflicts via shared tags
+  const conflicts = useMemo(() => {
+    const result: Array<{ skillA: string; skillB: string; sharedTags: string[] }> = []
+    const enabledSkills = skills.filter(s => s.enabled)
+    for (let i = 0; i < enabledSkills.length; i++) {
+      const a = enabledSkills[i]
+      if (!a.tags || a.tags.length === 0) continue
+      for (let j = i + 1; j < enabledSkills.length; j++) {
+        const b = enabledSkills[j]
+        if (!b.tags || b.tags.length === 0) continue
+        const shared = a.tags.filter(t => b.tags!.includes(t))
+        if (shared.length > 0) {
+          result.push({ skillA: a.id, skillB: b.id, sharedTags: shared })
+        }
+      }
+    }
+    return result
+  }, [skills])
+
+  const getConflictsForSkill = useCallback((skillId: string) => {
+    return conflicts.filter(c => c.skillA === skillId || c.skillB === skillId)
+  }, [conflicts])
+
   const handleCreate = useCallback(async () => {
     if (!newName.trim()) return
+    const tagsArray = newTags.split(',').map(t => t.trim()).filter(Boolean)
     const result = await electronAPI?.skills?.create({
       name: newName.trim(),
       description: newDescription.trim(),
@@ -47,29 +73,33 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
       scope: newScope,
       visibility: newVisibility,
       execution_mode: newExecutionMode,
+      tags: tagsArray.length > 0 ? tagsArray : undefined,
     })
     if (result) {
       setIsCreating(false)
       setNewName('')
       setNewDescription('')
       setEditContent('')
+      setNewTags('')
       onSkillsChanged()
     }
-  }, [newName, newDescription, editContent, newEnabled, newScope, electronAPI, onSkillsChanged])
+  }, [newName, newDescription, editContent, newEnabled, newScope, newTags, electronAPI, onSkillsChanged])
 
   const handleUpdate = useCallback(async () => {
     if (!selectedSkill) return
+    const tagsArray = newTags.split(',').map(t => t.trim()).filter(Boolean)
     const result = await electronAPI?.skills?.update(selectedSkill.id, {
       name: newName.trim() || undefined,
       description: newDescription.trim(),
       prompt_template: editContent,
+      tags: tagsArray.length > 0 ? tagsArray : undefined,
     })
     if (result) {
       setIsEditing(false)
       setSelectedSkill(result)
       onSkillsChanged()
     }
-  }, [selectedSkill, newName, newDescription, editContent, electronAPI, onSkillsChanged])
+  }, [selectedSkill, newName, newDescription, editContent, newTags, electronAPI, onSkillsChanged])
 
   const handleDelete = useCallback(async (skill: Skill) => {
     if (skill.builtin) return
@@ -89,10 +119,34 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
     }
   }, [selectedSkill, electronAPI, onSkillsChanged])
 
+  // KAN-287: Move skill up/down in priority
+  const handleMoveUp = useCallback(async (skill: Skill) => {
+    if (skill.builtin) return
+    const userList = skills.filter(s => !s.builtin)
+    const idx = userList.findIndex(s => s.id === skill.id)
+    if (idx <= 0) return
+    const reordered = [...userList]
+    ;[reordered[idx - 1], reordered[idx]] = [reordered[idx], reordered[idx - 1]]
+    await electronAPI?.skills?.reorder(reordered.map(s => s.id))
+    onSkillsChanged()
+  }, [skills, electronAPI, onSkillsChanged])
+
+  const handleMoveDown = useCallback(async (skill: Skill) => {
+    if (skill.builtin) return
+    const userList = skills.filter(s => !s.builtin)
+    const idx = userList.findIndex(s => s.id === skill.id)
+    if (idx < 0 || idx >= userList.length - 1) return
+    const reordered = [...userList]
+    ;[reordered[idx], reordered[idx + 1]] = [reordered[idx + 1], reordered[idx]]
+    await electronAPI?.skills?.reorder(reordered.map(s => s.id))
+    onSkillsChanged()
+  }, [skills, electronAPI, onSkillsChanged])
+
   const startEdit = (skill: Skill) => {
     setNewName(skill.name)
     setNewDescription(skill.description)
     setEditContent(skill.prompt_template)
+    setNewTags((skill.tags || []).join(', '))
     setIsEditing(true)
     setIsCreating(false)
   }
@@ -108,6 +162,7 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
     setNewScope('project')
     setNewVisibility('private')
     setNewExecutionMode('always')
+    setNewTags('')
   }
 
   const builtinSkills = skills.filter(s => s.builtin)
@@ -150,6 +205,9 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
             </div>
             <p className="text-xs text-slate-500">
               {skills.filter(s => s.enabled).length} active of {skills.length} total
+              {conflicts.length > 0 && (
+                <span className="text-amber-400 ml-1">· {conflicts.length} conflict{conflicts.length > 1 ? 's' : ''}</span>
+              )}
             </p>
           </div>
 
@@ -199,28 +257,54 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
               </p>
             )}
 
-            {userSkills.map(skill => (
-              <button
-                key={skill.id}
-                onClick={() => { setSelectedSkill(skill); setIsCreating(false); setIsEditing(false) }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg transition-all text-sm group ${
-                  selectedSkill?.id === skill.id ? 'bg-purple-500/10 border-purple-500/20' : 'hover:bg-slate-700/50'
-                }`}
-                style={selectedSkill?.id === skill.id ? { border: '1px solid rgba(168,85,247,0.2)' } : { border: '1px solid transparent' }}
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="flex-shrink-0 w-2 h-2 rounded-full"
-                    style={{ background: skill.enabled ? '#22c55e' : '#475569' }}
-                  />
-                  <span className="text-white font-medium truncate flex-1">{skill.name}</span>
-                  <span className="text-[10px] text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {skill.scope}
-                  </span>
+            {userSkills.map((skill, idx) => {
+              const skillConflicts = getConflictsForSkill(skill.id)
+              return (
+                <div key={skill.id} className="group relative">
+                  <button
+                    onClick={() => { setSelectedSkill(skill); setIsCreating(false); setIsEditing(false) }}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg transition-all text-sm ${
+                      selectedSkill?.id === skill.id ? 'bg-purple-500/10 border-purple-500/20' : 'hover:bg-slate-700/50'
+                    }`}
+                    style={selectedSkill?.id === skill.id ? { border: '1px solid rgba(168,85,247,0.2)' } : { border: '1px solid transparent' }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="flex-shrink-0 w-2 h-2 rounded-full"
+                        style={{ background: skill.enabled ? '#22c55e' : '#475569' }}
+                      />
+                      <span className="text-white font-medium truncate flex-1">{skill.name}</span>
+                      {skillConflicts.length > 0 && (
+                        <span className="text-amber-400 text-[10px]" title="Has priority conflicts">⚠</span>
+                      )}
+                      <span className="text-[10px] text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                        #{(skill.order ?? idx)}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5 truncate pl-4">{skill.description}</p>
+                  </button>
+                  {/* KAN-287: Reorder controls */}
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleMoveUp(skill) }}
+                      className="text-[10px] text-slate-500 hover:text-white p-0.5 leading-none"
+                      title="Move up (higher priority)"
+                      disabled={idx === 0}
+                    >
+                      ▲
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleMoveDown(skill) }}
+                      className="text-[10px] text-slate-500 hover:text-white p-0.5 leading-none"
+                      title="Move down (lower priority)"
+                      disabled={idx === userSkills.length - 1}
+                    >
+                      ▼
+                    </button>
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5 truncate pl-4">{skill.description}</p>
-              </button>
-            ))}
+              )
+            })}
           </div>
         </div>
 
@@ -301,6 +385,17 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                     <option value="on_demand">On demand</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-400 block mb-1">Tags (comma-separated, for conflict detection)</label>
+                <input
+                  value={newTags}
+                  onChange={e => setNewTags(e.target.value)}
+                  placeholder="security, code-style, testing"
+                  className="w-full px-3 py-2 rounded-lg text-sm text-white placeholder-slate-500"
+                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #475569' }}
+                />
               </div>
 
               <div>
@@ -390,8 +485,29 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                 </div>
               </div>
 
+              {/* KAN-287: Conflict warnings */}
+              {getConflictsForSkill(selectedSkill.id).length > 0 && (
+                <div
+                  className="rounded-lg p-3 text-xs"
+                  style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)' }}
+                >
+                  <p className="font-semibold text-amber-400 mb-1">⚠ Priority Conflicts</p>
+                  {getConflictsForSkill(selectedSkill.id).map((c, i) => {
+                    const otherId = c.skillA === selectedSkill.id ? c.skillB : c.skillA
+                    const other = skills.find(s => s.id === otherId)
+                    return (
+                      <p key={i} className="text-amber-300/80">
+                        Overlaps with <strong>{other?.name || otherId}</strong> on tags: {c.sharedTags.join(', ')}
+                        {' '}— lower-order skill takes precedence
+                      </p>
+                    )
+                  })}
+                </div>
+              )}
+
               {/* Metadata */}
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600">
+                <span>Priority: <span className="text-slate-400">#{selectedSkill.order ?? '—'}</span></span>
                 <span>Scope: <span className="text-slate-400">{selectedSkill.scope}</span></span>
                 <span>Visibility: <span className="text-slate-400">{selectedSkill.visibility || 'private'}</span></span>
                 <span>Execution: <span className="text-slate-400">{(selectedSkill.execution_mode || 'always').replace('_', ' ')}</span></span>
@@ -403,6 +519,21 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                   <span>Updated: <span className="text-slate-400">{formatDate(selectedSkill.updated_at)}</span></span>
                 )}
               </div>
+
+              {/* Tags display */}
+              {selectedSkill.tags && selectedSkill.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedSkill.tags.map(tag => (
+                    <span
+                      key={tag}
+                      className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                      style={{ background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.25)' }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               <div className="border-t border-slate-700/50 pt-4">
                 {isEditing ? (
@@ -422,6 +553,16 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                         value={newDescription}
                         onChange={e => setNewDescription(e.target.value)}
                         className="w-full px-3 py-2 rounded-lg text-sm text-white"
+                        style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #475569' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-400 block mb-1">Tags (comma-separated)</label>
+                      <input
+                        value={newTags}
+                        onChange={e => setNewTags(e.target.value)}
+                        placeholder="security, code-style"
+                        className="w-full px-3 py-2 rounded-lg text-sm text-white placeholder-slate-500"
                         style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #475569' }}
                       />
                     </div>

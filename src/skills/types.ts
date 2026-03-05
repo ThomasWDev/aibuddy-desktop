@@ -1,5 +1,5 @@
 /**
- * Skills Data Model — KAN-282
+ * Skills Data Model — KAN-282, KAN-287
  *
  * Defines the schema for AI skills (prompt modifiers) stored locally.
  * Follows the same pattern as ChatThread / ChatMessage in history/types.ts.
@@ -34,8 +34,10 @@ export interface Skill {
   visibility?: SkillVisibility
   /** Execution mode: 'always' = every prompt, 'manual' = user triggers, 'on_demand' = AI decides */
   execution_mode?: SkillExecutionMode
-  /** Ordering weight for injection priority (lower = first) */
+  /** Ordering weight for injection priority (lower = first, higher-priority skill wins conflicts) */
   order?: number
+  /** Semantic tags for conflict detection — skills sharing tags are flagged as conflicting */
+  tags?: string[]
   /** Original filename if migrated from .aibuddy/rules/ legacy format */
   legacy_filename?: string
 }

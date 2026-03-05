@@ -281,9 +281,8 @@ describe('KAN-286: Skill Execution Pipeline', () => {
     })
 
     test('channel is in cleanup list', () => {
-      const cleanupMatch = src.match(/cleanupSkillsHandlers[\s\S]*?\]/m)
-      expect(cleanupMatch).not.toBeNull()
-      expect(cleanupMatch![0]).toContain('skills:getForPrompt')
+      // KAN-287: channels moved to shared ALL_CHANNELS constant
+      expect(src).toMatch(/ALL_CHANNELS[\s\S]*?skills:getForPrompt/)
     })
   })
 

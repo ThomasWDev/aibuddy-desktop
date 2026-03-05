@@ -158,16 +158,17 @@ export interface ElectronAPI {
     deleteProjectRule: (workspacePath: string, filename: string) => Promise<boolean>
   }
 
-  // KAN-284/KAN-286: Skills management (uses SkillsStorageManager via IPC)
+  // KAN-284/KAN-286/KAN-287: Skills management (uses SkillsStorageManager via IPC)
   skills: {
-    getAll: (scope?: string, workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string }>>
-    getActive: (workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string }>>
-    getForPrompt: (workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string }>>
-    getById: (id: string) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string } | null>
-    create: (params: { name: string; description?: string; prompt_template: string; enabled?: boolean; scope?: string; order?: number; visibility?: string; execution_mode?: string }) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; visibility?: string; execution_mode?: string } | null>
-    update: (id: string, updates: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; order?: number; visibility?: string; execution_mode?: string }) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; visibility?: string; execution_mode?: string } | null>
+    getAll: (scope?: string, workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[] }>>
+    getActive: (workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[] }>>
+    getForPrompt: (workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[] }>>
+    getById: (id: string) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[] } | null>
+    create: (params: { name: string; description?: string; prompt_template: string; enabled?: boolean; scope?: string; order?: number; visibility?: string; execution_mode?: string; tags?: string[] }) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; visibility?: string; execution_mode?: string; tags?: string[] } | null>
+    update: (id: string, updates: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; order?: number; visibility?: string; execution_mode?: string; tags?: string[] }) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; visibility?: string; execution_mode?: string; tags?: string[] } | null>
     delete: (id: string) => Promise<boolean>
-    toggle: (id: string) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number } | null>
+    toggle: (id: string) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; tags?: string[] } | null>
+    reorder: (orderedIds: string[]) => Promise<boolean>
     migrateLegacy: (workspacePath: string) => Promise<number>
   }
 
@@ -384,16 +385,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteProjectRule: (workspacePath: string, filename: string) => ipcRenderer.invoke('workspace:deleteProjectRule', workspacePath, filename),
   },
 
-  // KAN-284/KAN-286: Skills management
+  // KAN-284/KAN-286/KAN-287: Skills management
   skills: {
     getAll: (scope?: string, workspacePath?: string) => ipcRenderer.invoke('skills:getAll', scope, workspacePath),
     getActive: (workspacePath?: string) => ipcRenderer.invoke('skills:getActive', workspacePath),
     getForPrompt: (workspacePath?: string) => ipcRenderer.invoke('skills:getForPrompt', workspacePath),
     getById: (id: string) => ipcRenderer.invoke('skills:getById', id),
-    create: (params: { name: string; description?: string; prompt_template: string; enabled?: boolean; scope?: string; order?: number }) => ipcRenderer.invoke('skills:create', params),
-    update: (id: string, updates: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; order?: number }) => ipcRenderer.invoke('skills:update', id, updates),
+    create: (params: { name: string; description?: string; prompt_template: string; enabled?: boolean; scope?: string; order?: number; tags?: string[] }) => ipcRenderer.invoke('skills:create', params),
+    update: (id: string, updates: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; order?: number; tags?: string[] }) => ipcRenderer.invoke('skills:update', id, updates),
     delete: (id: string) => ipcRenderer.invoke('skills:delete', id),
     toggle: (id: string) => ipcRenderer.invoke('skills:toggle', id),
+    reorder: (orderedIds: string[]) => ipcRenderer.invoke('skills:reorder', orderedIds),
     migrateLegacy: (workspacePath: string) => ipcRenderer.invoke('skills:migrateLegacy', workspacePath),
   },
 

@@ -778,8 +778,8 @@ function App() {
   // Environment Detection
   const [environmentSummary, setEnvironmentSummary] = useState<string>('')
 
-  // KAN-284: Skills loaded from SkillsStorageManager via IPC
-  const [skills, setSkills] = useState<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string }>>([])
+  // KAN-284/KAN-287: Skills loaded from SkillsStorageManager via IPC
+  const [skills, setSkills] = useState<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[] }>>([])
   
   // Terminal output panel
   const [showTerminal, setShowTerminal] = useState(false)

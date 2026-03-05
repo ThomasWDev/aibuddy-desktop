@@ -1,13 +1,16 @@
 /**
- * Skill Execution Pipeline — KAN-286
+ * Skill Execution Pipeline — KAN-286, KAN-287
  *
  * Processes skills before prompt injection. Filters by execution_mode,
- * orders by priority, and captures execution logs.
+ * orders by priority, detects conflicts via shared tags, and captures
+ * execution logs.
  *
  * Flow: User Prompt → SkillProcessor → Prompt Refinement → LLM → Response
  */
 
 import type { Skill, SkillExecutionMode } from './types'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface SkillExecutionLogEntry {
   skillId: string
@@ -18,11 +21,20 @@ export interface SkillExecutionLogEntry {
   timestamp: number
 }
 
+export interface ConflictPair {
+  skillA: { id: string; name: string; order: number }
+  skillB: { id: string; name: string; order: number }
+  sharedTags: string[]
+  resolution: string
+}
+
 export interface SkillProcessorResult {
   /** Skills that should be injected into the system prompt */
   activeSkills: ProcessedSkill[]
   /** Execution log for debugging/auditing */
   executionLog: SkillExecutionLogEntry[]
+  /** Detected conflicts between active skills */
+  conflicts: ConflictPair[]
   /** Total skills evaluated */
   totalEvaluated: number
   /** Skills that were applied */
@@ -38,11 +50,54 @@ export interface ProcessedSkill {
   prompt_template: string
   builtin?: boolean
   execution_mode: SkillExecutionMode
+  order: number
+  tags?: string[]
 }
+
+// ─── Conflict Detection ───────────────────────────────────────────────────────
+
+/**
+ * Detect conflicts between active skills by finding shared tags.
+ * Higher-priority (lower order) skill wins the conflict.
+ */
+export function detectConflicts(skills: ProcessedSkill[]): ConflictPair[] {
+  const conflicts: ConflictPair[] = []
+  const seen = new Set<string>()
+
+  for (let i = 0; i < skills.length; i++) {
+    const a = skills[i]
+    if (!a.tags || a.tags.length === 0) continue
+
+    for (let j = i + 1; j < skills.length; j++) {
+      const b = skills[j]
+      if (!b.tags || b.tags.length === 0) continue
+
+      const pairKey = [a.id, b.id].sort().join(':')
+      if (seen.has(pairKey)) continue
+
+      const shared = a.tags.filter(t => b.tags!.includes(t))
+      if (shared.length === 0) continue
+
+      seen.add(pairKey)
+
+      const winner = a.order <= b.order ? a : b
+      conflicts.push({
+        skillA: { id: a.id, name: a.name, order: a.order },
+        skillB: { id: b.id, name: b.name, order: b.order },
+        sharedTags: shared,
+        resolution: `"${winner.name}" takes precedence (order ${winner.order})`,
+      })
+    }
+  }
+
+  return conflicts
+}
+
+// ─── Main Pipeline ────────────────────────────────────────────────────────────
 
 /**
  * Process skills through the execution pipeline.
- * Filters by enabled + execution_mode, orders by priority, logs decisions.
+ * Filters by enabled + execution_mode, orders by priority, detects conflicts, logs decisions.
  */
 export function processSkills(
   skills: Skill[],
@@ -115,18 +170,25 @@ export function processSkills(
         prompt_template: skill.prompt_template,
         builtin: skill.builtin,
         execution_mode: mode,
+        order: skill.order ?? 999,
+        tags: skill.tags,
       })
     }
   }
 
+  const conflicts = detectConflicts(active)
+
   return {
     activeSkills: active,
     executionLog: log,
+    conflicts,
     totalEvaluated: sorted.length,
     totalApplied: active.length,
     processingTimeMs: Math.round((performance.now() - start) * 100) / 100,
   }
 }
+
+// ─── Conversion ───────────────────────────────────────────────────────────────
 
 /**
  * Convert processed skills to the projectRules format expected by generateSystemPrompt.
@@ -141,11 +203,13 @@ export function toProjectRules(processed: ProcessedSkill[]): Array<{
   return processed.map(s => ({
     filename: s.id,
     description: s.description || s.name,
-    alwaysApply: true, // already filtered — all processed skills are active
+    alwaysApply: true,
     content: s.prompt_template,
     builtin: s.builtin,
   }))
 }
+
+// ─── Formatting ───────────────────────────────────────────────────────────────
 
 /**
  * Format execution log as a human-readable summary (for console/debugging).
@@ -157,6 +221,12 @@ export function formatExecutionLog(result: SkillProcessorResult): string {
   for (const entry of result.executionLog) {
     const icon = entry.applied ? '✓' : '·'
     lines.push(`  ${icon} ${entry.skillName} [${entry.execution_mode}] — ${entry.reason}`)
+  }
+  if (result.conflicts.length > 0) {
+    lines.push(`  ⚠ ${result.conflicts.length} conflict(s) detected:`)
+    for (const c of result.conflicts) {
+      lines.push(`    "${c.skillA.name}" ↔ "${c.skillB.name}" [${c.sharedTags.join(', ')}] → ${c.resolution}`)
+    }
   }
   return lines.join('\n')
 }

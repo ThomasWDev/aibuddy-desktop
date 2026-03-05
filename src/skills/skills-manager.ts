@@ -32,6 +32,7 @@ const BUILTIN_SENIOR_ENGINEERING: Skill = {
   id: '_builtin_senior_engineering',
   name: 'Senior Engineering Standards',
   description: 'Full investigation before coding, TDD, fix root causes',
+  tags: ['engineering', 'investigation', 'root-cause'],
   prompt_template: `# Senior Engineering Standards
 
 Do a full investigation before writing code. Use the best approach as if you are
@@ -60,6 +61,7 @@ const BUILTIN_TDD: Skill = {
   id: '_builtin_tdd_and_documentation',
   name: 'TDD and Documentation',
   description: 'Red-Green-Refactor, smoke tests, no duplicated test code',
+  tags: ['testing', 'documentation', 'tdd'],
   prompt_template: `# TDD and Documentation
 
 ## Document Everything
@@ -92,6 +94,7 @@ const BUILTIN_CODE_QUALITY: Skill = {
   id: '_builtin_code_quality',
   name: 'Code Quality Standards',
   description: 'Read existing code first, fix linter errors, guard entry points',
+  tags: ['code-quality', 'linting', 'engineering'],
   prompt_template: `# Code Quality Standards
 
 - Read existing code and docs before writing new code
@@ -193,6 +196,7 @@ export class SkillsStorageManager {
     order?: number
     visibility?: SkillVisibility
     execution_mode?: SkillExecutionMode
+    tags?: string[]
   }): Skill {
     if (this.state.skills.length >= MAX_SKILLS) {
       throw new Error(`Maximum skill limit reached (${MAX_SKILLS})`)
@@ -212,6 +216,7 @@ export class SkillsStorageManager {
       visibility: params.visibility || 'private',
       execution_mode: params.execution_mode || 'always',
       order: params.order,
+      tags: params.tags,
     }
 
     this.state.skills.push(skill)
@@ -221,8 +226,21 @@ export class SkillsStorageManager {
 
   // ─── Update ───────────────────────────────────────────────────────────────
 
+  /** Batch-reorder skills by setting order from the provided ID list */
+  public reorderSkills(orderedIds: string[]): void {
+    for (let i = 0; i < orderedIds.length; i++) {
+      const id = orderedIds[i]
+      const skill = this.state.skills.find(s => s.id === id)
+      if (skill) {
+        skill.order = i
+        skill.updated_at = Date.now()
+      }
+    }
+    this.scheduleSave()
+  }
+
   public updateSkill(id: string, updates: Partial<Pick<Skill,
-    'name' | 'description' | 'prompt_template' | 'enabled' | 'scope' | 'order' | 'visibility' | 'execution_mode'
+    'name' | 'description' | 'prompt_template' | 'enabled' | 'scope' | 'order' | 'visibility' | 'execution_mode' | 'tags'
   >>): Skill | null {
     const builtin = BUILTIN_SKILLS.find(s => s.id === id)
     if (builtin) return null // cannot update built-ins
@@ -239,6 +257,7 @@ export class SkillsStorageManager {
     if (updates.order !== undefined) skill.order = updates.order
     if (updates.visibility !== undefined) skill.visibility = updates.visibility
     if (updates.execution_mode !== undefined) skill.execution_mode = updates.execution_mode
+    if (updates.tags !== undefined) skill.tags = updates.tags
     skill.updated_at = Date.now()
 
     this.state.skills[idx] = skill
