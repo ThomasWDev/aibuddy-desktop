@@ -3156,7 +3156,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         setLastCost(data.api_cost)
         try { window.electronAPI?.store?.set('lastCost', data.api_cost) } catch (e) { /* non-critical */ }
         setTotalSessionCost(prev => prev + data.api_cost)
-        try { window.electronAPI?.store?.get('totalSessionCost').then((cur: number) => window.electronAPI?.store?.set('totalSessionCost', (cur || 0) + data.api_cost)) } catch (e) { /* non-critical */ }
+        try { window.electronAPI?.store?.get('totalSessionCost').then((cur) => window.electronAPI?.store?.set('totalSessionCost', (Number(cur) || 0) + data.api_cost)) } catch (e) { /* non-critical */ }
       }
       if (data.model) {
         setLastModel(data.model)

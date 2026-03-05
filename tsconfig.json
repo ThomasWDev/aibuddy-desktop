@@ -22,7 +22,9 @@
       "@/*": ["src/*"],
       "@renderer/*": ["renderer/src/*"],
       "@electron/*": ["electron/*"],
-      "@shared/*": ["src/shared/*"]
+      "@shared/*": ["src/shared/*"],
+      "@aibuddy/prompts": ["packages/prompts/src/index.ts"],
+      "@aibuddy/prompts/*": ["packages/prompts/src/*"]
     }
   },
   "include": [

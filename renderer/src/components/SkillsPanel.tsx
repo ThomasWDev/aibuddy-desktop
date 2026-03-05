@@ -403,7 +403,7 @@ export function SkillsPanel({ skills, workspacePath, onClose, onSkillsChanged }:
                       if (result?.success) {
                         setSyncResult({ added: result.added, updated: result.updated })
                         const refreshed = await electronAPI?.skills?.getAll?.()
-                        if (refreshed) onSkillsUpdate?.(refreshed)
+                        if (refreshed) onSkillsChanged?.()
                       } else {
                         setApiError(result?.error || 'Sync failed')
                       }

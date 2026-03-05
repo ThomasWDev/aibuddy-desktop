@@ -164,8 +164,8 @@ export interface ElectronAPI {
     getActive: (workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[]; source?: string; catalog_id?: string }>>
     getForPrompt: (workspacePath?: string) => Promise<Array<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[]; source?: string; catalog_id?: string }>>
     getById: (id: string) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; builtin?: boolean; order?: number; visibility?: string; execution_mode?: string; tags?: string[]; source?: string; catalog_id?: string } | null>
-    create: (params: { name: string; description?: string; prompt_template: string; enabled?: boolean; scope?: string; order?: number; visibility?: string; execution_mode?: string; tags?: string[] }) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; visibility?: string; execution_mode?: string; tags?: string[] } | null>
-    update: (id: string, updates: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; order?: number; visibility?: string; execution_mode?: string; tags?: string[] }) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; visibility?: string; execution_mode?: string; tags?: string[] } | null>
+    create: (params: { name: string; description?: string; prompt_template: string; enabled?: boolean; scope?: string; order?: number; visibility?: string; execution_mode?: string; tags?: string[]; allowed_tools?: string[] }) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; visibility?: string; execution_mode?: string; tags?: string[] } | null>
+    update: (id: string, updates: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; order?: number; visibility?: string; execution_mode?: string; tags?: string[]; allowed_tools?: string[] }) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; visibility?: string; execution_mode?: string; tags?: string[] } | null>
     delete: (id: string) => Promise<boolean>
     toggle: (id: string) => Promise<{ id: string; name: string; description: string; prompt_template: string; enabled: boolean; scope: string; created_by: string; created_at: number; updated_at: number; tags?: string[] } | null>
     reorder: (orderedIds: string[]) => Promise<boolean>
@@ -173,6 +173,28 @@ export interface ElectronAPI {
     getCatalog: () => Promise<Array<{ catalog_id: string; name: string; description: string; prompt_template: string; author: string; tags: string[]; category: string; icon: string; scope: string; execution_mode: string }>>
     install: (catalogId: string) => Promise<{ id: string; name: string; catalog_id?: string; source?: string } | null>
     getInstalledCatalogIds: () => Promise<string[]>
+    executeTool: (request: { skillId: string; tool: string; action: string; params: Record<string, string>; workspacePath: string }) => Promise<unknown>
+    getPermission: (skillId: string, tool: string) => Promise<unknown>
+    setPermission: (skillId: string, tool: string, level: string) => Promise<unknown>
+    getAllPermissions: () => Promise<unknown>
+    resetPermission: (skillId: string, tool: string) => Promise<unknown>
+    getAuditLog: (limit?: number) => Promise<unknown>
+    getAuditLogForSkill: (skillId: string) => Promise<unknown>
+    clearAuditLog: () => Promise<unknown>
+    requestToolExecution: (request: { skillId: string; tool: string; action: string; params: Record<string, string>; workspacePath: string; decision?: string }) => Promise<unknown>
+    addExecutionRecord: (record: { id: string; timestamp: number; totalEvaluated: number; totalApplied: number; processingTimeMs: number; conflictCount: number; entries: Array<{ skillId: string; skillName: string; execution_mode: string; applied: boolean; reason: string }> }) => Promise<unknown>
+    getExecutionHistory: (limit?: number) => Promise<unknown>
+    clearExecutionHistory: () => Promise<unknown>
+    apiGetSettings: () => Promise<unknown>
+    apiSetSettings: (settings: { baseUrl: string; apiKey?: string; lastSyncAt?: number; autoSync?: boolean }) => Promise<unknown>
+    apiValidateUrl: (url: string) => Promise<unknown>
+    apiList: () => Promise<unknown>
+    apiGet: (id: string) => Promise<unknown>
+    apiCreate: (payload: { name: string; description: string; prompt_template: string; enabled?: boolean; scope?: string; execution_mode?: string; tags?: string[]; allowed_tools?: string[]; visibility?: string }) => Promise<unknown>
+    apiUpdate: (id: string, payload: { name?: string; description?: string; prompt_template?: string; enabled?: boolean; scope?: string; execution_mode?: string; tags?: string[]; allowed_tools?: string[]; visibility?: string }) => Promise<unknown>
+    apiDelete: (id: string) => Promise<unknown>
+    apiSync: () => Promise<unknown>
+    apiGetCatalog: () => Promise<unknown>
   }
 
   // Generic invoke for backwards compatibility
