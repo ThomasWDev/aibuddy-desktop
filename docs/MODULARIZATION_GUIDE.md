@@ -979,17 +979,17 @@ cd aibuddy-desktop && pnpm build:ci     # Desktop: tests + Electron build
 | **Operations** | Known Issues | `KNOWN_ISSUES.md` |
 | **Operations** | Extension Changelog | `extension/CHANGELOG.md` |
 
-### Test Counts (March 6, 2026 — Post v1.5.96)
+### Test Counts (March 6, 2026 — Post v1.5.97 session)
 
 | Project | Framework | Tests | Files |
 |---------|-----------|-------|-------|
-| Extension (Vitest) | Vitest | 4,739 | 212 |
-| Desktop (Vitest) | Vitest | 5,199 | 183 |
+| Extension (Vitest) | Vitest | 4,925 | 224 |
+| Desktop (Vitest) | Vitest | 5,264 | 186 |
 | Desktop (Playwright E2E) | Playwright | 90+ | 1 |
 | Lambda API (Jest) | Jest | 186 | 6 |
 | @aibuddy/core (Vitest) | Vitest | 202 | 12 |
 | @aibuddy/prompts (Vitest) | Vitest | 174 | - |
-| **Total** | | **~10,590+** | |
+| **Total** | | **~10,841+** | |
 
 ### External Repo Sync Status (March 6, 2026)
 
