@@ -339,28 +339,28 @@ export function HistorySidebar({
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={(e) => handleTogglePin(thread.id, !!thread.isPinned, e)}
-                              className={`p-1 rounded transition-colors ${
+                              className={`p-1.5 rounded-md transition-colors ${
                                 thread.isPinned 
-                                  ? 'text-yellow-400 hover:text-yellow-300' 
-                                  : 'text-gray-400 hover:text-yellow-400'
+                                  ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-400/10' 
+                                  : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10'
                               }`}
                               title={thread.isPinned ? t('historySidebar.unpinChat') : t('historySidebar.pinChat')}
                             >
-                              <Star className={`w-3.5 h-3.5 ${thread.isPinned ? 'fill-current' : ''}`} />
+                              <Star className={`w-4 h-4 ${thread.isPinned ? 'fill-current' : ''}`} />
                             </button>
                             <button
                               onClick={(e) => startEditing(thread, e)}
-                              className="p-1 text-gray-400 hover:text-white rounded"
+                              className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-md transition-colors"
                               title={t('historySidebar.renameChat')}
                             >
-                              <Edit2 className="w-3.5 h-3.5" />
+                              <Edit2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={(e) => handleDelete(thread.id, e)}
-                              className="p-1 text-gray-400 hover:text-red-400 rounded"
+                              className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors"
                               title={t('historySidebar.deleteChat')}
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </>
