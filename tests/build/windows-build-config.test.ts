@@ -40,6 +40,23 @@ describe('Windows Build Configuration', () => {
         expect(nsisTarget.arch).toContain('x64')
       }
     })
+
+    it('win config must only use valid electron-builder properties', () => {
+      const validWinProps = new Set([
+        'appId', 'artifactName', 'asar', 'asarUnpack', 'azureSignOptions',
+        'compression', 'cscKeyPassword', 'cscLink', 'defaultArch',
+        'detectUpdateChannel', 'disableDefaultIgnoredFiles', 'electronLanguages',
+        'electronUpdaterCompatibility', 'executableName', 'extraFiles',
+        'extraResources', 'fileAssociations', 'files', 'forceCodeSigning',
+        'generateUpdatesFilesForAllChannels', 'icon', 'legalTrademarks',
+        'protocols', 'publish', 'releaseInfo', 'requestedExecutionLevel',
+        'signAndEditExecutable', 'signExts', 'signtoolOptions', 'target',
+        'verifyUpdateCodeSignature',
+      ])
+      for (const key of Object.keys(buildConfig.win)) {
+        expect(validWinProps.has(key)).toBe(true)
+      }
+    })
   })
 
   describe('package.json build.nsis', () => {
