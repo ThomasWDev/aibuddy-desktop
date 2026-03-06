@@ -22,6 +22,17 @@ import { COMMUNICATION_PROTOCOL } from './core/communication'
 import { AGENTIC_EXECUTION } from './core/agentic-execution'
 import { IMAGE_ANALYSIS_PROMPT } from './core/image-analysis'
 
+export const LANGUAGE_NAMES: Record<string, string> = {
+  es: 'Spanish', fr: 'French', de: 'German', ja: 'Japanese', ko: 'Korean',
+  'zh-Hans': 'Simplified Chinese', 'zh-Hant': 'Traditional Chinese',
+  'pt-BR': 'Brazilian Portuguese', 'pt-PT': 'European Portuguese',
+  it: 'Italian', nl: 'Dutch', ru: 'Russian', ar: 'Arabic', hi: 'Hindi',
+  tr: 'Turkish', pl: 'Polish', sv: 'Swedish', th: 'Thai', da: 'Danish',
+  fi: 'Finnish', no: 'Norwegian', cs: 'Czech', el: 'Greek', he: 'Hebrew',
+  hu: 'Hungarian', id: 'Indonesian', ms: 'Malay', ro: 'Romanian',
+  sk: 'Slovak', uk: 'Ukrainian', hr: 'Croatian', vi: 'Vietnamese', ca: 'Catalan',
+}
+
 /**
  * Desktop app: rules so the AI and user avoid wrong-workspace mistakes.
  * - Commands run only in the currently opened folder.
@@ -185,17 +196,7 @@ export function generateSystemPrompt(context?: SystemPromptContext): string {
     }
 
     if (context.uiLanguage && context.uiLanguage !== 'en') {
-      const langNames: Record<string, string> = {
-        es: 'Spanish', fr: 'French', de: 'German', ja: 'Japanese', ko: 'Korean',
-        'zh-Hans': 'Simplified Chinese', 'zh-Hant': 'Traditional Chinese',
-        'pt-BR': 'Brazilian Portuguese', 'pt-PT': 'European Portuguese',
-        it: 'Italian', nl: 'Dutch', ru: 'Russian', ar: 'Arabic', hi: 'Hindi',
-        tr: 'Turkish', pl: 'Polish', sv: 'Swedish', th: 'Thai', da: 'Danish',
-        fi: 'Finnish', no: 'Norwegian', cs: 'Czech', el: 'Greek', he: 'Hebrew',
-        hu: 'Hungarian', id: 'Indonesian', ms: 'Malay', ro: 'Romanian',
-        sk: 'Slovak', uk: 'Ukrainian', hr: 'Croatian', vi: 'Vietnamese', ca: 'Catalan',
-      }
-      const langName = langNames[context.uiLanguage] ?? context.uiLanguage
+      const langName = LANGUAGE_NAMES[context.uiLanguage] ?? context.uiLanguage
       prompt += `\n\n### 🌍 LANGUAGE INSTRUCTION\n**The user's UI language is ${langName} (\`${context.uiLanguage}\`).** You MUST reply in **${langName}** unless the user explicitly writes in English or asks you to use a different language. Keep code, terminal commands, file paths, and technical identifiers in English/ASCII, but all explanations, comments to the user, questions, and conversational text MUST be in ${langName}.`
     }
 

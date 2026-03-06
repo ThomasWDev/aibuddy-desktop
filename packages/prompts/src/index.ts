@@ -23,6 +23,7 @@
 export {
   AIBUDDY_SYSTEM_PROMPT,
   DESKTOP_PLATFORM_CONTEXT,
+  LANGUAGE_NAMES,
   generateSystemPrompt,
   getIdentityPrompt,
   getTDDPrompt,
