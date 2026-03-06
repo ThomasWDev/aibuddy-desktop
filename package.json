@@ -203,32 +203,17 @@
       ]
     },
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         {
           "target": "nsis",
           "arch": [
             "x64"
           ]
-        },
-        {
-          "target": "appx",
-          "arch": [
-            "x64"
-          ]
         }
       ],
-      "legalTrademarks": "AIBuddy is a trademark of AIBuddy Studio"
-    },
-    "appx": {
-      "identityName": "AIBuddyStudio.AIBuddy",
-      "publisher": "CN=YOUR_PUBLISHER_ID",
-      "publisherDisplayName": "AIBuddy Studio",
-      "applicationId": "AIBuddy",
-      "displayName": "AIBuddy Desktop IDE",
-      "languages": [
-        "en-US"
-      ],
-      "backgroundColor": "#1a1a2e"
+      "legalTrademarks": "AIBuddy is a trademark of AIBuddy Studio",
+      "publisherName": "AIBuddy Studio"
     },
     "linux": {
       "target": [

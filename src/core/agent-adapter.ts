@@ -40,6 +40,7 @@ export interface ToolUse {
 
 export interface AgentConfig {
   apiKey?: string
+  apiUrl?: string
   model?: string
   maxTokens?: number
   temperature?: number
@@ -512,12 +513,17 @@ export class AIAgent extends EventEmitter {
       messages: agentMessages
     }
 
-    // Use AIBuddy API endpoint
-    const response = await fetch('https://api.aibuddy.life/chat', {
+    const inferenceUrl = this.config.apiUrl
+    if (!inferenceUrl) {
+      throw new Error('API endpoint not configured. Pass apiUrl in AgentConfig.')
+    }
+
+    const response = await fetch(inferenceUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'X-AIBuddy-API-Key': apiKey,
+        'X-Requested-With': 'AIBuddy-Desktop',
       },
       body: JSON.stringify(requestBody),
       signal: this.abortController?.signal
