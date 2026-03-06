@@ -1,7 +1,7 @@
 # AIBuddy Desktop — Modularization Guide
 
 **Created:** March 5, 2026  
-**Last Updated:** March 5, 2026  
+**Last Updated:** March 6, 2026  
 **Purpose:** Enable external developers to work on isolated logic modules without access to the full application. Developers can build and test their modules independently; reconstructing the full app from modules alone requires significant effort.
 
 ---
@@ -63,14 +63,14 @@ AICodingVS/                              Root monorepo (pnpm workspaces)
 |   |-- electron/                        Main process (IPC handlers)
 |   |-- renderer/                        React UI (App.tsx, components, hooks)
 |   |-- src/                             Shared logic (adapters, agent, knowledge)
-|   |-- tests/                           Vitest tests (3,259+)
+|   |-- tests/                           Vitest tests (5,199 — verified Mar 6, 2026)
 |   +-- packages/prompts/                Local copy of @aibuddy/prompts
 |-- packages/                            Shared packages (pnpm workspace:*)
-|   |-- core/                            @aibuddy/core (202 tests)
-|   |-- prompts/                         @aibuddy/prompts (system prompts)
-|   |-- types/                           @aibuddy/types (TypeScript types)
+|   |-- core/                            @aibuddy/core (202 tests, 17 source files)
+|   |-- prompts/                         @aibuddy/prompts (system prompts — synced with external repo)
+|   |-- types/                           @aibuddy/types (TypeScript types — synced with external repo)
 |   +-- ui/                              @aibuddy/ui (React components, planned)
-|-- aws-api/                             Lambda API backend (Jest, 238 tests)
+|-- aws-api/                             Lambda API backend (Jest, 186 tests)
 |-- .github/workflows/                   CI/CD (5 workflows)
 +-- docs/                                Cross-project documentation
 ```
@@ -979,14 +979,40 @@ cd aibuddy-desktop && pnpm build:ci     # Desktop: tests + Electron build
 | **Operations** | Known Issues | `KNOWN_ISSUES.md` |
 | **Operations** | Extension Changelog | `extension/CHANGELOG.md` |
 
-### Test Counts (March 5, 2026)
+### Test Counts (March 6, 2026 — Post v1.5.96)
 
 | Project | Framework | Tests | Files |
 |---------|-----------|-------|-------|
-| Extension (Vitest) | Vitest | 4,693 | 190 |
-| Desktop (Vitest) | Vitest | 3,259 | 147 |
+| Extension (Vitest) | Vitest | 4,739 | 212 |
+| Desktop (Vitest) | Vitest | 5,199 | 183 |
 | Desktop (Playwright E2E) | Playwright | 90+ | 1 |
-| Lambda API (Jest) | Jest | 238 | 13 |
-| @aibuddy/core (Vitest) | Vitest | 202 | 9 |
+| Lambda API (Jest) | Jest | 186 | 6 |
+| @aibuddy/core (Vitest) | Vitest | 202 | 12 |
 | @aibuddy/prompts (Vitest) | Vitest | 174 | - |
-| **Total** | | **~8,656+** | |
+| **Total** | | **~10,590+** | |
+
+### External Repo Sync Status (March 6, 2026)
+
+| External Repo | In-Tree Path | Sync Status |
+|---------------|-------------|-------------|
+| `ThomasWDev/aibuddy-types` | `packages/types/` | **IN SYNC** — `index.ts` md5 matches |
+| `ThomasWDev/aibuddy-prompts` | `packages/prompts/` | **IN SYNC** — all .ts files match content |
+| `ThomasWDev/aibuddy-logic` | `packages/core/` | **DIVERGED** — in-tree has 17 files + 12 test files (suggestions, tools, queue); external has 6 files + 2 test files (agent, parsers, services). In-tree is the canonical version with 202 tests. |
+
+**Action:** `aibuddy-logic` needs re-sync from `packages/core/`. Run:
+```bash
+cp -R packages/core/src/* ~/Documents/GitHub/aibuddy-logic/src/
+cp -R packages/core/tests/* ~/Documents/GitHub/aibuddy-logic/tests/
+cd ~/Documents/GitHub/aibuddy-logic && pnpm test
+```
+
+### Lessons Learned (v1.5.96 Modularization Audit)
+
+| Lesson | Detail |
+|--------|--------|
+| **Types and prompts are safe to share** | `@aibuddy/types` and `@aibuddy/prompts` are pure declarations with no side effects. They sync cleanly between in-tree and external repos. External devs can work on prompts without any app context. |
+| **Core/logic diverges fast** | `packages/core` (in-tree) added suggestions, tools, queue, analytics modules after the initial `aibuddy-logic` extract. Always re-sync after adding features to `packages/core/`. |
+| **14 files touch App.tsx** | KAN-7, 32, 33, 53, 95, 177, 179, 180, 181, 182, 183, 184, 189, 190 all modify `renderer/src/App.tsx`. Any modularization that extracts logic FROM App.tsx into a shared package must update all 14 test files. |
+| **Shared test infrastructure is critical** | Desktop uses `tests/setup.ts` for global mocks (localStorage, electronAPI, fetch). Every new module must import from setup, never duplicate mocks. |
+| **One commit per ticket enables traceability** | `git log --grep="KAN-136"` returns exactly one commit with the full fix. This makes `git bisect` reliable and Jira→code linking trivial. |
+| **CI tests ≠ deploy success** | v1.5.96 CI: all 3 test jobs passed, all 3 build jobs passed, but 2 of 3 deploy steps failed (VSCE_PAT missing, SiteGround SSH blocked). Separate test health from deploy health in status dashboards. |
