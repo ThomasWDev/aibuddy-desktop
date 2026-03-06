@@ -2667,10 +2667,10 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         imageCount: currentImages.length
       })
 
-      // Using ALB (Application Load Balancer) - same as VS Code extension
-      // ALB has NO timeout limit - can wait for Lambda's full 5-minute timeout
-      // This fixes Claude Opus 4.5 timeout issues (can take 2+ minutes)
-      const TIMEOUT_MS = 300_000 // 5 minutes (same as VS Code extension)
+      // KAN-301 FIX: Split timeout — fail fast if server never responds,
+      // but allow long pauses once streaming starts (Opus 4.5 reasoning).
+      const FIRST_TOKEN_TIMEOUT_MS = 90_000 // 90s — server should respond within this
+      const STREAM_INACTIVITY_TIMEOUT_MS = 300_000 // 5 min — allow long reasoning pauses
       let response: Response | null = null
 
       // Prepare request body - backend handles model selection via smart routing
@@ -2785,16 +2785,16 @@ Be concise and actionable. Use an alternative approach, not the same commands th
       let streamData: any = null
 
       // KAN-133 FIX: Pre-fetch work complete — clear the pre-fetch safety timer.
-      // The main TIMEOUT_MS (5 min) fetch timeout still protects the API call.
+      // KAN-301: FIRST_TOKEN_TIMEOUT_MS (90s) + watchdog (5 min) still protect the API call.
       clearTimeout(preFetchTimer)
 
       try {
         toast.info(`🚀 Sending to AI...`)
         userAbortedRef.current = false // KAN-98 FIX: Reset user-abort flag for each request
-        const timeoutId = setTimeout(() => {
-          console.log(`[App] Request timeout after ${TIMEOUT_MS/1000}s, aborting...`)
+        let activeTimeoutId = setTimeout(() => {
+          console.log(`[App] First-token timeout after ${FIRST_TOKEN_TIMEOUT_MS/1000}s — no response received, aborting`)
           controller.abort()
-        }, TIMEOUT_MS)
+        }, FIRST_TOKEN_TIMEOUT_MS)
 
         // KAN-33 FIX: Track fetch timing for performance monitoring
         const fetchStartTime = Date.now()
@@ -2881,9 +2881,21 @@ Be concise and actionable. Use an alternative approach, not the same commands th
             setStatus('generating')
 
             let buffer = ''
+            let firstTokenReceived = false
             while (true) {
               const { done, value } = await reader.read()
               if (done) break
+
+              // KAN-301: Once first data arrives, replace the short first-token
+              // timeout with the longer inactivity timeout.
+              if (!firstTokenReceived) {
+                firstTokenReceived = true
+                clearTimeout(activeTimeoutId)
+                activeTimeoutId = setTimeout(() => {
+                  console.log(`[App] Stream inactivity timeout after ${STREAM_INACTIVITY_TIMEOUT_MS/1000}s, aborting`)
+                  controller.abort()
+                }, STREAM_INACTIVITY_TIMEOUT_MS)
+              }
 
               buffer += decoder.decode(value, { stream: true })
               const lines = buffer.split('\n')
@@ -2949,7 +2961,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
         })
         }
 
-        clearTimeout(timeoutId)
+        clearTimeout(activeTimeoutId)
         
         const fetchEndTime = Date.now()
         const networkMs = fetchEndTime - fetchStartTime
@@ -2964,7 +2976,7 @@ Be concise and actionable. Use an alternative approach, not the same commands th
             addBreadcrumb('User stopped request (fetch catch)', 'ui.action')
           } else {
             toast.error('⏱️ Request timed out. The AI is taking too long. Try a simpler question.')
-            addBreadcrumb('API timeout', 'api.timeout', { timeoutMs: TIMEOUT_MS })
+            addBreadcrumb('API timeout', 'api.timeout', { firstTokenTimeoutMs: FIRST_TOKEN_TIMEOUT_MS, inactivityTimeoutMs: STREAM_INACTIVITY_TIMEOUT_MS })
           }
           setStatus('idle')
           setIsLoading(false)

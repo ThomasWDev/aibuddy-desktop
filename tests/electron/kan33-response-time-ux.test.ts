@@ -140,12 +140,17 @@ describe('KAN-33: Response Time UX Improvements', () => {
       expect(APP_SOURCE).toContain('MAX_PAYLOAD_BYTES')
     })
 
-    it('TIMEOUT_MS must be set (5 minutes for Claude Opus)', () => {
-      expect(APP_SOURCE).toContain('TIMEOUT_MS')
-      const match = APP_SOURCE.match(/\bconst TIMEOUT_MS\s*=\s*(\d[\d_]*)/)
-      expect(match).toBeTruthy()
-      const timeoutMs = parseInt(match![1].replace(/_/g, ''))
-      expect(timeoutMs).toBe(300000) // 5 minutes
+    it('split timeouts: FIRST_TOKEN_TIMEOUT_MS (<=120s) and STREAM_INACTIVITY_TIMEOUT_MS (>=120s)', () => {
+      const firstMatch = APP_SOURCE.match(/FIRST_TOKEN_TIMEOUT_MS\s*=\s*(\d[\d_]*)/)
+      expect(firstMatch).toBeTruthy()
+      const firstMs = parseInt(firstMatch![1].replace(/_/g, ''))
+      expect(firstMs).toBeLessThanOrEqual(120_000)
+      expect(firstMs).toBeGreaterThanOrEqual(30_000)
+
+      const inactMatch = APP_SOURCE.match(/STREAM_INACTIVITY_TIMEOUT_MS\s*=\s*(\d[\d_]*)/)
+      expect(inactMatch).toBeTruthy()
+      const inactMs = parseInt(inactMatch![1].replace(/_/g, ''))
+      expect(inactMs).toBeGreaterThanOrEqual(120_000)
     })
 
     it('trackSlowOperation must be called for AI responses', () => {
