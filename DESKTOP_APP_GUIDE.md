@@ -1,7 +1,7 @@
 # AIBuddy Desktop IDE - Complete Guide
 
-**Version:** 1.5.93  
-**Last Updated:** March 5, 2026  
+**Version:** 1.5.97  
+**Last Updated:** March 7, 2026  
 **Repository:** https://github.com/ThomasWDev/aibuddy-desktop
 
 ---
@@ -117,8 +117,8 @@ Pre-built binaries are available:
 
 - **macOS (Apple Silicon M1/M2/M3/M4)**: `AIBuddy-{version}-arm64.dmg`
 - **macOS (Intel)**: `AIBuddy-{version}.dmg`
-- **Windows**: Coming soon
-- **Linux**: Coming soon
+- **Windows (x64)**: `AIBuddy Setup {version}.exe` (NSIS installer)
+- **Linux**: `AIBuddy-{version}.AppImage`, `.deb`
 
 Also available on [GitHub Releases](https://github.com/ThomasWDev/aibuddy-desktop/releases)
 
@@ -149,6 +149,41 @@ hdiutil detach "/Volumes/AIBuddy VERSION-arm64"
 
 # 7. Launch
 open -a AIBuddy
+```
+
+### Installing on Windows
+
+```powershell
+# 1. Download the installer from GitHub Actions artifacts or the download page
+#    File: "AIBuddy Setup 1.5.97.exe" (~94 MB, NSIS installer)
+
+# 2. Run the installer
+#    - Windows SmartScreen may warn "Windows protected your PC" (app is unsigned)
+#    - Click "More info" → "Run anyway"
+
+# 3. Choose install location (default: C:\Users\<user>\AppData\Local\Programs\AIBuddy)
+#    - Desktop shortcut and Start Menu shortcut are created automatically
+
+# 4. Launch AIBuddy from Start Menu or desktop shortcut
+```
+
+**Windows-Specific Notes:**
+
+- **SmartScreen Warning**: The app is not yet code-signed with an EV certificate. Users will see a SmartScreen warning on first launch. Click "More info" → "Run anyway".
+- **node-pty on Windows**: Terminal functionality uses `node-pty` which requires Windows build tools. The NSIS installer bundles pre-built native modules.
+- **Log Location**: `%APPDATA%/AIBuddy Desktop/logs/`
+- **DevTools**: Press `Ctrl+Shift+I` to open DevTools (equivalent of `Cmd+Option+I` on macOS)
+- **Uninstall**: Use "Add or Remove Programs" in Windows Settings, or run the uninstaller from the Start Menu
+
+### Installing on Linux
+
+```bash
+# AppImage (recommended — works on all distros)
+chmod +x AIBuddy-{version}.AppImage
+./AIBuddy-{version}.AppImage
+
+# Debian/Ubuntu (.deb)
+sudo dpkg -i AIBuddy-{version}.deb
 ```
 
 ### Testing Checklist (after every install)
@@ -469,6 +504,20 @@ Check entitlements for macOS:
 <key>com.apple.security.files.user-selected.read-write</key>
 <true/>
 ```
+
+#### 5. Windows SmartScreen Blocks Launch
+
+The app is not yet signed with an EV code signing certificate. Windows SmartScreen will show "Windows protected your PC":
+1. Click **More info**
+2. Click **Run anyway**
+
+To eliminate this warning permanently, a Windows EV code signing certificate is needed (`WIN_CSC_LINK` + `WIN_CSC_KEY_PASSWORD` in CI secrets).
+
+#### 6. Windows: Terminal Commands Fail
+
+If terminal commands fail on Windows, ensure:
+- PowerShell or cmd.exe is accessible on `PATH`
+- `node-pty` native module was correctly bundled (check DevTools console for binding errors)
 
 ### Debug Mode
 

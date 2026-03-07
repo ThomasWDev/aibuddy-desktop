@@ -131,11 +131,38 @@ The Mac App Store requires sandboxing, which limits:
 
 ---
 
-## 🪟 Microsoft Store Submission
+## 🪟 Windows Direct Distribution (Current — v1.5.97+)
+
+The Windows build is currently distributed as a **direct NSIS installer** (`.exe`), not via the Microsoft Store. The installer is built automatically in CI on `windows-latest`.
+
+### Build Output
+- **File**: `AIBuddy Setup {version}.exe` (~94 MB)
+- **Type**: NSIS installer, x64
+- **Signing**: Unsigned (SmartScreen warning on first launch — needs EV code signing cert)
+- **CI Job**: `build-desktop-windows` in `release-on-master.yml`
+
+### QA Checklist for Windows
+- [ ] Installer runs without errors
+- [ ] App launches after installation
+- [ ] Desktop + Start Menu shortcuts created
+- [ ] AI chat works (send message, receive response)
+- [ ] Settings panel opens, API key can be entered
+- [ ] Voice input works (if microphone available)
+- [ ] File/project opening works
+- [ ] History/sessions persist across restart
+- [ ] Uninstall via Add/Remove Programs works cleanly
+
+### Windows Code Signing (Future)
+To eliminate the SmartScreen warning, obtain an EV code signing certificate and set `WIN_CSC_LINK` + `WIN_CSC_KEY_PASSWORD` in GitHub Secrets. See `docs/CI_CD_SECRETS_REFERENCE.md` for instructions.
+
+---
+
+## 🪟 Microsoft Store Submission (Future)
 
 ### Prerequisites
-- Microsoft Partner Center account ✅ You have this (same as VS Code extension)
+- Microsoft Partner Center account (same as VS Code extension)
 - Windows 10/11 for building
+- EV Code Signing Certificate for Store submission
 
 ### Step 1: Create App in Partner Center
 
