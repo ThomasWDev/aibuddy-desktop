@@ -185,3 +185,46 @@ describe('CI Workflow — API Tests', () => {
     expect(ciYml).toContain('jest --verbose --ci')
   })
 })
+
+describe('Release Workflow — VSCE_PAT Resilience', () => {
+  it('publish step checks for empty VSCE_PAT before publishing', () => {
+    expect(releaseYml).toContain('if [ -z "$VSCE_PAT" ]')
+  })
+
+  it('packages VSIX even without VSCE_PAT', () => {
+    expect(releaseYml).toContain('npx vsce package --no-dependencies')
+  })
+
+  it('only calls vsce publish when VSCE_PAT is set', () => {
+    const publishBlock = releaseYml.slice(
+      releaseYml.indexOf('Build & Publish VSIX'),
+      releaseYml.indexOf('Upload VSIX artifact')
+    )
+    expect(publishBlock).toContain('npx vsce publish --no-dependencies')
+    expect(publishBlock).toContain('npx vsce package --no-dependencies')
+  })
+})
+
+describe('Release Workflow — App Store DUPLICATE Handling', () => {
+  it('handles DUPLICATE on validate step', () => {
+    expect(releaseYml).toContain('ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE')
+  })
+
+  it('handles DUPLICATE on upload step too', () => {
+    const uploadSection = releaseYml.slice(
+      releaseYml.indexOf('altool --upload-app'),
+      releaseYml.indexOf('Phase 6')
+    )
+    expect(uploadSection).toContain('ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE')
+  })
+})
+
+describe('Release Workflow — Deploy Filename Quoting', () => {
+  it('quotes filenames in remote mv to handle spaces', () => {
+    const deployBlock = releaseYml.slice(
+      releaseYml.indexOf('Deploy to Denver'),
+      releaseYml.indexOf('Deploy to aibuddy.life')
+    )
+    expect(deployBlock).toContain("'$REMOTE_PATH/v${VERSION}/$BASENAME'")
+  })
+})
